@@ -1,0 +1,115 @@
+<style>
+body {
+  background: #fff;
+  font-family: "helvetica neue";
+}
+
+h1 {
+  margin: 20px;
+  font-weight: 300;
+}
+
+h2 {
+  margin: 20px;
+  font-weight: 300;
+}
+.example {
+  /* border-bottom: 1px solid gray; */
+  position: relative;
+  height: 300px;
+}
+
+.real {
+  background: white;
+  position: absolute;
+  left: 20px;
+  border: 1px solid #ddd;
+}
+
+.sim {
+  background: white;
+  position: absolute;
+  left: 240px;
+  border: 1px solid #ddd;
+}
+
+.gcode {
+  position: absolute;
+  left: 460px;
+  right: 20px;
+  top: 33px;
+  /* background: white; */
+  border: 1px solid #ddd;
+  height: 200px;
+  overflow-y: auto;
+}
+
+.rows {
+  height: 20px;
+}
+
+.th-real {
+  position: absolute;
+  left: 30px;
+}
+
+.th-sim {
+  position: absolute;
+  left: 250px;
+}
+
+.th-gcode {
+  position: absolute;
+  left: 470px;
+}
+
+</style>
+
+<h1>GCanvas Examples</h1>
+<div class="rows">
+  <div class="th th-real">HTML5 Canvas</div>
+  <div class="th th-sim">Simulation Driver</div>
+  <div class="th th-gcode">Gcode Driver</div>
+</div>
+
+<div id="examples"></div>
+<script>
+function example(name, fn) {
+  var html = '';
+  html += '<h2>'+name+'</h2>'
+  html += '<canvas class="real" width=200 height=200></canvas>'
+  html += '<canvas class="sim" width=200 height=200></canvas>'
+  html += '<ul class="gcode"></ul>'
+  var ex = document.createElement('div');
+  ex.className = 'example';
+  ex.innerHTML = html;
+  document.getElementById('examples').appendChild(ex);
+
+  var ctx = ex.getElementsByClassName('real')[0].getContext('2d');
+  var simtarget = ex.getElementsByClassName('sim')[0].getContext('2d');
+
+  var simdriver = new GCanvas.Simulator(simtarget);
+  var simctx = new GCanvas(simdriver, 200, 200);
+  var gcodectx = new GCanvas(null, 200, 200);
+
+  var gcodeElem = ex.getElementsByClassName('gcode')[0];
+  gcodectx.driver.stream.write = function(cmd) {
+    var line = document.createElement('li');
+    line.innerText = cmd;
+    gcodeElem.appendChild(line);
+  };
+
+  fn(ctx);
+  fn(simctx);
+  fn(gcodectx);
+
+  simtarget.stroke();
+}
+
+</script>
+
+<script src="../build/build.js"></script>
+<script src="arc.js"></script>
+<script src="star.js"></script>
+<script src="text.js"></script>
+<script src="portal2.js"></script>
