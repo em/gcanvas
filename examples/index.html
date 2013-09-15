@@ -36,12 +36,23 @@ h2 {
 .gcode {
   position: absolute;
   left: 460px;
-  right: 20px;
-  top: 33px;
-  /* background: white; */
   border: 1px solid #ddd;
-  height: 200px;
+  height: 160px;
+  width: 200px;
+  padding: 20px;
   overflow-y: auto;
+  font-size: 90%;
+}
+
+.javascript {
+  position: absolute;
+  left: 720px;
+  right: 20px;
+  border: 1px solid #ddd;
+  height: 160px;
+  padding: 20px 20px 20px 0;
+  overflow-y: auto;
+  white-space: pre;
 }
 
 .rows {
@@ -51,39 +62,60 @@ h2 {
 .th-real {
   position: absolute;
   left: 30px;
+  color: #999;
 }
 
 .th-sim {
   position: absolute;
   left: 250px;
+  color: #999;
 }
 
 .th-gcode {
   position: absolute;
   left: 470px;
+  color: #999;
+}
+
+ul {
+  margin: 0px;
+  padding: 0px;
+  list-style-type: none;
 }
 
 </style>
 
 <h1>GCanvas Examples</h1>
 <div class="rows">
-  <div class="th th-real">HTML5 Canvas</div>
-  <div class="th th-sim">Simulation Driver</div>
-  <div class="th th-gcode">Gcode Driver</div>
+  <div class="th th-real">// Reference Canvas</div>
+  <div class="th th-sim">// Simulation Driver</div>
+  <div class="th th-gcode">// Gcode Driver</div>
 </div>
 
 <div id="examples"></div>
+
+<link rel="stylesheet" href="http://yandex.st/highlightjs/7.3/styles/tomorrow.min.css">
+<script src="http://yandex.st/highlightjs/7.3/highlight.min.js"></script>
+
 <script>
+hljs.initHighlightingOnLoad();
+
 function example(name, fn) {
   var html = '';
   html += '<h2>'+name+'</h2>'
   html += '<canvas class="real" width=200 height=200></canvas>'
   html += '<canvas class="sim" width=200 height=200></canvas>'
   html += '<ul class="gcode"></ul>'
+  html += '<pre><code class="javascript"></code></pre>'
   var ex = document.createElement('div');
   ex.className = 'example';
   ex.innerHTML = html;
   document.getElementById('examples').appendChild(ex);
+
+  var jsElem = ex.getElementsByClassName('javascript')[0];
+  jsElem.textContent = fn.toString()
+    .match(/\{([\s\S]*)\}/)[1]
+    .replace(/^\n+/, '');
 
   var ctx = ex.getElementsByClassName('real')[0].getContext('2d');
   var simtarget = ex.getElementsByClassName('sim')[0].getContext('2d');
@@ -95,7 +127,7 @@ function example(name, fn) {
   var gcodeElem = ex.getElementsByClassName('gcode')[0];
   gcodectx.driver.stream.write = function(cmd) {
     var line = document.createElement('li');
-    line.innerText = cmd;
+    line.textContent = cmd;
     gcodeElem.appendChild(line);
   };
 
