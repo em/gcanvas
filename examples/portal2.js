@@ -6,9 +6,9 @@ example('portal2', function(ctx) {
   // http://www.codeproject.com/Articles/237065/Introduction-to-HTML5-Canvas-Part-2-Example
   function portal2(ctx) {
     //function to convert deg to radian
-      var acDegToRad = function(deg){
-        return deg* (-(Math.PI / 180.0));    
-      }
+    var acDegToRad = function(deg){
+      return deg* (-(Math.PI / 180.0));    
+    }
 
     //save the initial state of the context
     ctx.save();		
@@ -80,9 +80,9 @@ example('portal2', function(ctx) {
     ctx.lineTo(195,260);
     ctx.lineTo(160,290);
     ctx.stroke();
-    
+
     //restore the <code class="prettyprint">context</code> 
-           //back to its initial state
+    //back to its initial state
     ctx.restore();
     // body...
   }
