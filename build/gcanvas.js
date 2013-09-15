@@ -42627,19 +42627,46 @@ GCanvas.prototype = {\n\
     var polygons = [];\n\
     this.subPaths.forEach(function(path) {\n\
       if(path.actions.length !== 0)\n\
-        polygons.push( path.getPoints().map(function(p) {\n\
+        polygons.push( path.getPoints(40).map(function(p) {\n\
           return {X: p.x, Y: p.y};\n\
         }) );\n\
     });\n\
+\n\
+    function path2poly(path) {\n\
+      var poly = [];\n\
+      if(path.actions.length !== 0)\n\
+        poly.push( path.getPoints(40).map(function(p) {\n\
+          return {X: p.x, Y: p.y};\n\
+        }) );\n\
+        return poly;\n\
+    }\n\
+\n\
+\n\
+    polygons = ClipperLib.Clean(polygons, cleandelta * scale);\n\
+\n\
+    if(this.clipRegion) {\n\
+      var cpr = new ClipperLib.Clipper();\n\
+      var subject_fillType = 0;\n\
+      var clip_fillType = 1;\n\
+      var clip_polygons = path2poly(this.clipRegion);\n\
+      // var clipType = ClipperLib.ClipType.ctIntersection;\n\
+      var clipType = 0;\n\
+      cpr.AddPolygons(polygons, ClipperLib.PolyType.ptSubject);\n\
+      cpr.AddPolygons(clip_polygons, ClipperLib.PolyType.ptClip);\n\
+      var result = [];\n\
+      var succeeded = cpr.Execute(clipType, result, subject_fillType, clip_fillType);\n\
+      polygons = result;\n\
+    }\n\
 \n\
     scaleup(polygons, 1000);\n\
 \n\
     delta *= 1000;\n\
 \n\
     var scale = 1;\n\
-    var cleandelta = 1; // 0.1 should be the appropriate delta in different cases\n\
+    var cleandelta = 0.1; // 0.1 should be the appropriate delta in different cases\n\
 \n\
-    polygons = ClipperLib.Clean(polygons, cleandelta * scale);\n\
+    polygons = cpr.SimplifyPolygons(polygons, ClipperLib.PolyFillType.pftNonZero);\n\
+    // polygons = ClipperLib.Clean(polygons, cleandelta * scale);\n\
 \n\
     cpr.AddPolygons(polygons, ClipperLib.PolyType.ptSubject);\n\
 \n\
@@ -42689,6 +42716,7 @@ GCanvas.prototype = {\n\
     this._strokePath(polys2path(offsetted_polygon));\n\
   }\n\
 , clip: function() {\n\
+    this.clipRegion = this.path;\n\
   }\n\
 , fill: function() {\n\
     for(var i = - this.toolDiameter/2; i > -1000; i -= this.toolDiameter) {\n\
@@ -42696,13 +42724,16 @@ GCanvas.prototype = {\n\
       if(done) return;\n\
     }\n\
   }\n\
-, fillRect: function(x,y,w,h) { \n\
-    this.beginPath();\n\
+, rect: function(x,y,w,h) { \n\
     this.moveTo(x,y);\n\
     this.lineTo(x+w,y);\n\
     this.lineTo(x+w,y+h);\n\
     this.lineTo(x,y+h);\n\
     this.lineTo(x,y);\n\
+  }\n\
+, fillRect: function(x,y,w,h) { \n\
+    this.beginPath();\n\
+    this.rect.apply(this, arguments);\n\
     this.fill();\n\
   }\n\
 , measureText: function(text) {\n\
