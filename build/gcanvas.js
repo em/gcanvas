@@ -43129,6 +43129,9 @@ GCodeDriver.prototype = {\n\
     }\n\
     this.stream.write(command);\n\
   }\n\
+, send: function(command) {\n\
+    this.stream.write(command);\n\
+ }\n\
 , rapid: function(params) {\n\
     this.g(0, params);\n\
   }\n\
