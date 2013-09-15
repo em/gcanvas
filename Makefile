@@ -2,7 +2,7 @@ all: build/build.js
 
 build/build.js: index.js lib/*.js
 	# rebuild
-	@component build --dev -s GCanvas
+	@component build --dev -s GCanvas -n gcanvas
 
 components: component.json
 	@component install --dev
