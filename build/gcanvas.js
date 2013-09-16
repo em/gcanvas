@@ -432,1914 +432,430 @@ var FontUtils = {\n\
 module.exports = FontUtils;\n\
 //@ sourceURL=gcanvas/lib/FontUtils.js"
 ));
-require.register("gcanvas/lib/math/Vector2.js", Function("exports, require, module",
-"/**\n\
- * @author mrdoob / http://mrdoob.com/\n\
- * @author philogb / http://blog.thejit.org/\n\
- * @author egraether / http://egraether.com/\n\
- * @author zz85 / http://www.lab4games.net/zz85/blog\n\
+require.register("gcanvas/lib/math/point.js", Function("exports, require, module",
+"module.exports = Point;\n\
+\n\
+function Point(x,y,z) {\n\
+  this.x = x;\n\
+  this.y = y;\n\
+  this.z = z;\n\
+};\n\
+\n\
+Point.prototype = {\n\
+  clone: function() {\n\
+    return new Point(this.x,this.y);\n\
+  },\n\
+\n\
+  round: function() {\n\
+    return new Point(Math.round(this.x),Math.round(this.y));\n\
+  },\n\
+\n\
+  each: function(f) {\n\
+    return new Point(f(this.x),f(this.y));\n\
+  },\n\
+\n\
+  /**\n\
+   * Check whether two points are equal. The x and y values must be exactly\n\
+   * equal for this method to return true.\n\
+   * @name equal\n\
+   * @methodOf Point#\n\
+   *\n\
+   * @param {Point} other The point to check for equality.\n\
+   * @returns true if this point is equal to the other point, false\n\
+   * otherwise.\n\
+   * @type Boolean\n\
+   */\n\
+  equal: function(other) {\n\
+    return this.x === other.x && this.y === other.y;\n\
+  },\n\
+  /**\n\
+   * Adds a point to this one and returns the new point.\n\
+   * @name add\n\
+   * @methodOf Point#\n\
+   *\n\
+   * @param {Point} other The point to add this point to.\n\
+   * @returns A new point, the sum of both.\n\
+   * @type Point\n\
+   */\n\
+  add: function(other) {\n\
+    return new Point(this.x + other.x, this.y + other.y);\n\
+  },\n\
+  /**\n\
+   * Subtracts a point from this one and returns the new point.\n\
+   * @name sub\n\
+   * @methodOf Point#\n\
+   *\n\
+   * @param {Point} other The point to subtract from this point.\n\
+   * @returns A new point, the difference of both.\n\
+   * @type Point\n\
+   */\n\
+  sub: function(other) {\n\
+    return new Point(this.x - other.x, this.y - other.y);\n\
+  },\n\
+  /**\n\
+   * Multiplies this point by a scalar value and returns the new point.\n\
+   * @name scale\n\
+   * @methodOf Point#\n\
+   *\n\
+   * @param {Point} scalar The value to scale this point by.\n\
+   * @returns A new point with x and y multiplied by the scalar value.\n\
+   * @type Point\n\
+   */\n\
+  scale: function(scalar) {\n\
+    return new Point(this.x * scalar, this.y * scalar);\n\
+  },\n\
+\n\
+  /**\n\
+   * Returns the distance of this point from the origin. If this point is\n\
+   * thought of as a vector this distance is its magnitude.\n\
+   * @name magnitude\n\
+   * @methodOf Point#\n\
+   *\n\
+   * @returns The distance of this point from the origin.\n\
+   * @type Number\n\
+   */\n\
+  magnitude: function(/* newMagnitude */) {\n\
+    if(arguments[0] === undefined) \n\
+      return Math.sqrt(this.x*this.x + this.y*this.y);\n\
+\n\
+    return this.toUnit().multiply(arguments[0]);\n\
+  },\n\
+  \n\
+  multiply: function(d) {\n\
+    return new Point(this.x * d, this.y * d);\n\
+  },\n\
+\n\
+  normalize: function() {\n\
+    return this.multiply(1/this.magnitude());\n\
+  },\n\
+\n\
+  set: function(x,y) {\n\
+    this.x = x;\n\
+    this.y = y;\n\
+  },\n\
+\n\
+  dot: function(other) {\n\
+    return this.x * other.x + this.y * other.y;\n\
+  }, \n\
+\n\
+  translate: function(x,y) {\n\
+    return new Point(this.x + x, this.y + y);\n\
+  }, \n\
+\n\
+\n\
+  rotate: function(a) {\n\
+    // Return a new vector that's a copy of this vector rotated by a radians\n\
+    return new Vector(this.x * Math.cos(a) - this.y*Math.sin(a),\n\
+                    this.x * Math.sin(a) + this.y*Math.cos(a));\n\
+  },\n\
+\n\
+\n\
+  angleTo: function(other) {\n\
+    return Math.acos(this.dot(other) / (Math.abs(this.dist()) * Math.abs(other.dist())));\n\
+  },\n\
+\n\
+  toUnit: function() {\n\
+    return this.multiply(1/this.magnitude());\n\
+  }\n\
+};\n\
+\n\
+\n\
+/**\n\
+ * @param {Point} p1\n\
+ * @param {Point} p2\n\
+ * @returns The Euclidean distance between two points.\n\
  */\n\
-\n\
-module.exports = Vector2;\n\
-\n\
-function Vector2( x, y ) {\n\
-\n\
-\tthis.x = x || 0;\n\
-\tthis.y = y || 0;\n\
-\n\
+Point.distance = function(p1, p2) {\n\
+  return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));\n\
 };\n\
 \n\
-Vector2.prototype = {\n\
-\n\
-\tconstructor: Vector2,\n\
-\n\
-\tset: function ( x, y ) {\n\
-\n\
-\t\tthis.x = x;\n\
-\t\tthis.y = y;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tsetX: function ( x ) {\n\
-\n\
-\t\tthis.x = x;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tsetY: function ( y ) {\n\
-\n\
-\t\tthis.y = y;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\n\
-\tsetComponent: function ( index, value ) {\n\
-\n\
-\t\tswitch ( index ) {\n\
-\n\
-\t\t\tcase 0: this.x = value; break;\n\
-\t\t\tcase 1: this.y = value; break;\n\
-\t\t\tdefault: throw new Error( \"index is out of range: \" + index );\n\
-\n\
-\t\t}\n\
-\n\
-\t},\n\
-\n\
-\tgetComponent: function ( index ) {\n\
-\n\
-\t\tswitch ( index ) {\n\
-\n\
-\t\t\tcase 0: return this.x;\n\
-\t\t\tcase 1: return this.y;\n\
-\t\t\tdefault: throw new Error( \"index is out of range: \" + index );\n\
-\n\
-\t\t}\n\
-\n\
-\t},\n\
-\n\
-\tcopy: function ( v ) {\n\
-\n\
-\t\tthis.x = v.x;\n\
-\t\tthis.y = v.y;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tadd: function ( v, w ) {\n\
-\n\
-\t\tif ( w !== undefined ) {\n\
-\n\
-\t\t\tconsole.warn( 'DEPRECATED: Vector2\\'s .add() now only accepts one argument. Use .addVectors( a, b ) instead.' );\n\
-\t\t\treturn this.addVectors( v, w );\n\
-\n\
-\t\t}\n\
-\n\
-\t\tthis.x += v.x;\n\
-\t\tthis.y += v.y;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\taddVectors: function ( a, b ) {\n\
-\n\
-\t\tthis.x = a.x + b.x;\n\
-\t\tthis.y = a.y + b.y;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\taddScalar: function ( s ) {\n\
-\n\
-\t\tthis.x += s;\n\
-\t\tthis.y += s;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tsub: function ( v, w ) {\n\
-\n\
-\t\tif ( w !== undefined ) {\n\
-\n\
-\t\t\tconsole.warn( 'DEPRECATED: Vector2\\'s .sub() now only accepts one argument. Use .subVectors( a, b ) instead.' );\n\
-\t\t\treturn this.subVectors( v, w );\n\
-\n\
-\t\t}\n\
-\n\
-\t\tthis.x -= v.x;\n\
-\t\tthis.y -= v.y;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tsubVectors: function ( a, b ) {\n\
-\n\
-\t\tthis.x = a.x - b.x;\n\
-\t\tthis.y = a.y - b.y;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tmultiplyScalar: function ( s ) {\n\
-\n\
-\t\tthis.x *= s;\n\
-\t\tthis.y *= s;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tdivideScalar: function ( scalar ) {\n\
-\n\
-\t\tif ( scalar !== 0 ) {\n\
-\n\
-\t\t\tvar invScalar = 1 / scalar;\n\
-\n\
-\t\t\tthis.x *= invScalar;\n\
-\t\t\tthis.y *= invScalar;\n\
-\n\
-\t\t} else {\n\
-\n\
-\t\t\tthis.x = 0;\n\
-\t\t\tthis.y = 0;\n\
-\n\
-\t\t}\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tmin: function ( v ) {\n\
-\n\
-\t\tif ( this.x > v.x ) {\n\
-\n\
-\t\t\tthis.x = v.x;\n\
-\n\
-\t\t}\n\
-\n\
-\t\tif ( this.y > v.y ) {\n\
-\n\
-\t\t\tthis.y = v.y;\n\
-\n\
-\t\t}\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tmax: function ( v ) {\n\
-\n\
-\t\tif ( this.x < v.x ) {\n\
-\n\
-\t\t\tthis.x = v.x;\n\
-\n\
-\t\t}\n\
-\n\
-\t\tif ( this.y < v.y ) {\n\
-\n\
-\t\t\tthis.y = v.y;\n\
-\n\
-\t\t}\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tclamp: function ( min, max ) {\n\
-\n\
-\t\t// This function assumes min < max, if this assumption isn't true it will not operate correctly\n\
-\n\
-\t\tif ( this.x < min.x ) {\n\
-\n\
-\t\t\tthis.x = min.x;\n\
-\n\
-\t\t} else if ( this.x > max.x ) {\n\
-\n\
-\t\t\tthis.x = max.x;\n\
-\n\
-\t\t}\n\
-\n\
-\t\tif ( this.y < min.y ) {\n\
-\n\
-\t\t\tthis.y = min.y;\n\
-\n\
-\t\t} else if ( this.y > max.y ) {\n\
-\n\
-\t\t\tthis.y = max.y;\n\
-\n\
-\t\t}\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tnegate: function() {\n\
-\n\
-\t\treturn this.multiplyScalar( - 1 );\n\
-\n\
-\t},\n\
-\n\
-\tdot: function ( v ) {\n\
-\n\
-\t\treturn this.x * v.x + this.y * v.y;\n\
-\n\
-\t},\n\
-\n\
-\tlengthSq: function () {\n\
-\n\
-\t\treturn this.x * this.x + this.y * this.y;\n\
-\n\
-\t},\n\
-\n\
-\tlength: function () {\n\
-\n\
-\t\treturn Math.sqrt( this.x * this.x + this.y * this.y );\n\
-\n\
-\t},\n\
-\n\
-\tnormalize: function () {\n\
-\n\
-\t\treturn this.divideScalar( this.length() );\n\
-\n\
-\t},\n\
-\n\
-\tdistanceTo: function ( v ) {\n\
-\n\
-\t\treturn Math.sqrt( this.distanceToSquared( v ) );\n\
-\n\
-\t},\n\
-\n\
-\tdistanceToSquared: function ( v ) {\n\
-\n\
-\t\tvar dx = this.x - v.x, dy = this.y - v.y;\n\
-\t\treturn dx * dx + dy * dy;\n\
-\n\
-\t},\n\
-\n\
-\tsetLength: function ( l ) {\n\
-\n\
-\t\tvar oldLength = this.length();\n\
-\n\
-\t\tif ( oldLength !== 0 && l !== oldLength ) {\n\
-\n\
-\t\t\tthis.multiplyScalar( l / oldLength );\n\
-\t\t}\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tlerp: function ( v, alpha ) {\n\
-\n\
-\t\tthis.x += ( v.x - this.x ) * alpha;\n\
-\t\tthis.y += ( v.y - this.y ) * alpha;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tequals: function( v ) {\n\
-\n\
-\t\treturn ( ( v.x === this.x ) && ( v.y === this.y ) );\n\
-\n\
-\t},\n\
-\n\
-\tfromArray: function ( array ) {\n\
-\n\
-\t\tthis.x = array[ 0 ];\n\
-\t\tthis.y = array[ 1 ];\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\ttoArray: function () {\n\
-\n\
-\t\treturn [ this.x, this.y ];\n\
-\n\
-\t},\n\
-\n\
-\tclone: function () {\n\
-\n\
-\t\treturn new Vector2( this.x, this.y );\n\
-\n\
-\t}\n\
-\n\
+/**\n\
+ * If you have two dudes, one standing at point p1, and the other\n\
+ * standing at point p2, then this method will return the direction\n\
+ * that the dude standing at p1 will need to face to look at p2.\n\
+ * @param {Point} p1 The starting point.\n\
+ * @param {Point} p2 The ending point.\n\
+ * @returns The direction from p1 to p2 in radians.\n\
+ */\n\
+Point.direction = function(p1, p2) {\n\
+  return Math.atan2(\n\
+    p2.y - p1.y,\n\
+    p2.x - p1.x\n\
+  );\n\
 };\n\
-//@ sourceURL=gcanvas/lib/math/Vector2.js"
+//@ sourceURL=gcanvas/lib/math/point.js"
 ));
-require.register("gcanvas/lib/math/Vector3.js", Function("exports, require, module",
-"/**\n\
- * @author mrdoob / http://mrdoob.com/\n\
- * @author *kile / http://kile.stravaganza.org/\n\
- * @author philogb / http://blog.thejit.org/\n\
- * @author mikael emtinger / http://gomo.se/\n\
- * @author egraether / http://egraether.com/\n\
- * @author WestLangley / http://github.com/WestLangley\n\
+require.register("gcanvas/lib/math/matrix.js", Function("exports, require, module",
+"module.exports = Matrix;\n\
+\n\
+var Point = require('./point');\n\
+\n\
+/**\n\
+ * <pre>\n\
+ *  _        _\n\
+ * | a  c tx  |\n\
+ * | b  d ty  |\n\
+ * |_0  0  1 _|\n\
+ * </pre>\n\
+ * Creates a matrix for 2d affine transformations.\n\
+ *\n\
+ * concat, inverse, rotate, scale and translate return new matrices with the\n\
+ * transformations applied. The matrix is not modified in place.\n\
+ *\n\
+ * Returns the identity matrix when called with no arguments.\n\
+ * @name Matrix\n\
+ * @param {Number} [a]\n\
+ * @param {Number} [b]\n\
+ * @param {Number} [c]\n\
+ * @param {Number} [d]\n\
+ * @param {Number} [tx]\n\
+ * @param {Number} [ty]\n\
+ * @constructor\n\
  */\n\
+function Matrix(a, b, c, d, tx, ty) {\n\
+  this.a = a !== undefined ? a : 1;\n\
+  this.b = b || 0;\n\
+  this.c = c || 0;\n\
+  this.d = d !== undefined ? d : 1;\n\
+  this.tx = tx || 0;\n\
+  this.ty = ty || 0;\n\
+}\n\
 \n\
-module.exports = Vector3;\n\
+Matrix.prototype = {\n\
 \n\
-// var Quaternion = require('./Quaternion'),\n\
-//     extend = require('../core/utils').extend;\n\
+  clone: function() {\n\
+    return new Matrix(\n\
+      this.a,\n\
+      this.b,\n\
+      this.c,\n\
+      this.d,\n\
+      this.tx,\n\
+      this.ty\n\
+    );\n\
+  },\n\
 \n\
-function Vector3( x, y, z ) {\n\
+  /**\n\
+   * Returns the result of this matrix multiplied by another matrix\n\
+   * combining the geometric effects of the two. In mathematical terms, \n\
+   * concatenating two matrixes is the same as combining them using matrix multiplication.\n\
+   * If this matrix is A and the matrix passed in is B, the resulting matrix is A x B\n\
+   * http://mathworld.wolfram.com/MatrixMultiplication.html\n\
+   * @name concat\n\
+   * @methodOf Matrix#\n\
+   *\n\
+   * @param {Matrix} matrix The matrix to multiply this matrix by.\n\
+   * @returns The result of the matrix multiplication, a new matrix.\n\
+   * @type Matrix\n\
+   */\n\
+  concat: function(matrix) {\n\
+    return new Matrix(\n\
+      this.a * matrix.a + this.c * matrix.b,\n\
+      this.b * matrix.a + this.d * matrix.b,\n\
+      this.a * matrix.c + this.c * matrix.d,\n\
+      this.b * matrix.c + this.d * matrix.d,\n\
+      this.a * matrix.tx + this.c * matrix.ty + this.tx,\n\
+      this.b * matrix.tx + this.d * matrix.ty + this.ty\n\
+    );\n\
+  },\n\
 \n\
-\tthis.x = x || 0;\n\
-\tthis.y = y || 0;\n\
-\tthis.z = z || 0;\n\
+  /**\n\
+   * Given a point in the pretransform coordinate space, returns the coordinates of \n\
+   * that point after the transformation occurs. Unlike the standard transformation \n\
+   * applied using the transformnew Point() method, the deltaTransformnew Point() method's \n\
+   * transformation does not consider the translation parameters tx and ty.\n\
+   * @name deltaTransformPoint\n\
+   * @methodOf Matrix#\n\
+   * @see #transformPoint\n\
+   *\n\
+   * @return A new point transformed by this matrix ignoring tx and ty.\n\
+   * @type Point\n\
+   */\n\
+  deltaTransformPoint: function(point) {\n\
+    return new Point(\n\
+      this.a * point.x + this.c * point.y,\n\
+      this.b * point.x + this.d * point.y\n\
+    );\n\
+  },\n\
 \n\
+  /**\n\
+   * Returns the inverse of the matrix.\n\
+   * http://mathworld.wolfram.com/MatrixInverse.html\n\
+   * @name inverse\n\
+   * @methodOf Matrix#\n\
+   *\n\
+   * @returns A new matrix that is the inverse of this matrix.\n\
+   * @type Matrix\n\
+   */\n\
+  inverse: function() {\n\
+    var determinant = this.a * this.d - this.b * this.c;\n\
+    return new Matrix(\n\
+      this.d / determinant,\n\
+      -this.b / determinant,\n\
+      -this.c / determinant,\n\
+      this.a / determinant,\n\
+      (this.c * this.ty - this.d * this.tx) / determinant,\n\
+      (this.b * this.tx - this.a * this.ty) / determinant\n\
+    );\n\
+  },\n\
+\n\
+  /**\n\
+   * Returns a new matrix that corresponds this matrix multiplied by a\n\
+   * a rotation matrix.\n\
+   * @name rotate\n\
+   * @methodOf Matrix#\n\
+   * @see Matrix.rotation\n\
+   *\n\
+   * @param {Number} theta Amount to rotate in radians.\n\
+   * @param {Point} [aboutPoint] The point about which this rotation occurs. Defaults to (0,0).\n\
+   * @returns A new matrix, rotated by the specified amount.\n\
+   * @type Matrix\n\
+   */\n\
+  rotate: function(theta, aboutPoint) {\n\
+    return this.concat(Matrix.rotation(theta, aboutPoint));\n\
+  },\n\
+\n\
+  /**\n\
+   * Returns a new matrix that corresponds this matrix multiplied by a\n\
+   * a scaling matrix.\n\
+   * @name scale\n\
+   * @methodOf Matrix#\n\
+   * @see Matrix.scale\n\
+   *\n\
+   * @param {Number} sx\n\
+   * @param {Number} [sy]\n\
+   * @param {Point} [aboutPoint] The point that remains fixed during the scaling\n\
+   * @type Matrix\n\
+   */\n\
+  scale: function(sx, sy, aboutPoint) {\n\
+    return this.concat(Matrix.scale(sx, sy, aboutPoint));\n\
+  },\n\
+\n\
+  /**\n\
+   * Returns the result of applying the geometric transformation represented by the \n\
+   * Matrix object to the specified point.\n\
+   * @name transformPoint\n\
+   * @methodOf Matrix#\n\
+   * @see #deltaTransformPoint\n\
+   *\n\
+   * @returns A new point with the transformation applied.\n\
+   * @type Point\n\
+   */\n\
+  transformPoint: function(point) {\n\
+    return new Point(\n\
+      this.a * point.x + this.c * point.y + this.tx,\n\
+      this.b * point.x + this.d * point.y + this.ty\n\
+    );\n\
+  },\n\
+\n\
+  /**\n\
+   * Translates the matrix along the x and y axes, as specified by the tx and ty parameters.\n\
+   * @name translate\n\
+   * @methodOf Matrix#\n\
+   * @see Matrix.translation\n\
+   *\n\
+   * @param {Number} tx The translation along the x axis.\n\
+   * @param {Number} ty The translation along the y axis.\n\
+   * @returns A new matrix with the translation applied.\n\
+   * @type Matrix\n\
+   */\n\
+  translate: function(tx, ty) {\n\
+    return this.concat(Matrix.translation(tx, ty));\n\
+  }\n\
 };\n\
 \n\
-Vector3.prototype = {\n\
-\n\
-\tconstructor: Vector3,\n\
-\n\
-\tset: function ( x, y, z ) {\n\
-\n\
-\t\tthis.x = x;\n\
-\t\tthis.y = y;\n\
-\t\tthis.z = z;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tsetX: function ( x ) {\n\
-\n\
-\t\tthis.x = x;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tsetY: function ( y ) {\n\
-\n\
-\t\tthis.y = y;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tsetZ: function ( z ) {\n\
-\n\
-\t\tthis.z = z;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tsetComponent: function ( index, value ) {\n\
-\n\
-\t\tswitch ( index ) {\n\
-\n\
-\t\t\tcase 0: this.x = value; break;\n\
-\t\t\tcase 1: this.y = value; break;\n\
-\t\t\tcase 2: this.z = value; break;\n\
-\t\t\tdefault: throw new Error( \"index is out of range: \" + index );\n\
-\n\
-\t\t}\n\
-\n\
-\t},\n\
-\n\
-\tgetComponent: function ( index ) {\n\
-\n\
-\t\tswitch ( index ) {\n\
-\n\
-\t\t\tcase 0: return this.x;\n\
-\t\t\tcase 1: return this.y;\n\
-\t\t\tcase 2: return this.z;\n\
-\t\t\tdefault: throw new Error( \"index is out of range: \" + index );\n\
-\n\
-\t\t}\n\
-\n\
-\t},\n\
-\n\
-\tcopy: function ( v ) {\n\
-\n\
-\t\tthis.x = v.x;\n\
-\t\tthis.y = v.y;\n\
-\t\tthis.z = v.z;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tadd: function ( v, w ) {\n\
-\n\
-\t\tif ( w !== undefined ) {\n\
-\n\
-\t\t\tconsole.warn( 'DEPRECATED: Vector3\\'s .add() now only accepts one argument. Use .addVectors( a, b ) instead.' );\n\
-\t\t\treturn this.addVectors( v, w );\n\
-\n\
-\t\t}\n\
-\n\
-\t\tthis.x += v.x;\n\
-\t\tthis.y += v.y;\n\
-\t\tthis.z += v.z;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\taddScalar: function ( s ) {\n\
-\n\
-\t\tthis.x += s;\n\
-\t\tthis.y += s;\n\
-\t\tthis.z += s;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\taddVectors: function ( a, b ) {\n\
-\n\
-\t\tthis.x = a.x + b.x;\n\
-\t\tthis.y = a.y + b.y;\n\
-\t\tthis.z = a.z + b.z;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tsub: function ( v, w ) {\n\
-\n\
-\t\tif ( w !== undefined ) {\n\
-\n\
-\t\t\tconsole.warn( 'DEPRECATED: Vector3\\'s .sub() now only accepts one argument. Use .subVectors( a, b ) instead.' );\n\
-\t\t\treturn this.subVectors( v, w );\n\
-\n\
-\t\t}\n\
-\n\
-\t\tthis.x -= v.x;\n\
-\t\tthis.y -= v.y;\n\
-\t\tthis.z -= v.z;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tsubVectors: function ( a, b ) {\n\
-\n\
-\t\tthis.x = a.x - b.x;\n\
-\t\tthis.y = a.y - b.y;\n\
-\t\tthis.z = a.z - b.z;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tmultiply: function ( v, w ) {\n\
-\n\
-\t\tif ( w !== undefined ) {\n\
-\n\
-\t\t\tconsole.warn( 'DEPRECATED: Vector3\\'s .multiply() now only accepts one argument. Use .multiplyVectors( a, b ) instead.' );\n\
-\t\t\treturn this.multiplyVectors( v, w );\n\
-\n\
-\t\t}\n\
-\n\
-\t\tthis.x *= v.x;\n\
-\t\tthis.y *= v.y;\n\
-\t\tthis.z *= v.z;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tmultiplyScalar: function ( scalar ) {\n\
-\n\
-\t\tthis.x *= scalar;\n\
-\t\tthis.y *= scalar;\n\
-\t\tthis.z *= scalar;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tmultiplyVectors: function ( a, b ) {\n\
-\n\
-\t\tthis.x = a.x * b.x;\n\
-\t\tthis.y = a.y * b.y;\n\
-\t\tthis.z = a.z * b.z;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tapplyMatrix3: function ( m ) {\n\
-\n\
-\t\tvar x = this.x;\n\
-\t\tvar y = this.y;\n\
-\t\tvar z = this.z;\n\
-\n\
-\t\tvar e = m.elements;\n\
-\n\
-\t\tthis.x = e[0] * x + e[3] * y + e[6] * z;\n\
-\t\tthis.y = e[1] * x + e[4] * y + e[7] * z;\n\
-\t\tthis.z = e[2] * x + e[5] * y + e[8] * z;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tapplyMatrix4: function ( m ) {\n\
-\n\
-\t\t// input: Matrix4 affine matrix\n\
-\n\
-\t\tvar x = this.x, y = this.y, z = this.z;\n\
-\n\
-\t\tvar e = m.elements;\n\
-\n\
-\t\tthis.x = e[0] * x + e[4] * y + e[8]  * z + e[12];\n\
-\t\tthis.y = e[1] * x + e[5] * y + e[9]  * z + e[13];\n\
-\t\tthis.z = e[2] * x + e[6] * y + e[10] * z + e[14];\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tapplyProjection: function ( m ) {\n\
-\n\
-\t\t// input: Matrix4 projection matrix\n\
-\n\
-\t\tvar x = this.x, y = this.y, z = this.z;\n\
-\n\
-\t\tvar e = m.elements;\n\
-\t\tvar d = 1 / ( e[3] * x + e[7] * y + e[11] * z + e[15] ); // perspective divide\n\
-\n\
-\t\tthis.x = ( e[0] * x + e[4] * y + e[8]  * z + e[12] ) * d;\n\
-\t\tthis.y = ( e[1] * x + e[5] * y + e[9]  * z + e[13] ) * d;\n\
-\t\tthis.z = ( e[2] * x + e[6] * y + e[10] * z + e[14] ) * d;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tapplyQuaternion: function ( q ) {\n\
-\n\
-\t\tvar x = this.x;\n\
-\t\tvar y = this.y;\n\
-\t\tvar z = this.z;\n\
-\n\
-\t\tvar qx = q.x;\n\
-\t\tvar qy = q.y;\n\
-\t\tvar qz = q.z;\n\
-\t\tvar qw = q.w;\n\
-\n\
-\t\t// calculate quat * vector\n\
-\n\
-\t\tvar ix =  qw * x + qy * z - qz * y;\n\
-\t\tvar iy =  qw * y + qz * x - qx * z;\n\
-\t\tvar iz =  qw * z + qx * y - qy * x;\n\
-\t\tvar iw = -qx * x - qy * y - qz * z;\n\
-\n\
-\t\t// calculate result * inverse quat\n\
-\n\
-\t\tthis.x = ix * qw + iw * -qx + iy * -qz - iz * -qy;\n\
-\t\tthis.y = iy * qw + iw * -qy + iz * -qx - ix * -qz;\n\
-\t\tthis.z = iz * qw + iw * -qz + ix * -qy - iy * -qx;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\ttransformDirection: function ( m ) {\n\
-\n\
-\t\t// input: Matrix4 affine matrix\n\
-\t\t// vector interpreted as a direction\n\
-\n\
-\t\tvar x = this.x, y = this.y, z = this.z;\n\
-\n\
-\t\tvar e = m.elements;\n\
-\n\
-\t\tthis.x = e[0] * x + e[4] * y + e[8]  * z;\n\
-\t\tthis.y = e[1] * x + e[5] * y + e[9]  * z;\n\
-\t\tthis.z = e[2] * x + e[6] * y + e[10] * z;\n\
-\n\
-\t\tthis.normalize();\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tdivide: function ( v ) {\n\
-\n\
-\t\tthis.x /= v.x;\n\
-\t\tthis.y /= v.y;\n\
-\t\tthis.z /= v.z;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tdivideScalar: function ( scalar ) {\n\
-\n\
-\t\tif ( scalar !== 0 ) {\n\
-\n\
-\t\t\tvar invScalar = 1 / scalar;\n\
-\n\
-\t\t\tthis.x *= invScalar;\n\
-\t\t\tthis.y *= invScalar;\n\
-\t\t\tthis.z *= invScalar;\n\
-\n\
-\t\t} else {\n\
-\n\
-\t\t\tthis.x = 0;\n\
-\t\t\tthis.y = 0;\n\
-\t\t\tthis.z = 0;\n\
-\n\
-\t\t}\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tmin: function ( v ) {\n\
-\n\
-\t\tif ( this.x > v.x ) {\n\
-\n\
-\t\t\tthis.x = v.x;\n\
-\n\
-\t\t}\n\
-\n\
-\t\tif ( this.y > v.y ) {\n\
-\n\
-\t\t\tthis.y = v.y;\n\
-\n\
-\t\t}\n\
-\n\
-\t\tif ( this.z > v.z ) {\n\
-\n\
-\t\t\tthis.z = v.z;\n\
-\n\
-\t\t}\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tmax: function ( v ) {\n\
-\n\
-\t\tif ( this.x < v.x ) {\n\
-\n\
-\t\t\tthis.x = v.x;\n\
-\n\
-\t\t}\n\
-\n\
-\t\tif ( this.y < v.y ) {\n\
-\n\
-\t\t\tthis.y = v.y;\n\
-\n\
-\t\t}\n\
-\n\
-\t\tif ( this.z < v.z ) {\n\
-\n\
-\t\t\tthis.z = v.z;\n\
-\n\
-\t\t}\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tclamp: function ( min, max ) {\n\
-\n\
-\t\t// This function assumes min < max, if this assumption isn't true it will not operate correctly\n\
-\n\
-\t\tif ( this.x < min.x ) {\n\
-\n\
-\t\t\tthis.x = min.x;\n\
-\n\
-\t\t} else if ( this.x > max.x ) {\n\
-\n\
-\t\t\tthis.x = max.x;\n\
-\n\
-\t\t}\n\
-\n\
-\t\tif ( this.y < min.y ) {\n\
-\n\
-\t\t\tthis.y = min.y;\n\
-\n\
-\t\t} else if ( this.y > max.y ) {\n\
-\n\
-\t\t\tthis.y = max.y;\n\
-\n\
-\t\t}\n\
-\n\
-\t\tif ( this.z < min.z ) {\n\
-\n\
-\t\t\tthis.z = min.z;\n\
-\n\
-\t\t} else if ( this.z > max.z ) {\n\
-\n\
-\t\t\tthis.z = max.z;\n\
-\n\
-\t\t}\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tnegate: function () {\n\
-\n\
-\t\treturn this.multiplyScalar( - 1 );\n\
-\n\
-\t},\n\
-\n\
-\tdot: function ( v ) {\n\
-\n\
-\t\treturn this.x * v.x + this.y * v.y + this.z * v.z;\n\
-\n\
-\t},\n\
-\n\
-\tlengthSq: function () {\n\
-\n\
-\t\treturn this.x * this.x + this.y * this.y + this.z * this.z;\n\
-\n\
-\t},\n\
-\n\
-\tlength: function () {\n\
-\n\
-\t\treturn Math.sqrt( this.x * this.x + this.y * this.y + this.z * this.z );\n\
-\n\
-\t},\n\
-\n\
-\tlengthManhattan: function () {\n\
-\n\
-\t\treturn Math.abs( this.x ) + Math.abs( this.y ) + Math.abs( this.z );\n\
-\n\
-\t},\n\
-\n\
-\tnormalize: function () {\n\
-\n\
-\t\treturn this.divideScalar( this.length() );\n\
-\n\
-\t},\n\
-\n\
-\tsetLength: function ( l ) {\n\
-\n\
-\t\tvar oldLength = this.length();\n\
-\n\
-\t\tif ( oldLength !== 0 && l !== oldLength  ) {\n\
-\n\
-\t\t\tthis.multiplyScalar( l / oldLength );\n\
-\t\t}\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tlerp: function ( v, alpha ) {\n\
-\n\
-\t\tthis.x += ( v.x - this.x ) * alpha;\n\
-\t\tthis.y += ( v.y - this.y ) * alpha;\n\
-\t\tthis.z += ( v.z - this.z ) * alpha;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tcross: function ( v, w ) {\n\
-\n\
-\t\tif ( w !== undefined ) {\n\
-\n\
-\t\t\tconsole.warn( 'DEPRECATED: Vector3\\'s .cross() now only accepts one argument. Use .crossVectors( a, b ) instead.' );\n\
-\t\t\treturn this.crossVectors( v, w );\n\
-\n\
-\t\t}\n\
-\n\
-\t\tvar x = this.x, y = this.y, z = this.z;\n\
-\n\
-\t\tthis.x = y * v.z - z * v.y;\n\
-\t\tthis.y = z * v.x - x * v.z;\n\
-\t\tthis.z = x * v.y - y * v.x;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tcrossVectors: function ( a, b ) {\n\
-\n\
-\t\tvar ax = a.x, ay = a.y, az = a.z;\n\
-\t\tvar bx = b.x, by = b.y, bz = b.z;\n\
-\n\
-\t\tthis.x = ay * bz - az * by;\n\
-\t\tthis.y = az * bx - ax * bz;\n\
-\t\tthis.z = ax * by - ay * bx;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tangleTo: function ( v ) {\n\
-\n\
-\t\tvar theta = this.dot( v ) / ( this.length() * v.length() );\n\
-\n\
-\t\t// clamp, to handle numerical problems\n\
-\n\
-\t\treturn Math.acos( Math.clamp( theta, -1, 1 ) );\n\
-\n\
-\t},\n\
-\n\
-\tdistanceTo: function ( v ) {\n\
-\n\
-\t\treturn Math.sqrt( this.distanceToSquared( v ) );\n\
-\n\
-\t},\n\
-\n\
-\tdistanceToSquared: function ( v ) {\n\
-\n\
-\t\tvar dx = this.x - v.x;\n\
-\t\tvar dy = this.y - v.y;\n\
-\t\tvar dz = this.z - v.z;\n\
-\n\
-\t\treturn dx * dx + dy * dy + dz * dz;\n\
-\n\
-\t},\n\
-\n\
-\tsetEulerFromRotationMatrix: function ( m, order ) {\n\
-\n\
-\t\tconsole.error( \"REMOVED: Vector3\\'s setEulerFromRotationMatrix has been removed in favor of Euler.setFromRotationMatrix(), please update your code.\");\n\
-\n\
-\t},\n\
-\n\
-\tsetEulerFromQuaternion: function ( q, order ) {\n\
-\n\
-\t\tconsole.error( \"REMOVED: Vector3\\'s setEulerFromQuaternion: has been removed in favor of Euler.setFromQuaternion(), please update your code.\");\n\
-\n\
-\t},\n\
-\n\
-\tgetPositionFromMatrix: function ( m ) {\n\
-\n\
-\t\tthis.x = m.elements[12];\n\
-\t\tthis.y = m.elements[13];\n\
-\t\tthis.z = m.elements[14];\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tgetScaleFromMatrix: function ( m ) {\n\
-\n\
-\t\tvar sx = this.set( m.elements[0], m.elements[1], m.elements[2] ).length();\n\
-\t\tvar sy = this.set( m.elements[4], m.elements[5], m.elements[6] ).length();\n\
-\t\tvar sz = this.set( m.elements[8], m.elements[9], m.elements[10] ).length();\n\
-\n\
-\t\tthis.x = sx;\n\
-\t\tthis.y = sy;\n\
-\t\tthis.z = sz;\n\
-\n\
-\t\treturn this;\n\
-\t},\n\
-\n\
-\tgetColumnFromMatrix: function ( index, matrix ) {\n\
-\n\
-\t\tvar offset = index * 4;\n\
-\n\
-\t\tvar me = matrix.elements;\n\
-\n\
-\t\tthis.x = me[ offset ];\n\
-\t\tthis.y = me[ offset + 1 ];\n\
-\t\tthis.z = me[ offset + 2 ];\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tequals: function ( v ) {\n\
-\n\
-\t\treturn ( ( v.x === this.x ) && ( v.y === this.y ) && ( v.z === this.z ) );\n\
-\n\
-\t},\n\
-\n\
-\tfromArray: function ( array ) {\n\
-\n\
-\t\tthis.x = array[ 0 ];\n\
-\t\tthis.y = array[ 1 ];\n\
-\t\tthis.z = array[ 2 ];\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\ttoArray: function () {\n\
-\n\
-\t\treturn [ this.x, this.y, this.z ];\n\
-\n\
-\t},\n\
-\n\
-\tclone: function () {\n\
-\n\
-\t\treturn new Vector3( this.x, this.y, this.z );\n\
-\n\
-\t}\n\
-\n\
-};\n\
-\n\
-//@ sourceURL=gcanvas/lib/math/Vector3.js"
-));
-require.register("gcanvas/lib/math/Matrix4.js", Function("exports, require, module",
-"/**\n\
- * @author mrdoob / http://mrdoob.com/\n\
- * @author supereggbert / http://www.paulbrunt.co.uk/\n\
- * @author philogb / http://blog.thejit.org/\n\
- * @author jordi_ros / http://plattsoft.com\n\
- * @author D1plo1d / http://github.com/D1plo1d\n\
- * @author alteredq / http://alteredqualia.com/\n\
- * @author mikael emtinger / http://gomo.se/\n\
- * @author timknip / http://www.floorplanner.com/\n\
- * @author bhouston / http://exocortex.com\n\
- * @author WestLangley / http://github.com/WestLangley\n\
+/**\n\
+ * Creates a matrix transformation that corresponds to the given rotation,\n\
+ * around (0,0) or the specified point.\n\
+ * @see Matrix#rotate\n\
+ *\n\
+ * @param {Number} theta Rotation in radians.\n\
+ * @param {Point} [aboutPoint] The point about which this rotation occurs. Defaults to (0,0).\n\
+ * @returns \n\
+ * @type Matrix\n\
  */\n\
+Matrix.rotation = function(theta, aboutPoint) {\n\
+  var rotationMatrix = new Matrix(\n\
+    Math.cos(theta),\n\
+    Math.sin(theta),\n\
+    -Math.sin(theta),\n\
+    Math.cos(theta)\n\
+  );\n\
 \n\
-module.exports = Matrix4;\n\
+  if(aboutPoint) {\n\
+    rotationMatrix =\n\
+      Matrix.translation(aboutPoint.x, aboutPoint.y).concat(\n\
+        rotationMatrix\n\
+      ).concat(\n\
+        Matrix.translation(-aboutPoint.x, -aboutPoint.y)\n\
+      );\n\
+  }\n\
 \n\
-var Vector3 = require('./Vector3');\n\
-  // , MathUtils = require('./MathUtils');\n\
-\n\
-function Matrix4( n11, n12, n13, n14, n21, n22, n23, n24, n31, n32, n33, n34, n41, n42, n43, n44 ) {\n\
-\n\
-\tthis.elements = new Float32Array( 16 );\n\
-\n\
-\t// TODO: if n11 is undefined, then just set to identity, otherwise copy all other values into matrix\n\
-\t//   we should not support semi specification of Matrix4, it is just weird.\n\
-\n\
-\tvar te = this.elements;\n\
-\n\
-\tte[0] = ( n11 !== undefined ) ? n11 : 1; te[4] = n12 || 0; te[8] = n13 || 0; te[12] = n14 || 0;\n\
-\tte[1] = n21 || 0; te[5] = ( n22 !== undefined ) ? n22 : 1; te[9] = n23 || 0; te[13] = n24 || 0;\n\
-\tte[2] = n31 || 0; te[6] = n32 || 0; te[10] = ( n33 !== undefined ) ? n33 : 1; te[14] = n34 || 0;\n\
-\tte[3] = n41 || 0; te[7] = n42 || 0; te[11] = n43 || 0; te[15] = ( n44 !== undefined ) ? n44 : 1;\n\
-\n\
+  return rotationMatrix;\n\
 };\n\
 \n\
-Matrix4.prototype = {\n\
-\n\
-\tconstructor: Matrix4,\n\
-\n\
-\tset: function ( n11, n12, n13, n14, n21, n22, n23, n24, n31, n32, n33, n34, n41, n42, n43, n44 ) {\n\
-\n\
-\t\tvar te = this.elements;\n\
-\n\
-\t\tte[0] = n11; te[4] = n12; te[8] = n13; te[12] = n14;\n\
-\t\tte[1] = n21; te[5] = n22; te[9] = n23; te[13] = n24;\n\
-\t\tte[2] = n31; te[6] = n32; te[10] = n33; te[14] = n34;\n\
-\t\tte[3] = n41; te[7] = n42; te[11] = n43; te[15] = n44;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tidentity: function () {\n\
-\n\
-\t\tthis.set(\n\
-\n\
-\t\t\t1, 0, 0, 0,\n\
-\t\t\t0, 1, 0, 0,\n\
-\t\t\t0, 0, 1, 0,\n\
-\t\t\t0, 0, 0, 1\n\
-\n\
-\t\t);\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tcopy: function ( m ) {\n\
-\n\
-\t\tthis.elements.set( m.elements );\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\textractPosition: function ( m ) {\n\
-\n\
-\t\tconsole.warn( 'DEPRECATED: Matrix4\\'s .extractPosition() has been renamed to .copyPosition().' );\n\
-\t\treturn this.copyPosition( m );\n\
-\n\
-\t},\n\
-\n\
-\tcopyPosition: function ( m ) {\n\
-\n\
-\t\tvar te = this.elements;\n\
-\t\tvar me = m.elements;\n\
-\n\
-\t\tte[12] = me[12];\n\
-\t\tte[13] = me[13];\n\
-\t\tte[14] = me[14];\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\textractRotation: function () {\n\
-\n\
-\t\tvar v1 = new Vector3();\n\
-\n\
-\t\treturn function ( m ) {\n\
-\n\
-\t\t\tvar te = this.elements;\n\
-\t\t\tvar me = m.elements;\n\
-\n\
-\t\t\tvar scaleX = 1 / v1.set( me[0], me[1], me[2] ).length();\n\
-\t\t\tvar scaleY = 1 / v1.set( me[4], me[5], me[6] ).length();\n\
-\t\t\tvar scaleZ = 1 / v1.set( me[8], me[9], me[10] ).length();\n\
-\n\
-\t\t\tte[0] = me[0] * scaleX;\n\
-\t\t\tte[1] = me[1] * scaleX;\n\
-\t\t\tte[2] = me[2] * scaleX;\n\
-\n\
-\t\t\tte[4] = me[4] * scaleY;\n\
-\t\t\tte[5] = me[5] * scaleY;\n\
-\t\t\tte[6] = me[6] * scaleY;\n\
-\n\
-\t\t\tte[8] = me[8] * scaleZ;\n\
-\t\t\tte[9] = me[9] * scaleZ;\n\
-\t\t\tte[10] = me[10] * scaleZ;\n\
-\n\
-\t\t\treturn this;\n\
-\n\
-\t\t};\n\
-\n\
-\t}(),\n\
-\n\
-\tmakeRotationFromEuler: function ( euler ) {\n\
-\n\
-\t\tif ( euler instanceof Euler === false ) {\n\
-\n\
-\t\t\tconsole.error( 'ERROR: Matrix\\'s .makeRotationFromEuler() now expects a Euler rotation rather than a Vector3 and order.  Please update your code.' );\n\
-\n\
-\t\t}\n\
-\n\
-\t\tvar te = this.elements;\n\
-\n\
-\t\tvar x = euler.x, y = euler.y, z = euler.z;\n\
-\t\tvar a = Math.cos( x ), b = Math.sin( x );\n\
-\t\tvar c = Math.cos( y ), d = Math.sin( y );\n\
-\t\tvar e = Math.cos( z ), f = Math.sin( z );\n\
-\n\
-\t\tif ( euler.order === 'XYZ' ) {\n\
-\n\
-\t\t\tvar ae = a * e, af = a * f, be = b * e, bf = b * f;\n\
-\n\
-\t\t\tte[0] = c * e;\n\
-\t\t\tte[4] = - c * f;\n\
-\t\t\tte[8] = d;\n\
-\n\
-\t\t\tte[1] = af + be * d;\n\
-\t\t\tte[5] = ae - bf * d;\n\
-\t\t\tte[9] = - b * c;\n\
-\n\
-\t\t\tte[2] = bf - ae * d;\n\
-\t\t\tte[6] = be + af * d;\n\
-\t\t\tte[10] = a * c;\n\
-\n\
-\t\t} else if ( euler.order === 'YXZ' ) {\n\
-\n\
-\t\t\tvar ce = c * e, cf = c * f, de = d * e, df = d * f;\n\
-\n\
-\t\t\tte[0] = ce + df * b;\n\
-\t\t\tte[4] = de * b - cf;\n\
-\t\t\tte[8] = a * d;\n\
-\n\
-\t\t\tte[1] = a * f;\n\
-\t\t\tte[5] = a * e;\n\
-\t\t\tte[9] = - b;\n\
-\n\
-\t\t\tte[2] = cf * b - de;\n\
-\t\t\tte[6] = df + ce * b;\n\
-\t\t\tte[10] = a * c;\n\
-\n\
-\t\t} else if ( euler.order === 'ZXY' ) {\n\
-\n\
-\t\t\tvar ce = c * e, cf = c * f, de = d * e, df = d * f;\n\
-\n\
-\t\t\tte[0] = ce - df * b;\n\
-\t\t\tte[4] = - a * f;\n\
-\t\t\tte[8] = de + cf * b;\n\
-\n\
-\t\t\tte[1] = cf + de * b;\n\
-\t\t\tte[5] = a * e;\n\
-\t\t\tte[9] = df - ce * b;\n\
-\n\
-\t\t\tte[2] = - a * d;\n\
-\t\t\tte[6] = b;\n\
-\t\t\tte[10] = a * c;\n\
-\n\
-\t\t} else if ( euler.order === 'ZYX' ) {\n\
-\n\
-\t\t\tvar ae = a * e, af = a * f, be = b * e, bf = b * f;\n\
-\n\
-\t\t\tte[0] = c * e;\n\
-\t\t\tte[4] = be * d - af;\n\
-\t\t\tte[8] = ae * d + bf;\n\
-\n\
-\t\t\tte[1] = c * f;\n\
-\t\t\tte[5] = bf * d + ae;\n\
-\t\t\tte[9] = af * d - be;\n\
-\n\
-\t\t\tte[2] = - d;\n\
-\t\t\tte[6] = b * c;\n\
-\t\t\tte[10] = a * c;\n\
-\n\
-\t\t} else if ( euler.order === 'YZX' ) {\n\
-\n\
-\t\t\tvar ac = a * c, ad = a * d, bc = b * c, bd = b * d;\n\
-\n\
-\t\t\tte[0] = c * e;\n\
-\t\t\tte[4] = bd - ac * f;\n\
-\t\t\tte[8] = bc * f + ad;\n\
-\n\
-\t\t\tte[1] = f;\n\
-\t\t\tte[5] = a * e;\n\
-\t\t\tte[9] = - b * e;\n\
-\n\
-\t\t\tte[2] = - d * e;\n\
-\t\t\tte[6] = ad * f + bc;\n\
-\t\t\tte[10] = ac - bd * f;\n\
-\n\
-\t\t} else if ( euler.order === 'XZY' ) {\n\
-\n\
-\t\t\tvar ac = a * c, ad = a * d, bc = b * c, bd = b * d;\n\
-\n\
-\t\t\tte[0] = c * e;\n\
-\t\t\tte[4] = - f;\n\
-\t\t\tte[8] = d * e;\n\
-\n\
-\t\t\tte[1] = ac * f + bd;\n\
-\t\t\tte[5] = a * e;\n\
-\t\t\tte[9] = ad * f - bc;\n\
-\n\
-\t\t\tte[2] = bc * f - ad;\n\
-\t\t\tte[6] = b * e;\n\
-\t\t\tte[10] = bd * f + ac;\n\
-\n\
-\t\t}\n\
-\n\
-\t\t// last column\n\
-\t\tte[3] = 0;\n\
-\t\tte[7] = 0;\n\
-\t\tte[11] = 0;\n\
-\n\
-\t\t// bottom row\n\
-\t\tte[12] = 0;\n\
-\t\tte[13] = 0;\n\
-\t\tte[14] = 0;\n\
-\t\tte[15] = 1;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tsetRotationFromQuaternion: function ( q ) {\n\
-\n\
-\t\tconsole.warn( 'DEPRECATED: Matrix4\\'s .setRotationFromQuaternion() has been deprecated in favor of makeRotationFromQuaternion.  Please update your code.' );\n\
-\n\
-\t\treturn this.makeRotationFromQuaternion( q );\n\
-\n\
-\t},\n\
-\n\
-\tmakeRotationFromQuaternion: function ( q ) {\n\
-\n\
-\t\tvar te = this.elements;\n\
-\n\
-\t\tvar x = q.x, y = q.y, z = q.z, w = q.w;\n\
-\t\tvar x2 = x + x, y2 = y + y, z2 = z + z;\n\
-\t\tvar xx = x * x2, xy = x * y2, xz = x * z2;\n\
-\t\tvar yy = y * y2, yz = y * z2, zz = z * z2;\n\
-\t\tvar wx = w * x2, wy = w * y2, wz = w * z2;\n\
-\n\
-\t\tte[0] = 1 - ( yy + zz );\n\
-\t\tte[4] = xy - wz;\n\
-\t\tte[8] = xz + wy;\n\
-\n\
-\t\tte[1] = xy + wz;\n\
-\t\tte[5] = 1 - ( xx + zz );\n\
-\t\tte[9] = yz - wx;\n\
-\n\
-\t\tte[2] = xz - wy;\n\
-\t\tte[6] = yz + wx;\n\
-\t\tte[10] = 1 - ( xx + yy );\n\
-\n\
-\t\t// last column\n\
-\t\tte[3] = 0;\n\
-\t\tte[7] = 0;\n\
-\t\tte[11] = 0;\n\
-\n\
-\t\t// bottom row\n\
-\t\tte[12] = 0;\n\
-\t\tte[13] = 0;\n\
-\t\tte[14] = 0;\n\
-\t\tte[15] = 1;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tlookAt: function() {\n\
-\n\
-\t\tvar x = new Vector3();\n\
-\t\tvar y = new Vector3();\n\
-\t\tvar z = new Vector3();\n\
-\n\
-\t\treturn function ( eye, target, up ) {\n\
-\n\
-\t\t\tvar te = this.elements;\n\
-\n\
-\t\t\tz.subVectors( eye, target ).normalize();\n\
-\n\
-\t\t\tif ( z.length() === 0 ) {\n\
-\n\
-\t\t\t\tz.z = 1;\n\
-\n\
-\t\t\t}\n\
-\n\
-\t\t\tx.crossVectors( up, z ).normalize();\n\
-\n\
-\t\t\tif ( x.length() === 0 ) {\n\
-\n\
-\t\t\t\tz.x += 0.0001;\n\
-\t\t\t\tx.crossVectors( up, z ).normalize();\n\
-\n\
-\t\t\t}\n\
-\n\
-\t\t\ty.crossVectors( z, x );\n\
-\n\
-\n\
-\t\t\tte[0] = x.x; te[4] = y.x; te[8] = z.x;\n\
-\t\t\tte[1] = x.y; te[5] = y.y; te[9] = z.y;\n\
-\t\t\tte[2] = x.z; te[6] = y.z; te[10] = z.z;\n\
-\n\
-\t\t\treturn this;\n\
-\n\
-\t\t};\n\
-\n\
-\t}(),\n\
-\n\
-\tmultiply: function ( m, n ) {\n\
-\n\
-\t\tif ( n !== undefined ) {\n\
-\n\
-\t\t\tconsole.warn( 'DEPRECATED: Matrix4\\'s .multiply() now only accepts one argument. Use .multiplyMatrices( a, b ) instead.' );\n\
-\t\t\treturn this.multiplyMatrices( m, n );\n\
-\n\
-\t\t}\n\
-\n\
-\t\treturn this.multiplyMatrices( this, m );\n\
-\n\
-\t},\n\
-\n\
-\tmultiplyMatrices: function ( a, b ) {\n\
-\n\
-\t\tvar ae = a.elements;\n\
-\t\tvar be = b.elements;\n\
-\t\tvar te = this.elements;\n\
-\n\
-\t\tvar a11 = ae[0], a12 = ae[4], a13 = ae[8], a14 = ae[12];\n\
-\t\tvar a21 = ae[1], a22 = ae[5], a23 = ae[9], a24 = ae[13];\n\
-\t\tvar a31 = ae[2], a32 = ae[6], a33 = ae[10], a34 = ae[14];\n\
-\t\tvar a41 = ae[3], a42 = ae[7], a43 = ae[11], a44 = ae[15];\n\
-\n\
-\t\tvar b11 = be[0], b12 = be[4], b13 = be[8], b14 = be[12];\n\
-\t\tvar b21 = be[1], b22 = be[5], b23 = be[9], b24 = be[13];\n\
-\t\tvar b31 = be[2], b32 = be[6], b33 = be[10], b34 = be[14];\n\
-\t\tvar b41 = be[3], b42 = be[7], b43 = be[11], b44 = be[15];\n\
-\n\
-\t\tte[0] = a11 * b11 + a12 * b21 + a13 * b31 + a14 * b41;\n\
-\t\tte[4] = a11 * b12 + a12 * b22 + a13 * b32 + a14 * b42;\n\
-\t\tte[8] = a11 * b13 + a12 * b23 + a13 * b33 + a14 * b43;\n\
-\t\tte[12] = a11 * b14 + a12 * b24 + a13 * b34 + a14 * b44;\n\
-\n\
-\t\tte[1] = a21 * b11 + a22 * b21 + a23 * b31 + a24 * b41;\n\
-\t\tte[5] = a21 * b12 + a22 * b22 + a23 * b32 + a24 * b42;\n\
-\t\tte[9] = a21 * b13 + a22 * b23 + a23 * b33 + a24 * b43;\n\
-\t\tte[13] = a21 * b14 + a22 * b24 + a23 * b34 + a24 * b44;\n\
-\n\
-\t\tte[2] = a31 * b11 + a32 * b21 + a33 * b31 + a34 * b41;\n\
-\t\tte[6] = a31 * b12 + a32 * b22 + a33 * b32 + a34 * b42;\n\
-\t\tte[10] = a31 * b13 + a32 * b23 + a33 * b33 + a34 * b43;\n\
-\t\tte[14] = a31 * b14 + a32 * b24 + a33 * b34 + a34 * b44;\n\
-\n\
-\t\tte[3] = a41 * b11 + a42 * b21 + a43 * b31 + a44 * b41;\n\
-\t\tte[7] = a41 * b12 + a42 * b22 + a43 * b32 + a44 * b42;\n\
-\t\tte[11] = a41 * b13 + a42 * b23 + a43 * b33 + a44 * b43;\n\
-\t\tte[15] = a41 * b14 + a42 * b24 + a43 * b34 + a44 * b44;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tmultiplyToArray: function ( a, b, r ) {\n\
-\n\
-\t\tvar te = this.elements;\n\
-\n\
-\t\tthis.multiplyMatrices( a, b );\n\
-\n\
-\t\tr[ 0 ] = te[0]; r[ 1 ] = te[1]; r[ 2 ] = te[2]; r[ 3 ] = te[3];\n\
-\t\tr[ 4 ] = te[4]; r[ 5 ] = te[5]; r[ 6 ] = te[6]; r[ 7 ] = te[7];\n\
-\t\tr[ 8 ]  = te[8]; r[ 9 ]  = te[9]; r[ 10 ] = te[10]; r[ 11 ] = te[11];\n\
-\t\tr[ 12 ] = te[12]; r[ 13 ] = te[13]; r[ 14 ] = te[14]; r[ 15 ] = te[15];\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tmultiplyScalar: function ( s ) {\n\
-\n\
-\t\tvar te = this.elements;\n\
-\n\
-\t\tte[0] *= s; te[4] *= s; te[8] *= s; te[12] *= s;\n\
-\t\tte[1] *= s; te[5] *= s; te[9] *= s; te[13] *= s;\n\
-\t\tte[2] *= s; te[6] *= s; te[10] *= s; te[14] *= s;\n\
-\t\tte[3] *= s; te[7] *= s; te[11] *= s; te[15] *= s;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tmultiplyVector3: function ( vector ) {\n\
-\n\
-\t\tconsole.warn( 'DEPRECATED: Matrix4\\'s .multiplyVector3() has been removed. Use vector.applyMatrix4( matrix ) or vector.applyProjection( matrix ) instead.' );\n\
-\t\treturn vector.applyProjection( this );\n\
-\n\
-\t},\n\
-\n\
-\tmultiplyVector4: function ( vector ) {\n\
-\n\
-\t\tconsole.warn( 'DEPRECATED: Matrix4\\'s .multiplyVector4() has been removed. Use vector.applyMatrix4( matrix ) instead.' );\n\
-\t\treturn vector.applyMatrix4( this );\n\
-\n\
-\t},\n\
-\n\
-\tmultiplyVector3Array: function() {\n\
-\n\
-\t\tvar v1 = new Vector3();\n\
-\n\
-\t\treturn function ( a ) {\n\
-\n\
-\t\t\tfor ( var i = 0, il = a.length; i < il; i += 3 ) {\n\
-\n\
-\t\t\t\tv1.x = a[ i ];\n\
-\t\t\t\tv1.y = a[ i + 1 ];\n\
-\t\t\t\tv1.z = a[ i + 2 ];\n\
-\n\
-\t\t\t\tv1.applyProjection( this );\n\
-\n\
-\t\t\t\ta[ i ]     = v1.x;\n\
-\t\t\t\ta[ i + 1 ] = v1.y;\n\
-\t\t\t\ta[ i + 2 ] = v1.z;\n\
-\n\
-\t\t\t}\n\
-\n\
-\t\t\treturn a;\n\
-\n\
-\t\t};\n\
-\n\
-\t}(),\n\
-\n\
-\trotateAxis: function ( v ) {\n\
-\n\
-\t\tconsole.warn( 'DEPRECATED: Matrix4\\'s .rotateAxis() has been removed. Use Vector3.transformDirection( matrix ) instead.' );\n\
-\n\
-\t\tv.transformDirection( this );\n\
-\n\
-\t},\n\
-\n\
-\tcrossVector: function ( vector ) {\n\
-\n\
-\t\tconsole.warn( 'DEPRECATED: Matrix4\\'s .crossVector() has been removed. Use vector.applyMatrix4( matrix ) instead.' );\n\
-\t\treturn vector.applyMatrix4( this );\n\
-\n\
-\t},\n\
-\n\
-\tdeterminant: function () {\n\
-\n\
-\t\tvar te = this.elements;\n\
-\n\
-\t\tvar n11 = te[0], n12 = te[4], n13 = te[8], n14 = te[12];\n\
-\t\tvar n21 = te[1], n22 = te[5], n23 = te[9], n24 = te[13];\n\
-\t\tvar n31 = te[2], n32 = te[6], n33 = te[10], n34 = te[14];\n\
-\t\tvar n41 = te[3], n42 = te[7], n43 = te[11], n44 = te[15];\n\
-\n\
-\t\t//TODO: make this more efficient\n\
-\t\t//( based on http://www.euclideanspace.com/maths/algebra/matrix/functions/inverse/fourD/index.htm )\n\
-\n\
-\t\treturn (\n\
-\t\t\tn41 * (\n\
-\t\t\t\t+n14 * n23 * n32\n\
-\t\t\t\t-n13 * n24 * n32\n\
-\t\t\t\t-n14 * n22 * n33\n\
-\t\t\t\t+n12 * n24 * n33\n\
-\t\t\t\t+n13 * n22 * n34\n\
-\t\t\t\t-n12 * n23 * n34\n\
-\t\t\t) +\n\
-\t\t\tn42 * (\n\
-\t\t\t\t+n11 * n23 * n34\n\
-\t\t\t\t-n11 * n24 * n33\n\
-\t\t\t\t+n14 * n21 * n33\n\
-\t\t\t\t-n13 * n21 * n34\n\
-\t\t\t\t+n13 * n24 * n31\n\
-\t\t\t\t-n14 * n23 * n31\n\
-\t\t\t) +\n\
-\t\t\tn43 * (\n\
-\t\t\t\t+n11 * n24 * n32\n\
-\t\t\t\t-n11 * n22 * n34\n\
-\t\t\t\t-n14 * n21 * n32\n\
-\t\t\t\t+n12 * n21 * n34\n\
-\t\t\t\t+n14 * n22 * n31\n\
-\t\t\t\t-n12 * n24 * n31\n\
-\t\t\t) +\n\
-\t\t\tn44 * (\n\
-\t\t\t\t-n13 * n22 * n31\n\
-\t\t\t\t-n11 * n23 * n32\n\
-\t\t\t\t+n11 * n22 * n33\n\
-\t\t\t\t+n13 * n21 * n32\n\
-\t\t\t\t-n12 * n21 * n33\n\
-\t\t\t\t+n12 * n23 * n31\n\
-\t\t\t)\n\
-\n\
-\t\t);\n\
-\n\
-\t},\n\
-\n\
-\ttranspose: function () {\n\
-\n\
-\t\tvar te = this.elements;\n\
-\t\tvar tmp;\n\
-\n\
-\t\ttmp = te[1]; te[1] = te[4]; te[4] = tmp;\n\
-\t\ttmp = te[2]; te[2] = te[8]; te[8] = tmp;\n\
-\t\ttmp = te[6]; te[6] = te[9]; te[9] = tmp;\n\
-\n\
-\t\ttmp = te[3]; te[3] = te[12]; te[12] = tmp;\n\
-\t\ttmp = te[7]; te[7] = te[13]; te[13] = tmp;\n\
-\t\ttmp = te[11]; te[11] = te[14]; te[14] = tmp;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tflattenToArray: function ( flat ) {\n\
-\n\
-\t\tvar te = this.elements;\n\
-\t\tflat[ 0 ] = te[0]; flat[ 1 ] = te[1]; flat[ 2 ] = te[2]; flat[ 3 ] = te[3];\n\
-\t\tflat[ 4 ] = te[4]; flat[ 5 ] = te[5]; flat[ 6 ] = te[6]; flat[ 7 ] = te[7];\n\
-\t\tflat[ 8 ] = te[8]; flat[ 9 ] = te[9]; flat[ 10 ] = te[10]; flat[ 11 ] = te[11];\n\
-\t\tflat[ 12 ] = te[12]; flat[ 13 ] = te[13]; flat[ 14 ] = te[14]; flat[ 15 ] = te[15];\n\
-\n\
-\t\treturn flat;\n\
-\n\
-\t},\n\
-\n\
-\tflattenToArrayOffset: function( flat, offset ) {\n\
-\n\
-\t\tvar te = this.elements;\n\
-\t\tflat[ offset ] = te[0];\n\
-\t\tflat[ offset + 1 ] = te[1];\n\
-\t\tflat[ offset + 2 ] = te[2];\n\
-\t\tflat[ offset + 3 ] = te[3];\n\
-\n\
-\t\tflat[ offset + 4 ] = te[4];\n\
-\t\tflat[ offset + 5 ] = te[5];\n\
-\t\tflat[ offset + 6 ] = te[6];\n\
-\t\tflat[ offset + 7 ] = te[7];\n\
-\n\
-\t\tflat[ offset + 8 ]  = te[8];\n\
-\t\tflat[ offset + 9 ]  = te[9];\n\
-\t\tflat[ offset + 10 ] = te[10];\n\
-\t\tflat[ offset + 11 ] = te[11];\n\
-\n\
-\t\tflat[ offset + 12 ] = te[12];\n\
-\t\tflat[ offset + 13 ] = te[13];\n\
-\t\tflat[ offset + 14 ] = te[14];\n\
-\t\tflat[ offset + 15 ] = te[15];\n\
-\n\
-\t\treturn flat;\n\
-\n\
-\t},\n\
-\n\
-\tgetPosition: function() {\n\
-\n\
-\t\tvar v1 = new Vector3();\n\
-\n\
-\t\treturn function () {\n\
-\n\
-\t\t\tconsole.warn( 'DEPRECATED: Matrix4\\'s .getPosition() has been removed. Use Vector3.getPositionFromMatrix( matrix ) instead.' );\n\
-\n\
-\t\t\tvar te = this.elements;\n\
-\t\t\treturn v1.set( te[12], te[13], te[14] );\n\
-\n\
-\t\t};\n\
-\n\
-\t}(),\n\
-\n\
-\tsetPosition: function ( v ) {\n\
-\n\
-\t\tvar te = this.elements;\n\
-\n\
-\t\tte[12] = v.x;\n\
-\t\tte[13] = v.y;\n\
-\t\tte[14] = v.z;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tgetInverse: function ( m, throwOnInvertible ) {\n\
-\n\
-\t\t// based on http://www.euclideanspace.com/maths/algebra/matrix/functions/inverse/fourD/index.htm\n\
-\t\tvar te = this.elements;\n\
-\t\tvar me = m.elements;\n\
-\n\
-\t\tvar n11 = me[0], n12 = me[4], n13 = me[8], n14 = me[12];\n\
-\t\tvar n21 = me[1], n22 = me[5], n23 = me[9], n24 = me[13];\n\
-\t\tvar n31 = me[2], n32 = me[6], n33 = me[10], n34 = me[14];\n\
-\t\tvar n41 = me[3], n42 = me[7], n43 = me[11], n44 = me[15];\n\
-\n\
-\t\tte[0] = n23*n34*n42 - n24*n33*n42 + n24*n32*n43 - n22*n34*n43 - n23*n32*n44 + n22*n33*n44;\n\
-\t\tte[4] = n14*n33*n42 - n13*n34*n42 - n14*n32*n43 + n12*n34*n43 + n13*n32*n44 - n12*n33*n44;\n\
-\t\tte[8] = n13*n24*n42 - n14*n23*n42 + n14*n22*n43 - n12*n24*n43 - n13*n22*n44 + n12*n23*n44;\n\
-\t\tte[12] = n14*n23*n32 - n13*n24*n32 - n14*n22*n33 + n12*n24*n33 + n13*n22*n34 - n12*n23*n34;\n\
-\t\tte[1] = n24*n33*n41 - n23*n34*n41 - n24*n31*n43 + n21*n34*n43 + n23*n31*n44 - n21*n33*n44;\n\
-\t\tte[5] = n13*n34*n41 - n14*n33*n41 + n14*n31*n43 - n11*n34*n43 - n13*n31*n44 + n11*n33*n44;\n\
-\t\tte[9] = n14*n23*n41 - n13*n24*n41 - n14*n21*n43 + n11*n24*n43 + n13*n21*n44 - n11*n23*n44;\n\
-\t\tte[13] = n13*n24*n31 - n14*n23*n31 + n14*n21*n33 - n11*n24*n33 - n13*n21*n34 + n11*n23*n34;\n\
-\t\tte[2] = n22*n34*n41 - n24*n32*n41 + n24*n31*n42 - n21*n34*n42 - n22*n31*n44 + n21*n32*n44;\n\
-\t\tte[6] = n14*n32*n41 - n12*n34*n41 - n14*n31*n42 + n11*n34*n42 + n12*n31*n44 - n11*n32*n44;\n\
-\t\tte[10] = n12*n24*n41 - n14*n22*n41 + n14*n21*n42 - n11*n24*n42 - n12*n21*n44 + n11*n22*n44;\n\
-\t\tte[14] = n14*n22*n31 - n12*n24*n31 - n14*n21*n32 + n11*n24*n32 + n12*n21*n34 - n11*n22*n34;\n\
-\t\tte[3] = n23*n32*n41 - n22*n33*n41 - n23*n31*n42 + n21*n33*n42 + n22*n31*n43 - n21*n32*n43;\n\
-\t\tte[7] = n12*n33*n41 - n13*n32*n41 + n13*n31*n42 - n11*n33*n42 - n12*n31*n43 + n11*n32*n43;\n\
-\t\tte[11] = n13*n22*n41 - n12*n23*n41 - n13*n21*n42 + n11*n23*n42 + n12*n21*n43 - n11*n22*n43;\n\
-\t\tte[15] = n12*n23*n31 - n13*n22*n31 + n13*n21*n32 - n11*n23*n32 - n12*n21*n33 + n11*n22*n33;\n\
-\n\
-\t\tvar det = n11 * te[ 0 ] + n21 * te[ 4 ] + n31 * te[ 8 ] + n41 * te[ 12 ];\n\
-\n\
-\t\tif ( det == 0 ) {\n\
-\n\
-\t\t\tvar msg = \"Matrix4.getInverse(): can't invert matrix, determinant is 0\";\n\
-\n\
-\t\t\tif ( throwOnInvertible || false ) {\n\
-\n\
-\t\t\t\tthrow new Error( msg ); \n\
-\n\
-\t\t\t} else {\n\
-\n\
-\t\t\t\tconsole.warn( msg );\n\
-\n\
-\t\t\t}\n\
-\n\
-\t\t\tthis.identity();\n\
-\n\
-\t\t\treturn this;\n\
-\t\t}\n\
-\n\
-\t\tthis.multiplyScalar( 1 / det );\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\ttranslate: function ( v ) {\n\
-\n\
-\t\tconsole.warn( 'DEPRECATED: Matrix4\\'s .translate() has been removed.');\n\
-\n\
-\t},\n\
-\n\
-\trotateX: function ( angle ) {\n\
-\n\
-\t\tconsole.warn( 'DEPRECATED: Matrix4\\'s .rotateX() has been removed.');\n\
-\n\
-\t},\n\
-\n\
-\trotateY: function ( angle ) {\n\
-\n\
-\t\tconsole.warn( 'DEPRECATED: Matrix4\\'s .rotateY() has been removed.');\n\
-\n\
-\t},\n\
-\n\
-\trotateZ: function ( angle ) {\n\
-\n\
-\t\tconsole.warn( 'DEPRECATED: Matrix4\\'s .rotateZ() has been removed.');\n\
-\n\
-\t},\n\
-\n\
-\trotateByAxis: function ( axis, angle ) {\n\
-\n\
-\t\tconsole.warn( 'DEPRECATED: Matrix4\\'s .rotateByAxis() has been removed.');\n\
-\n\
-\t},\n\
-\n\
-\tscale: function ( v ) {\n\
-\n\
-\t\tvar te = this.elements;\n\
-\t\tvar x = v.x, y = v.y, z = v.z;\n\
-\n\
-\t\tte[0] *= x; te[4] *= y; te[8] *= z;\n\
-\t\tte[1] *= x; te[5] *= y; te[9] *= z;\n\
-\t\tte[2] *= x; te[6] *= y; te[10] *= z;\n\
-\t\tte[3] *= x; te[7] *= y; te[11] *= z;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tgetMaxScaleOnAxis: function () {\n\
-\n\
-\t\tvar te = this.elements;\n\
-\n\
-\t\tvar scaleXSq = te[0] * te[0] + te[1] * te[1] + te[2] * te[2];\n\
-\t\tvar scaleYSq = te[4] * te[4] + te[5] * te[5] + te[6] * te[6];\n\
-\t\tvar scaleZSq = te[8] * te[8] + te[9] * te[9] + te[10] * te[10];\n\
-\n\
-\t\treturn Math.sqrt( Math.max( scaleXSq, Math.max( scaleYSq, scaleZSq ) ) );\n\
-\n\
-\t},\n\
-\n\
-\tmakeTranslation: function ( x, y, z ) {\n\
-\n\
-\t\tthis.set(\n\
-\n\
-\t\t\t1, 0, 0, x,\n\
-\t\t\t0, 1, 0, y,\n\
-\t\t\t0, 0, 1, z,\n\
-\t\t\t0, 0, 0, 1\n\
-\n\
-\t\t);\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tmakeRotationX: function ( theta ) {\n\
-\n\
-\t\tvar c = Math.cos( theta ), s = Math.sin( theta );\n\
-\n\
-\t\tthis.set(\n\
-\n\
-\t\t\t1, 0,  0, 0,\n\
-\t\t\t0, c, -s, 0,\n\
-\t\t\t0, s,  c, 0,\n\
-\t\t\t0, 0,  0, 1\n\
-\n\
-\t\t);\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tmakeRotationY: function ( theta ) {\n\
-\n\
-\t\tvar c = Math.cos( theta ), s = Math.sin( theta );\n\
-\n\
-\t\tthis.set(\n\
-\n\
-\t\t\t c, 0, s, 0,\n\
-\t\t\t 0, 1, 0, 0,\n\
-\t\t\t-s, 0, c, 0,\n\
-\t\t\t 0, 0, 0, 1\n\
-\n\
-\t\t);\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tmakeRotationZ: function ( theta ) {\n\
-\n\
-\t\tvar c = Math.cos( theta ), s = Math.sin( theta );\n\
-\n\
-\t\tthis.set(\n\
-\n\
-\t\t\tc, -s, 0, 0,\n\
-\t\t\ts,  c, 0, 0,\n\
-\t\t\t0,  0, 1, 0,\n\
-\t\t\t0,  0, 0, 1\n\
-\n\
-\t\t);\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tmakeRotationAxis: function ( axis, angle ) {\n\
-\n\
-\t\t// Based on http://www.gamedev.net/reference/articles/article1199.asp\n\
-\n\
-\t\tvar c = Math.cos( angle );\n\
-\t\tvar s = Math.sin( angle );\n\
-\t\tvar t = 1 - c;\n\
-\t\tvar x = axis.x, y = axis.y, z = axis.z;\n\
-\t\tvar tx = t * x, ty = t * y;\n\
-\n\
-\t\tthis.set(\n\
-\n\
-\t\t\ttx * x + c, tx * y - s * z, tx * z + s * y, 0,\n\
-\t\t\ttx * y + s * z, ty * y + c, ty * z - s * x, 0,\n\
-\t\t\ttx * z - s * y, ty * z + s * x, t * z * z + c, 0,\n\
-\t\t\t0, 0, 0, 1\n\
-\n\
-\t\t);\n\
-\n\
-\t\t return this;\n\
-\n\
-\t},\n\
-\n\
-\tmakeScale: function ( x, y, z ) {\n\
-\n\
-\t\tthis.set(\n\
-\n\
-\t\t\tx, 0, 0, 0,\n\
-\t\t\t0, y, 0, 0,\n\
-\t\t\t0, 0, z, 0,\n\
-\t\t\t0, 0, 0, 1\n\
-\n\
-\t\t);\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tcompose: function ( position, quaternion, scale ) {\n\
-\n\
-\t\tthis.makeRotationFromQuaternion( quaternion );\n\
-\t\tthis.scale( scale );\n\
-\t\tthis.setPosition( position );\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tdecompose: function () {\n\
-\n\
-\t\tvar vector = new Vector3();\n\
-\t\tvar matrix = new Matrix4();\n\
-\n\
-\t\treturn function ( position, quaternion, scale ) {\n\
-\n\
-\t\t\tvar te = this.elements;\n\
-\n\
-\t\t\tvar sx = vector.set( te[0], te[1], te[2] ).length();\n\
-\t\t\tvar sy = vector.set( te[4], te[5], te[6] ).length();\n\
-\t\t\tvar sz = vector.set( te[8], te[9], te[10] ).length();\n\
-\n\
-\t\t\tposition.x = te[12];\n\
-\t\t\tposition.y = te[13];\n\
-\t\t\tposition.z = te[14];\n\
-\n\
-\t\t\t// scale the rotation part\n\
-\n\
-\t\t\tmatrix.elements.set( this.elements ); // at this point matrix is incomplete so we can't use .copy()\n\
-\n\
-\t\t\tvar invSX = 1 / sx;\n\
-\t\t\tvar invSY = 1 / sy;\n\
-\t\t\tvar invSZ = 1 / sz;\n\
-\n\
-\t\t\tmatrix.elements[0] *= invSX;\n\
-\t\t\tmatrix.elements[1] *= invSX;\n\
-\t\t\tmatrix.elements[2] *= invSX;\n\
-\n\
-\t\t\tmatrix.elements[4] *= invSY;\n\
-\t\t\tmatrix.elements[5] *= invSY;\n\
-\t\t\tmatrix.elements[6] *= invSY;\n\
-\n\
-\t\t\tmatrix.elements[8] *= invSZ;\n\
-\t\t\tmatrix.elements[9] *= invSZ;\n\
-\t\t\tmatrix.elements[10] *= invSZ;\n\
-\n\
-\t\t\tquaternion.setFromRotationMatrix( matrix );\n\
-\n\
-\t\t\tscale.x = sx;\n\
-\t\t\tscale.y = sy;\n\
-\t\t\tscale.z = sz;\n\
-\n\
-\t\t\treturn this;\n\
-\n\
-\t\t};\n\
-\n\
-\t}(),\n\
-\n\
-\tmakeFrustum: function ( left, right, bottom, top, near, far ) {\n\
-\n\
-\t\tvar te = this.elements;\n\
-\t\tvar x = 2 * near / ( right - left );\n\
-\t\tvar y = 2 * near / ( top - bottom );\n\
-\n\
-\t\tvar a = ( right + left ) / ( right - left );\n\
-\t\tvar b = ( top + bottom ) / ( top - bottom );\n\
-\t\tvar c = - ( far + near ) / ( far - near );\n\
-\t\tvar d = - 2 * far * near / ( far - near );\n\
-\n\
-\t\tte[0] = x;\tte[4] = 0;\tte[8] = a;\tte[12] = 0;\n\
-\t\tte[1] = 0;\tte[5] = y;\tte[9] = b;\tte[13] = 0;\n\
-\t\tte[2] = 0;\tte[6] = 0;\tte[10] = c;\tte[14] = d;\n\
-\t\tte[3] = 0;\tte[7] = 0;\tte[11] = - 1;\tte[15] = 0;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tmakePerspective: function ( fov, aspect, near, far ) {\n\
-\n\
-\t\tvar ymax = near * Math.tan( MathUtils.degToRad( fov * 0.5 ) );\n\
-\t\tvar ymin = - ymax;\n\
-\t\tvar xmin = ymin * aspect;\n\
-\t\tvar xmax = ymax * aspect;\n\
-\n\
-\t\treturn this.makeFrustum( xmin, xmax, ymin, ymax, near, far );\n\
-\n\
-\t},\n\
-\n\
-\tmakeOrthographic: function ( left, right, top, bottom, near, far ) {\n\
-\n\
-\t\tvar te = this.elements;\n\
-\t\tvar w = right - left;\n\
-\t\tvar h = top - bottom;\n\
-\t\tvar p = far - near;\n\
-\n\
-\t\tvar x = ( right + left ) / w;\n\
-\t\tvar y = ( top + bottom ) / h;\n\
-\t\tvar z = ( far + near ) / p;\n\
-\n\
-\t\tte[0] = 2 / w;\tte[4] = 0;\tte[8] = 0;\tte[12] = -x;\n\
-\t\tte[1] = 0;\tte[5] = 2 / h;\tte[9] = 0;\tte[13] = -y;\n\
-\t\tte[2] = 0;\tte[6] = 0;\tte[10] = -2/p;\tte[14] = -z;\n\
-\t\tte[3] = 0;\tte[7] = 0;\tte[11] = 0;\tte[15] = 1;\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\tfromArray: function ( array ) {\n\
-\n\
-\t\tthis.elements.set( array );\n\
-\n\
-\t\treturn this;\n\
-\n\
-\t},\n\
-\n\
-\ttoArray: function () {\n\
-\n\
-\t\tvar te = this.elements;\n\
-\n\
-\t\treturn [\n\
-\t\t\tte[ 0 ], te[ 1 ], te[ 2 ], te[ 3 ],\n\
-\t\t\tte[ 4 ], te[ 5 ], te[ 6 ], te[ 7 ],\n\
-\t\t\tte[ 8 ], te[ 9 ], te[ 10 ], te[ 11 ],\n\
-\t\t\tte[ 12 ], te[ 13 ], te[ 14 ], te[ 15 ]\n\
-\t\t];\n\
-\n\
-\t},\n\
-\n\
-\tclone: function () {\n\
-\n\
-\t\tvar te = this.elements;\n\
-\n\
-\t\treturn new Matrix4(\n\
-\n\
-\t\t\tte[0], te[4], te[8], te[12],\n\
-\t\t\tte[1], te[5], te[9], te[13],\n\
-\t\t\tte[2], te[6], te[10], te[14],\n\
-\t\t\tte[3], te[7], te[11], te[15]\n\
-\n\
-\t\t);\n\
-\n\
-\t}\n\
-\n\
+/**\n\
+ * Returns a matrix that corresponds to scaling by factors of sx, sy along\n\
+ * the x and y axis respectively.\n\
+ * If only one parameter is given the matrix is scaled uniformly along both axis.\n\
+ * If the optional aboutPoint parameter is given the scaling takes place\n\
+ * about the given point.\n\
+ * @see Matrix#scale\n\
+ *\n\
+ * @param {Number} sx The amount to scale by along the x axis or uniformly if no sy is given.\n\
+ * @param {Number} [sy] The amount to scale by along the y axis.\n\
+ * @param {Point} [aboutPoint] The point about which the scaling occurs. Defaults to (0,0).\n\
+ * @returns A matrix transformation representing scaling by sx and sy.\n\
+ * @type Matrix\n\
+ */\n\
+Matrix.scale = function(sx, sy, aboutPoint) {\n\
+  sy = sy || sx;\n\
+\n\
+  var scaleMatrix = new Matrix(sx, 0, 0, sy);\n\
+\n\
+  if(aboutPoint) {\n\
+    scaleMatrix =\n\
+      Matrix.translation(aboutPoint.x, aboutPoint.y).concat(\n\
+        scaleMatrix\n\
+      ).concat(\n\
+        Matrix.translation(-aboutPoint.x, -aboutPoint.y)\n\
+      );\n\
+  }\n\
+\n\
+  return scaleMatrix;\n\
 };\n\
-//@ sourceURL=gcanvas/lib/math/Matrix4.js"
+\n\
+/**\n\
+ * Returns a matrix that corresponds to a translation of tx, ty.\n\
+ * @see Matrix#translate\n\
+ *\n\
+ * @param {Number} tx The amount to translate in the x direction.\n\
+ * @param {Number} ty The amount to translate in the y direction.\n\
+ * @return A matrix transformation representing a translation by tx and ty.\n\
+ * @type Matrix\n\
+ */\n\
+Matrix.translation = function(tx, ty) {\n\
+  return new Matrix(1, 0, 0, 1, tx, ty);\n\
+};\n\
+\n\
+/**\n\
+ * A constant representing the identity matrix.\n\
+ * @name IDENTITY\n\
+ * @fieldOf Matrix\n\
+ */\n\
+Matrix.IDENTITY = new Matrix();\n\
+/**\n\
+ * A constant representing the horizontal flip transformation matrix.\n\
+ * @name HORIZONTAL_FLIP\n\
+ * @fieldOf Matrix\n\
+ */\n\
+Matrix.HORIZONTAL_FLIP = new Matrix(-1, 0, 0, 1);\n\
+/**\n\
+ * A constant representing the vertical flip transformation matrix.\n\
+ * @name VERTICAL_FLIP\n\
+ * @fieldOf Matrix\n\
+ */\n\
+Matrix.VERTICAL_FLIP = new Matrix(1, 0, 0, -1);\n\
+//@ sourceURL=gcanvas/lib/math/matrix.js"
 ));
 require.register("gcanvas/lib/path.js", Function("exports, require, module",
 "/**\n\
@@ -2350,7 +866,7 @@ require.register("gcanvas/lib/path.js", Function("exports, require, module",
 \n\
 module.exports = Path;\n\
 \n\
-var Vector2 = require('./math/Vector2');\n\
+var Point = require('./math/point');\n\
 \n\
 function Path( points ) {\n\
 \tthis.actions = [];\n\
@@ -2366,7 +882,6 @@ Path.actions = {\n\
 \tQUADRATIC_CURVE_TO: 'quadraticCurveTo', // Bezier quadratic curve\n\
 \tBEZIER_CURVE_TO: 'bezierCurveTo', \t\t// Bezier cubic curve\n\
 \tCSPLINE_THRU: 'splineThru',\t\t\t\t// Catmull-rom spline\n\
-\tARC: 'arc',\t\t\t\t\t\t\t\t// Circle\n\
 \tELLIPSE: 'ellipse'\n\
 };\n\
 \n\
@@ -2398,10 +913,7 @@ Path.prototype.lineTo = function ( x, y ) {\n\
 \tvar x0 = lastargs[ lastargs.length - 2 ];\n\
 \tvar y0 = lastargs[ lastargs.length - 1 ];\n\
 \n\
-\t// var curve = new LineCurve( new Vector2( x0, y0 ), new Vector2( x, y ) );\n\
-\t// this.curves.push( curve );\n\
-\n\
-\tthis.actions.push( { action: Path.actions.LINE_TO, args: args } );\n\
+  this.actions.push( { action: Path.actions.LINE_TO, args: args } );\n\
 \n\
 };\n\
 \n\
@@ -2413,11 +925,6 @@ Path.prototype.quadraticCurveTo = function( aCPx, aCPy, aX, aY ) {\n\
 \n\
 \tvar x0 = lastargs[ lastargs.length - 2 ];\n\
 \tvar y0 = lastargs[ lastargs.length - 1 ];\n\
-\n\
-\t// var curve = new QuadraticBezierCurve( new Vector2( x0, y0 ),\n\
-\t// \t\t\t\t\t\t\t\t\t\t\tnew Vector2( aCPx, aCPy ),\n\
-\t// \t\t\t\t\t\t\t\t\t\t\tnew Vector2( aX, aY ) );\n\
-\t// this.curves.push( curve );\n\
 \n\
 \tthis.actions.push( { action: Path.actions.QUADRATIC_CURVE_TO, args: args } );\n\
 \n\
@@ -2434,12 +941,6 @@ Path.prototype.bezierCurveTo = function( aCP1x, aCP1y,\n\
 \tvar x0 = lastargs[ lastargs.length - 2 ];\n\
 \tvar y0 = lastargs[ lastargs.length - 1 ];\n\
 \n\
-\t// var curve = new CubicBezierCurve( new Vector2( x0, y0 ),\n\
-\t// \t\t\t\t\t\t\t\t\t\tnew Vector2( aCP1x, aCP1y ),\n\
-\t// \t\t\t\t\t\t\t\t\t\tnew Vector2( aCP2x, aCP2y ),\n\
-\t// \t\t\t\t\t\t\t\t\t\tnew Vector2( aX, aY ) );\n\
-\t// this.curves.push( curve );\n\
-\n\
 \tthis.actions.push( { action: Path.actions.BEZIER_CURVE_TO, args: args } );\n\
 \n\
 };\n\
@@ -2452,94 +953,29 @@ Path.prototype.splineThru = function( pts /*Array of Vector*/ ) {\n\
 \tvar x0 = lastargs[ lastargs.length - 2 ];\n\
 \tvar y0 = lastargs[ lastargs.length - 1 ];\n\
 \n\
-\tvar npts = [ new Vector2( x0, y0 ) ];\n\
+\tvar npts = [ new Point( x0, y0 ) ];\n\
 \tArray.prototype.push.apply( npts, pts );\n\
 \n\
 \tthis.actions.push( { action: Path.actions.CSPLINE_THRU, args: args } );\n\
 \n\
 };\n\
 \n\
-// FUTURE: Change the API or follow canvas API?\n\
 \n\
 Path.prototype.arc = function ( aX, aY, aRadius,\n\
 \t\t\t\t\t\t\t\t\t  aStartAngle, aEndAngle, aClockwise ) {\n\
-\n\
-\tvar lastargs = this.actions[ this.actions.length - 1].args;\n\
-\tvar x0 = lastargs[ lastargs.length - 2 ];\n\
-\tvar y0 = lastargs[ lastargs.length - 1 ];\n\
-\n\
-\tthis.absarc(aX + x0, aY + y0, aRadius,\n\
-\t\taStartAngle, aEndAngle, aClockwise );\n\
-\n\
- };\n\
-\n\
- Path.prototype.absarc = function ( aX, aY, aRadius,\n\
-\t\t\t\t\t\t\t\t\t  aStartAngle, aEndAngle, aClockwise ) {\n\
-\tthis.absellipse(aX, aY, aRadius, aRadius, aStartAngle, aEndAngle, aClockwise);\n\
- };\n\
+\tthis.ellipse(aX, aY, aRadius, aRadius, aStartAngle, aEndAngle, aClockwise);\n\
+};\n\
 \n\
 Path.prototype.ellipse = function ( aX, aY, xRadius, yRadius,\n\
 \t\t\t\t\t\t\t\t\t  aStartAngle, aEndAngle, aClockwise ) {\n\
 \n\
-\tvar lastargs = this.actions[ this.actions.length - 1].args;\n\
-\tvar x0 = lastargs[ lastargs.length - 2 ];\n\
-\tvar y0 = lastargs[ lastargs.length - 1 ];\n\
-\n\
-\tthis.absellipse(aX + x0, aY + y0, xRadius, yRadius,\n\
-\t\taStartAngle, aEndAngle, aClockwise );\n\
-\n\
- };\n\
-\n\
-\n\
-Path.prototype.absellipse = function ( aX, aY, xRadius, yRadius,\n\
-\t\t\t\t\t\t\t\t\t  aStartAngle, aEndAngle, aClockwise ) {\n\
-\n\
 \tvar args = Array.prototype.slice.call( arguments );\n\
-\t// var curve = new EllipseCurve( aX, aY, xRadius, yRadius,\n\
-\t// \t\t\t\t\t\t\t\taStartAngle, aEndAngle, aClockwise );\n\
-\t// this.curves.push( curve );\n\
-\n\
-\t// var lastPoint = curve.getPoint(1);\n\
-\t// args.push(lastPoint.x);\n\
-\t// args.push(lastPoint.y);\n\
-\n\
 \tthis.actions.push( { action: Path.actions.ELLIPSE, args: args } );\n\
-\n\
- };\n\
-\n\
-Path.prototype.getSpacedPoints = function ( divisions, closedPath ) {\n\
-\n\
-\tif ( ! divisions ) divisions = 40;\n\
-\n\
-\tvar points = [];\n\
-\n\
-\tfor ( var i = 0; i < divisions; i ++ ) {\n\
-\n\
-\t\tpoints.push( this.getPoint( i / divisions ) );\n\
-\n\
-\t\t//if( !this.getPoint( i / divisions ) ) throw \"DIE\";\n\
-\n\
-\t}\n\
-\n\
-\t// if ( closedPath ) {\n\
-\t//\n\
-\t// \tpoints.push( points[ 0 ] );\n\
-\t//\n\
-\t// }\n\
-\n\
-\treturn points;\n\
-\n\
 };\n\
 \n\
 /* Return an array of vectors based on contour of the path */\n\
 \n\
 Path.prototype.getPoints = function( divisions, closedPath ) {\n\
-\n\
-\tif (this.useSpacedPoints) {\n\
-\t\tconsole.log('tata');\n\
-\t\treturn this.getSpacedPoints( divisions, closedPath );\n\
-\t}\n\
-\n\
 \tdivisions = divisions || 12;\n\
 \n\
 \tvar points = [];\n\
@@ -2560,13 +996,13 @@ Path.prototype.getPoints = function( divisions, closedPath ) {\n\
 \n\
 \t\tcase Path.actions.MOVE_TO:\n\
 \n\
-\t\t\tpoints.push( new Vector2( args[ 0 ], args[ 1 ] ) );\n\
+\t\t\tpoints.push( new Point( args[ 0 ], args[ 1 ] ) );\n\
 \n\
 \t\t\tbreak;\n\
 \n\
 \t\tcase Path.actions.LINE_TO:\n\
 \n\
-\t\t\tpoints.push( new Vector2( args[ 0 ], args[ 1 ] ) );\n\
+\t\t\tpoints.push( new Point( args[ 0 ], args[ 1 ] ) );\n\
 \n\
 \t\t\tbreak;\n\
 \n\
@@ -2601,7 +1037,7 @@ Path.prototype.getPoints = function( divisions, closedPath ) {\n\
 \t\t\t\ttx = Shape.Utils.b2( t, cpx0, cpx1, cpx );\n\
 \t\t\t\tty = Shape.Utils.b2( t, cpy0, cpy1, cpy );\n\
 \n\
-\t\t\t\tpoints.push( new Vector2( tx, ty ) );\n\
+\t\t\t\tpoints.push( new Point( tx, ty ) );\n\
 \n\
 \t\t\t}\n\
 \n\
@@ -2642,7 +1078,7 @@ Path.prototype.getPoints = function( divisions, closedPath ) {\n\
 \t\t\t\ttx = Shape.Utils.b3( t, cpx0, cpx1, cpx2, cpx );\n\
 \t\t\t\tty = Shape.Utils.b3( t, cpy0, cpy1, cpy2, cpy );\n\
 \n\
-\t\t\t\tpoints.push( new Vector2( tx, ty ) );\n\
+\t\t\t\tpoints.push( new Point( tx, ty ) );\n\
 \n\
 \t\t\t}\n\
 \n\
@@ -2652,7 +1088,7 @@ Path.prototype.getPoints = function( divisions, closedPath ) {\n\
 \n\
 \t\t\tlaste = this.actions[ i - 1 ].args;\n\
 \n\
-\t\t\tvar last = new Vector2( laste[ laste.length - 2 ], laste[ laste.length - 1 ] );\n\
+\t\t\tvar last = new Point( laste[ laste.length - 2 ], laste[ laste.length - 1 ] );\n\
 \t\t\tvar spts = [ last ];\n\
 \n\
 \t\t\tvar n = divisions * args[ 0 ].length;\n\
@@ -2710,18 +1146,15 @@ Path.prototype.getPoints = function( divisions, closedPath ) {\n\
         var tx = aX + xRadius * Math.cos( angle );\n\
         var ty = aY + yRadius * Math.sin( angle );\n\
 \n\
-\t\t\t\tpoints.push( new Vector2( tx, ty ) );\n\
+\t\t\t\tpoints.push( new Point( tx, ty ) );\n\
 \n\
 \t\t\t}\n\
-\n\
-\t\t\t//console.log(points);\n\
 \n\
 \t\t  break;\n\
 \n\
 \t\t} // end switch\n\
 \n\
 \t}\n\
-\n\
 \n\
 \n\
 \t// Normalize to remove the closing point by default.\n\
@@ -8111,15 +6544,12 @@ require.register("gcanvas/lib/gcanvas.js", Function("exports, require, module",
 var Path = require('./path')\n\
   , Motion = require('./motion')\n\
   , GCodeDriver = require('./drivers/gcode')\n\
-  , Vector3 = require('./math/Vector3')\n\
-  , Matrix4 = require('./math/Matrix4')\n\
+  , Point = require('./math/point')\n\
+  , Matrix = require('./math/matrix')\n\
   , parseFont = require('./parsefont')\n\
   , ClipperLib = require('./clipper')\n\
   , FontUtils = require('./FontUtils')\n\
   , utils = require('./utils');\n\
-\n\
-var helvetiker = require('./fonts/helvetiker_regular.typeface');\n\
-FontUtils.loadFace(helvetiker);\n\
 \n\
 function GCanvas(driver, width, height) {\n\
   this.canvas = {\n\
@@ -8128,27 +6558,18 @@ function GCanvas(driver, width, height) {\n\
   };\n\
 \n\
   this.font = \"7pt Helvetiker\";\n\
-  this.matrix = new Matrix4();\n\
+  this.matrix = new Matrix();\n\
   this.rotation = 0; \n\
   this.depth = 1;\n\
   this.depthOfCut = 0.25;\n\
   this.toolDiameter = 5;\n\
   this.fillStrategy = 'crosshatch';\n\
   this.driver = driver || new GCodeDriver();\n\
-  this.position = new Vector3(0,0,0);\n\
+  this.position = new Point(0,0,0);\n\
   this.stack = [];\n\
-\n\
   this.motion = new Motion(this);\n\
 \n\
   this.beginPath();\n\
-\n\
-}\n\
-\n\
-Vector3.prototype.rotated = function(angle) {\n\
-  var axis = new Vector3(0,0,1);\n\
-  rotationMatrix = new Matrix4();\n\
-  rotationMatrix.makeRotationAxis(axis, angle);\n\
-  return this.clone().applyMatrix4(rotationMatrix);\n\
 }\n\
 \n\
 GCanvas.prototype = {\n\
@@ -8169,33 +6590,26 @@ GCanvas.prototype = {\n\
     this.subPaths = [this.path];\n\
   }\n\
 , rotate: function(angle) {\n\
-    var axis = new Vector3(0,0,1);\n\
-    rotationMatrix = new Matrix4();\n\
-    rotationMatrix.makeRotationAxis(axis, angle);\n\
-    this.matrix.multiply(rotationMatrix);\n\
-    this.rotation += angle;\n\
+    this.matrix = this.matrix.rotate(angle);\n\
   }\n\
 , translate: function(x,y) {\n\
-    var trans = new Matrix4();\n\
-    trans.makeTranslation(x, y, 0 )\n\
-    this.matrix.multiply(trans);\n\
+    this.matrix = this.matrix.translate(x,y);\n\
   }\n\
 , scale: function(x,y) {\n\
-    var scale = new Matrix4();\n\
-    scale.makeScale(x, y, 1 )\n\
-    this.matrix.multiply(scale);\n\
+    this.matrix = this.matrix.scale(x,y);\n\
   }\n\
+  // TODO: clean up\n\
 , _transformPoint: function(a, i) {\n\
     i = i || 0;\n\
     if(a.length) {\n\
-      var v = new Vector3(a[i], a[i+1], 0);\n\
-      v.applyMatrix4(this.matrix);\n\
+      var v = new Point(a[i], a[i+1]);\n\
+      v = this.matrix.transformPoint(v);\n\
       a[i] = v.x; \n\
       a[i+1] = v.y; \n\
     }\n\
     else if(a.x) {\n\
-      var v = new Vector3(a.x, a.y, 0);\n\
-      v.applyMatrix4(this.matrix);\n\
+      var v = new Point(a.x, a.y);\n\
+      v = this.matrix.transformPoint(v);\n\
       a.x = v.x; \n\
       a.y = v.y; \n\
     }\n\
@@ -8232,21 +6646,22 @@ GCanvas.prototype = {\n\
     if(aEndAngle-aStartAngle === -Math.PI*2)\n\
       aEndAngle = Math.PI*2;\n\
 \n\
-    var center = new Vector3(x, y, 0);\n\
+    var center = new Point(x, y, 0);\n\
     var points = utils.arcToPoints(center,\n\
                                    aStartAngle,\n\
                                    aEndAngle,\n\
                                    radius);\n\
-    center.applyMatrix4(this.matrix);\n\
-    points.start.applyMatrix4(this.matrix);\n\
-    points.end.applyMatrix4(this.matrix);\n\
+    // center.applyMatrix(this.matrix);\n\
+    this._transformPoint(center);\n\
+    this._transformPoint(points.start);\n\
+    this._transformPoint(points.end);\n\
 \n\
     var res = utils.pointsToArc(center,\n\
                                 points.start,\n\
                                 points.end);\n\
 \n\
     this._ensurePath(points.start.x, points.start.y);\n\
-    this.path.absarc(center.x, center.y, res.radius, res.start, res.end, aClockwise);\n\
+    this.path.arc(center.x, center.y, res.radius, res.start, res.end, aClockwise);\n\
   }\n\
 , bezierCurveTo: function( aCP1x, aCP1y,\n\
                            aCP2x, aCP2y,\n\
@@ -8425,7 +6840,7 @@ GCanvas.prototype = {\n\
       if(utils.sameFloat(rx,ry) &&\n\
         (driver.arcCW && !aClockwise) ||\n\
         (driver.arcCCW && aClockwise) ) {\n\
-          var center = new Vector3(x, y);\n\
+          var center = new Point(x, y);\n\
           var points = utils.arcToPoints(center,\n\
                                          aStart,\n\
                                          aEnd,\n\
@@ -8441,7 +6856,7 @@ GCanvas.prototype = {\n\
             motion.arcCW(params);\n\
       }\n\
       else {\n\
-        this._interpolate('absellipse', arguments, i === 0);\n\
+        this._interpolate('ellipse', arguments, i === 0);\n\
       }\n\
     };\n\
 \n\
@@ -8526,6 +6941,7 @@ GCanvas.prototype = {\n\
     var pts = path.getPoints(40);\n\
     for(var i=0,l=pts.length; i < l; ++i) {\n\
       var p=pts[i];\n\
+      this._ensurePath(p);\n\
       if(i === 0 && moveToFirst)\n\
         this.motion.rapid({x:p.x, y:p.y});\n\
       else\n\
@@ -8539,12 +6955,17 @@ GCanvas.prototype = {\n\
 \n\
 GCanvas.Filter = require('./drivers/filter');\n\
 GCanvas.Simulator = require('./drivers/simulator');\n\
+\n\
+// TODO: Real ttf font loading (UGH!)\n\
+var helvetiker = require('./fonts/helvetiker_regular.typeface');\n\
+FontUtils.loadFace(helvetiker);\n\
+\n\
 //@ sourceURL=gcanvas/lib/gcanvas.js"
 ));
 require.register("gcanvas/lib/motion.js", Function("exports, require, module",
 "module.exports = Motion;\n\
 \n\
-var Vector3 = require('./math/Vector3')\n\
+var Point = require('./math/point')\n\
   , utils = require('./utils');\n\
 \n\
 /**\n\
@@ -8602,7 +7023,7 @@ Motion.prototype = {\n\
     if(params.z)\n\
       params.z = Math.round(params.z * 1000000) / 1000000;\n\
 \n\
-    var v1 = new Vector3(\n\
+    var v1 = new Point(\n\
           params.x === undefined ? this.ctx.position.x : params.x\n\
         , params.y === undefined ? this.ctx.position.y : params.y\n\
         , params.z === undefined ? this.ctx.position.z : params.z);\n\
@@ -8691,8 +7112,7 @@ var parseFont = module.exports = function(str){\n\
 //@ sourceURL=gcanvas/lib/parsefont.js"
 ));
 require.register("gcanvas/lib/utils.js", Function("exports, require, module",
-"var Vector2 = require('./math/Vector2')\n\
-  , Vector3 = require('./math/Vector3');\n\
+"var Point = require('./math/point');\n\
 \n\
 var EPSILON = 0.0000000001;\n\
 \n\
@@ -8704,8 +7124,8 @@ module.exports = {\n\
     // center = new Vector3(center.x, center.y, center.z);\n\
     var x = center.x,\n\
         y = center.y,\n\
-        a = new Vector3(), // start point\n\
-        b = new Vector3(); // end point\n\
+        a = new Point(), // start point\n\
+        b = new Point(); // end point\n\
 \n\
       a.x = radius * Math.cos(astart) + center.x\n\
       a.y = radius * Math.sin(astart) + center.y\n\
@@ -8725,13 +7145,13 @@ module.exports = {\n\
    * */\n\
 , pointsToArc: function(center, start, end) {\n\
 \n\
-    center = new Vector2(center.x, center.y);\n\
-    start = new Vector2(start.x, start.y);\n\
-    end = new Vector2(end.x, end.y);\n\
+    center = new Point(center.x, center.y);\n\
+    start = new Point(start.x, start.y);\n\
+    end = new Point(end.x, end.y);\n\
 \n\
     var astart = Math.atan2(start.y - center.y, start.x - center.x),\n\
         aend = Math.atan2(end.y - center.y, end.x - center.x),\n\
-        radius = start.clone().sub(center).length();\n\
+        radius = start.clone().sub(center).magnitude();\n\
 \n\
     // Always assume a full circle\n\
     // if they are the same \n\
