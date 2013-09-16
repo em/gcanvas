@@ -353,24 +353,26 @@ GCanvas.prototype = {\n\
         }) );\n\
     });\n\
 \n\
-    function path2poly(path) {\n\
+    function path2poly(paths) {\n\
       var poly = [];\n\
-      if(path.actions.length !== 0)\n\
-        poly.push( path.getPoints(40).map(function(p) {\n\
-          return {X: p.x, Y: p.y};\n\
-        }) );\n\
-        return poly;\n\
+      paths.forEach(function(path) {\n\
+        if(path.actions.length !== 0)\n\
+          poly.push( path.getPoints(40).map(function(p) {\n\
+            return {X: p.x, Y: p.y};\n\
+          }) );\n\
+      }); \n\
+      return poly;\n\
     }\n\
 \n\
-\n\
     polygons = ClipperLib.Clean(polygons, cleandelta * scale);\n\
+    polygons = cpr.SimplifyPolygons(polygons, ClipperLib.PolyFillType.pftNonZero);\n\
+    cpr.AddPolygons(polygons, ClipperLib.PolyType.ptSubject);\n\
 \n\
     if(this.clipRegion) {\n\
       var cpr = new ClipperLib.Clipper();\n\
-      var subject_fillType = 0;\n\
+      var subject_fillType = 1;\n\
       var clip_fillType = 1;\n\
       var clip_polygons = path2poly(this.clipRegion);\n\
-      // var clipType = ClipperLib.ClipType.ctIntersection;\n\
       var clipType = 0;\n\
       cpr.AddPolygons(polygons, ClipperLib.PolyType.ptSubject);\n\
       cpr.AddPolygons(clip_polygons, ClipperLib.PolyType.ptClip);\n\
@@ -386,17 +388,11 @@ GCanvas.prototype = {\n\
     var scale = 1;\n\
     var cleandelta = 0.1; // 0.1 should be the appropriate delta in different cases\n\
 \n\
-    polygons = cpr.SimplifyPolygons(polygons, ClipperLib.PolyFillType.pftNonZero);\n\
-    // polygons = ClipperLib.Clean(polygons, cleandelta * scale);\n\
-\n\
-    cpr.AddPolygons(polygons, ClipperLib.PolyType.ptSubject);\n\
-\n\
     var joinType = ClipperLib.JoinType.jtSquare;\n\
     var miterLimit = 1;\n\
     var AutoFix = true;\n\
 \n\
     var offsetted_polygon = cpr.OffsetPolygons(polygons, delta, joinType, miterLimit, AutoFix);\n\
-\n\
 \n\
     scaleup(offsetted_polygon, 1/1000);\n\
 \n\
@@ -437,7 +433,8 @@ GCanvas.prototype = {\n\
     this._strokePath(polys2path(offsetted_polygon));\n\
   }\n\
 , clip: function() {\n\
-    this.clipRegion = this.path;\n\
+    this.clipRegion = this.subPaths.slice(0,-1);\n\
+    this.clipRegion.push(this.path.clone());\n\
   }\n\
 , fill: function() {\n\
     for(var i = - this.toolDiameter/2; i > -1000; i -= this.toolDiameter) {\n\
@@ -592,7 +589,6 @@ GCanvas.Simulator = require('./drivers/simulator');\n\
 \n\
 var helvetiker = require('./fonts/helvetiker_regular.typeface');\n\
 Font.load(helvetiker);\n\
-\n\
 //@ sourceURL=gcanvas/lib/gcanvas.js"
 ));
 require.register("gcanvas/lib/math/point.js", Function("exports, require, module",
@@ -1047,6 +1043,12 @@ Path.actions = {\n\
 \tCSPLINE_THRU: 'splineThru',\t\t\t\t// Catmull-rom spline\n\
 \tELLIPSE: 'ellipse'\n\
 };\n\
+\n\
+Path.prototype.clone = function() {\n\
+  var path = new Path();\n\
+  path.actions = this.actions.slice(0);\n\
+  return path;\n\
+}\n\
 \n\
 Path.prototype.fromPoints = function ( points ) {\n\
 \tthis.moveTo( points[ 0 ].x, points[ 0 ].y );\n\
