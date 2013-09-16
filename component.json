@@ -9,7 +9,11 @@
   "license": "MIT",
   "scripts": [
     "index.js",
-    "lib/three.custom.js",
+    "lib/FontUtils.js",
+    "lib/math/Vector2.js",
+    "lib/math/Vector3.js",
+    "lib/math/Matrix4.js",
+    "lib/path.js",
     "lib/clipper.js",
     "lib/gcanvas.js",
     "lib/motion.js",
