@@ -1,6 +1,8 @@
+SOURCES = component.json *.js lib/*.js lib/*/*.js
+
 all: build/build.js
 
-build/build.js: index.js lib/*.js
+build/build.js: $(SOURCES)
 	# rebuild
 	@component build --dev -s GCanvas -n gcanvas
 
