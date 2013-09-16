@@ -248,8 +248,13 @@ GCanvas.prototype = {\n\
     this.rotation = prev.rotation;\n\
   }\n\
 , beginPath: function() {\n\
+    this.prevSubPaths = this.subPaths;\n\
     this.path = new Path();\n\
     this.subPaths = [this.path];\n\
+  }\n\
+, _restorePath: function() {\n\
+    this.subPaths = this.prevSubPaths;\n\
+    this.path = this.subPaths[this.subPaths.length-1] || new Path();\n\
   }\n\
 , rotate: function(angle) {\n\
     this.matrix = this.matrix.rotate(angle);\n\
@@ -492,8 +497,8 @@ GCanvas.prototype = {\n\
       this.translate(x, y);\n\
       font.drawText(this, text);\n\
       this.stroke();\n\
-\n\
       this.restore();\n\
+      this._restorePath();\n\
     });\n\
   }\n\
 };\n\
@@ -952,264 +957,223 @@ function Path( points ) {\n\
 Path.actions = {\n\
 \tMOVE_TO: 'moveTo',\n\
 \tLINE_TO: 'lineTo',\n\
-\tQUADRATIC_CURVE_TO: 'quadraticCurveTo', // Bezier quadratic curve\n\
-\tBEZIER_CURVE_TO: 'bezierCurveTo', \t\t// Bezier cubic curve\n\
-\tCSPLINE_THRU: 'splineThru',\t\t\t\t// Catmull-rom spline\n\
+\tQUADRATIC_CURVE_TO: 'quadraticCurveTo',\n\
+\tBEZIER_CURVE_TO: 'bezierCurveTo',\n\
 \tELLIPSE: 'ellipse'\n\
 };\n\
 \n\
-Path.prototype.clone = function() {\n\
-  var path = new Path();\n\
-  path.actions = this.actions.slice(0);\n\
-  return path;\n\
-}\n\
+Path.prototype = {\n\
+  clone: function() {\n\
+    var path = new Path();\n\
+    path.actions = this.actions.slice(0);\n\
+    return path;\n\
+  }\n\
 \n\
-Path.prototype.fromPoints = function ( points ) {\n\
-\tthis.moveTo( points[ 0 ].x, points[ 0 ].y );\n\
+, fromPoints: function ( points ) {\n\
+    this.moveTo( points[ 0 ].x, points[ 0 ].y );\n\
 \n\
-\tfor ( var v = 1, vlen = points.length; v < vlen; v ++ ) {\n\
-\t\tthis.lineTo( points[ v ].x, points[ v ].y );\n\
-\t};\n\
-};\n\
+    for ( var v = 1, vlen = points.length; v < vlen; v ++ ) {\n\
+      this.lineTo( points[ v ].x, points[ v ].y );\n\
+    };\n\
+  }\n\
 \n\
-Path.prototype.moveTo = function ( x, y ) {\n\
-\tthis.actions.push( { action: Path.actions.MOVE_TO, args: arguments } );\n\
-};\n\
+, moveTo: function ( x, y ) {\n\
+    this.actions.push( { action: Path.actions.MOVE_TO, args: arguments } );\n\
+  }\n\
 \n\
-Path.prototype.lineTo = function ( x, y ) {\n\
-  this.actions.push( { action: Path.actions.LINE_TO, args: arguments } );\n\
-};\n\
+, lineTo: function ( x, y ) {\n\
+    this.actions.push( { action: Path.actions.LINE_TO, args: arguments } );\n\
+  }\n\
 \n\
-Path.prototype.quadraticCurveTo = function( aCPx, aCPy, aX, aY ) {\n\
-\tthis.actions.push( { action: Path.actions.QUADRATIC_CURVE_TO, args: arguments } );\n\
-};\n\
+, quadraticCurveTo: function( aCPx, aCPy, aX, aY ) {\n\
+    this.actions.push( { action: Path.actions.QUADRATIC_CURVE_TO, args: arguments } );\n\
+  }\n\
 \n\
-Path.prototype.bezierCurveTo = function( aCP1x, aCP1y,\n\
-\t\t\t\t\t\t\t\t\t\t\t   aCP2x, aCP2y,\n\
-\t\t\t\t\t\t\t\t\t\t\t   aX, aY ) {\n\
+, bezierCurveTo: function( aCP1x, aCP1y,\n\
+                           aCP2x, aCP2y,\n\
+                           aX, aY ) {\n\
 \n\
-\tvar args = Array.prototype.slice.call( arguments );\n\
+    var args = Array.prototype.slice.call( arguments );\n\
 \n\
-\tvar lastargs = this.actions[ this.actions.length - 1 ].args;\n\
+    var lastargs = this.actions[ this.actions.length - 1 ].args;\n\
 \n\
-\tvar x0 = lastargs[ lastargs.length - 2 ];\n\
-\tvar y0 = lastargs[ lastargs.length - 1 ];\n\
+    var x0 = lastargs[ lastargs.length - 2 ];\n\
+    var y0 = lastargs[ lastargs.length - 1 ];\n\
 \n\
-\tthis.actions.push( { action: Path.actions.BEZIER_CURVE_TO, args: args } );\n\
+    this.actions.push( { action: Path.actions.BEZIER_CURVE_TO, args: args } );\n\
 \n\
-};\n\
+  }\n\
 \n\
-Path.prototype.splineThru = function( pts /*Array of Vector*/ ) {\n\
+, arc: function ( aX, aY, aRadius, aStartAngle, aEndAngle, aClockwise ) {\n\
+    this.ellipse(aX, aY, aRadius, aRadius, aStartAngle, aEndAngle, aClockwise);\n\
+  }\n\
 \n\
-\tvar args = Array.prototype.slice.call( arguments );\n\
-\tvar lastargs = this.actions[ this.actions.length - 1 ].args;\n\
+, ellipse: function ( aX, aY, xRadius, yRadius,\n\
+                      aStartAngle, aEndAngle, aClockwise ) {\n\
 \n\
-\tvar x0 = lastargs[ lastargs.length - 2 ];\n\
-\tvar y0 = lastargs[ lastargs.length - 1 ];\n\
+    var args = Array.prototype.slice.call( arguments );\n\
+    this.actions.push( { action: Path.actions.ELLIPSE, args: args } );\n\
+  }\n\
 \n\
-\tvar npts = [ new Point( x0, y0 ) ];\n\
-\tArray.prototype.push.apply( npts, pts );\n\
+, getPoints: function( divisions, closedPath ) {\n\
+    divisions = divisions || 12;\n\
 \n\
-\tthis.actions.push( { action: Path.actions.CSPLINE_THRU, args: args } );\n\
+    var points = [];\n\
 \n\
-};\n\
+    var i, il, item, action, args;\n\
+    var cpx, cpy, cpx2, cpy2, cpx1, cpy1, cpx0, cpy0,\n\
+      laste, j,\n\
+      t, tx, ty;\n\
 \n\
+    for ( i = 0, il = this.actions.length; i < il; i ++ ) {\n\
 \n\
-Path.prototype.arc = function ( aX, aY, aRadius,\n\
-\t\t\t\t\t\t\t\t\t  aStartAngle, aEndAngle, aClockwise ) {\n\
-\tthis.ellipse(aX, aY, aRadius, aRadius, aStartAngle, aEndAngle, aClockwise);\n\
-};\n\
+      item = this.actions[ i ];\n\
 \n\
-Path.prototype.ellipse = function ( aX, aY, xRadius, yRadius,\n\
-\t\t\t\t\t\t\t\t\t  aStartAngle, aEndAngle, aClockwise ) {\n\
+      action = item.action;\n\
+      args = item.args;\n\
 \n\
-\tvar args = Array.prototype.slice.call( arguments );\n\
-\tthis.actions.push( { action: Path.actions.ELLIPSE, args: args } );\n\
-};\n\
+      switch( action ) {\n\
 \n\
-/* Return an array of vectors based on contour of the path */\n\
+      case Path.actions.MOVE_TO:\n\
 \n\
-Path.prototype.getPoints = function( divisions, closedPath ) {\n\
-\tdivisions = divisions || 12;\n\
+        points.push( new Point( args[ 0 ], args[ 1 ] ) );\n\
 \n\
-\tvar points = [];\n\
+        break;\n\
 \n\
-\tvar i, il, item, action, args;\n\
-\tvar cpx, cpy, cpx2, cpy2, cpx1, cpy1, cpx0, cpy0,\n\
-\t\tlaste, j,\n\
-\t\tt, tx, ty;\n\
+      case Path.actions.LINE_TO:\n\
 \n\
-\tfor ( i = 0, il = this.actions.length; i < il; i ++ ) {\n\
+        points.push( new Point( args[ 0 ], args[ 1 ] ) );\n\
 \n\
-\t\titem = this.actions[ i ];\n\
+        break;\n\
 \n\
-\t\taction = item.action;\n\
-\t\targs = item.args;\n\
+      case Path.actions.QUADRATIC_CURVE_TO:\n\
 \n\
-\t\tswitch( action ) {\n\
+        cpx  = args[ 2 ];\n\
+        cpy  = args[ 3 ];\n\
 \n\
-\t\tcase Path.actions.MOVE_TO:\n\
+        cpx1 = args[ 0 ];\n\
+        cpy1 = args[ 1 ];\n\
 \n\
-\t\t\tpoints.push( new Point( args[ 0 ], args[ 1 ] ) );\n\
+        if ( points.length > 0 ) {\n\
 \n\
-\t\t\tbreak;\n\
+          laste = points[ points.length - 1 ];\n\
 \n\
-\t\tcase Path.actions.LINE_TO:\n\
+          cpx0 = laste.x;\n\
+          cpy0 = laste.y;\n\
 \n\
-\t\t\tpoints.push( new Point( args[ 0 ], args[ 1 ] ) );\n\
+        } else {\n\
 \n\
-\t\t\tbreak;\n\
+          laste = this.actions[ i - 1 ].args;\n\
 \n\
-\t\tcase Path.actions.QUADRATIC_CURVE_TO:\n\
+          cpx0 = laste[ laste.length - 2 ];\n\
+          cpy0 = laste[ laste.length - 1 ];\n\
 \n\
-\t\t\tcpx  = args[ 2 ];\n\
-\t\t\tcpy  = args[ 3 ];\n\
-\n\
-\t\t\tcpx1 = args[ 0 ];\n\
-\t\t\tcpy1 = args[ 1 ];\n\
-\n\
-\t\t\tif ( points.length > 0 ) {\n\
-\n\
-\t\t\t\tlaste = points[ points.length - 1 ];\n\
-\n\
-\t\t\t\tcpx0 = laste.x;\n\
-\t\t\t\tcpy0 = laste.y;\n\
-\n\
-\t\t\t} else {\n\
-\n\
-\t\t\t\tlaste = this.actions[ i - 1 ].args;\n\
-\n\
-\t\t\t\tcpx0 = laste[ laste.length - 2 ];\n\
-\t\t\t\tcpy0 = laste[ laste.length - 1 ];\n\
-\n\
-\t\t\t}\n\
-\n\
-\t\t\tfor ( j = 1; j <= divisions; j ++ ) {\n\
-\n\
-\t\t\t\tt = j / divisions;\n\
-\n\
-\t\t\t\ttx = Shape.Utils.b2( t, cpx0, cpx1, cpx );\n\
-\t\t\t\tty = Shape.Utils.b2( t, cpy0, cpy1, cpy );\n\
-\n\
-\t\t\t\tpoints.push( new Point( tx, ty ) );\n\
-\n\
-\t\t\t}\n\
-\n\
-\t\t\tbreak;\n\
-\n\
-\t\tcase Path.actions.BEZIER_CURVE_TO:\n\
-\n\
-\t\t\tcpx  = args[ 4 ];\n\
-\t\t\tcpy  = args[ 5 ];\n\
-\n\
-\t\t\tcpx1 = args[ 0 ];\n\
-\t\t\tcpy1 = args[ 1 ];\n\
-\n\
-\t\t\tcpx2 = args[ 2 ];\n\
-\t\t\tcpy2 = args[ 3 ];\n\
-\n\
-\t\t\tif ( points.length > 0 ) {\n\
-\n\
-\t\t\t\tlaste = points[ points.length - 1 ];\n\
-\n\
-\t\t\t\tcpx0 = laste.x;\n\
-\t\t\t\tcpy0 = laste.y;\n\
-\n\
-\t\t\t} else {\n\
-\n\
-\t\t\t\tlaste = this.actions[ i - 1 ].args;\n\
-\n\
-\t\t\t\tcpx0 = laste[ laste.length - 2 ];\n\
-\t\t\t\tcpy0 = laste[ laste.length - 1 ];\n\
-\n\
-\t\t\t}\n\
-\n\
-\n\
-\t\t\tfor ( j = 1; j <= divisions; j ++ ) {\n\
-\n\
-\t\t\t\tt = j / divisions;\n\
-\n\
-\t\t\t\ttx = Shape.Utils.b3( t, cpx0, cpx1, cpx2, cpx );\n\
-\t\t\t\tty = Shape.Utils.b3( t, cpy0, cpy1, cpy2, cpy );\n\
-\n\
-\t\t\t\tpoints.push( new Point( tx, ty ) );\n\
-\n\
-\t\t\t}\n\
-\n\
-\t\t\tbreak;\n\
-\n\
-\t\tcase Path.actions.CSPLINE_THRU:\n\
-\n\
-\t\t\tlaste = this.actions[ i - 1 ].args;\n\
-\n\
-\t\t\tvar last = new Point( laste[ laste.length - 2 ], laste[ laste.length - 1 ] );\n\
-\t\t\tvar spts = [ last ];\n\
-\n\
-\t\t\tvar n = divisions * args[ 0 ].length;\n\
-\n\
-\t\t\tspts = spts.concat( args[ 0 ] );\n\
-\n\
-\t\t\tvar spline = new SplineCurve( spts );\n\
-\n\
-\t\t\tfor ( j = 1; j <= n; j ++ ) {\n\
-\n\
-\t\t\t\tpoints.push( spline.getPointAt( j / n ) ) ;\n\
-\n\
-\t\t\t}\n\
-\n\
-\t\t\tbreak;\n\
-\n\
-\t\tcase Path.actions.ELLIPSE:\n\
-\n\
-\t\t\tvar aX = args[ 0 ], aY = args[ 1 ],\n\
-\t\t\t\txRadius = args[ 2 ],\n\
-\t\t\t\tyRadius = args[ 3 ],\n\
-\t\t\t\taStartAngle = args[ 4 ], aEndAngle = args[ 5 ],\n\
-\t\t\t\taClockwise = !!args[ 6 ];\n\
-\n\
-\t\t\tvar deltaAngle = aEndAngle - aStartAngle;\n\
-\t\t\tvar angle;\n\
-\n\
-\t\t\tfor ( j = 0; j <= divisions; j ++ ) {\n\
-\t\t\t\tt = j / divisions;\n\
-\n\
-        if(deltaAngle === -Math.PI*2) {\n\
-          deltaAngle = Math.PI*2;\n\
         }\n\
 \n\
-        if(deltaAngle < 0) {\n\
-          deltaAngle += Math.PI*2;\n\
+        for ( j = 1; j <= divisions; j ++ ) {\n\
+\n\
+          t = j / divisions;\n\
+\n\
+          tx = Shape.Utils.b2( t, cpx0, cpx1, cpx );\n\
+          ty = Shape.Utils.b2( t, cpy0, cpy1, cpy );\n\
+\n\
+          points.push( new Point( tx, ty ) );\n\
+\n\
         }\n\
 \n\
-        if(deltaAngle > Math.PI*2) {\n\
-          deltaAngle -= Math.PI*2;\n\
+        break;\n\
+\n\
+      case Path.actions.BEZIER_CURVE_TO:\n\
+\n\
+        cpx  = args[ 4 ];\n\
+        cpy  = args[ 5 ];\n\
+\n\
+        cpx1 = args[ 0 ];\n\
+        cpy1 = args[ 1 ];\n\
+\n\
+        cpx2 = args[ 2 ];\n\
+        cpy2 = args[ 3 ];\n\
+\n\
+        if ( points.length > 0 ) {\n\
+\n\
+          laste = points[ points.length - 1 ];\n\
+\n\
+          cpx0 = laste.x;\n\
+          cpy0 = laste.y;\n\
+\n\
+        } else {\n\
+\n\
+          laste = this.actions[ i - 1 ].args;\n\
+\n\
+          cpx0 = laste[ laste.length - 2 ];\n\
+          cpy0 = laste[ laste.length - 1 ];\n\
+\n\
         }\n\
 \n\
-        if ( aClockwise ) {\n\
-          // sin(pi) and sin(0) are the same\n\
-          // So we have to special case for full circles\n\
-          if(deltaAngle === Math.PI*2) {\n\
-            deltaAngle = 0;\n\
+\n\
+        for ( j = 1; j <= divisions; j ++ ) {\n\
+\n\
+          t = j / divisions;\n\
+\n\
+          tx = Shape.Utils.b3( t, cpx0, cpx1, cpx2, cpx );\n\
+          ty = Shape.Utils.b3( t, cpy0, cpy1, cpy2, cpy );\n\
+\n\
+          points.push( new Point( tx, ty ) );\n\
+\n\
+        }\n\
+\n\
+        break;\n\
+\n\
+      case Path.actions.ELLIPSE:\n\
+\n\
+        var aX = args[ 0 ], aY = args[ 1 ],\n\
+          xRadius = args[ 2 ],\n\
+          yRadius = args[ 3 ],\n\
+          aStartAngle = args[ 4 ], aEndAngle = args[ 5 ],\n\
+          aClockwise = !!args[ 6 ];\n\
+\n\
+        var deltaAngle = aEndAngle - aStartAngle;\n\
+        var angle;\n\
+\n\
+        for ( j = 0; j <= divisions; j ++ ) {\n\
+          t = j / divisions;\n\
+\n\
+          if(deltaAngle === -Math.PI*2) {\n\
+            deltaAngle = Math.PI*2;\n\
           }\n\
 \n\
-          angle = aEndAngle + ( 1 - t ) * ( Math.PI * 2 - deltaAngle );\n\
-        } else {\n\
-          angle = aStartAngle + t * deltaAngle;\n\
+          if(deltaAngle < 0) {\n\
+            deltaAngle += Math.PI*2;\n\
+          }\n\
+\n\
+          if(deltaAngle > Math.PI*2) {\n\
+            deltaAngle -= Math.PI*2;\n\
+          }\n\
+\n\
+          if ( aClockwise ) {\n\
+            // sin(pi) and sin(0) are the same\n\
+            // So we have to special case for full circles\n\
+            if(deltaAngle === Math.PI*2) {\n\
+              deltaAngle = 0;\n\
+            }\n\
+\n\
+            angle = aEndAngle + ( 1 - t ) * ( Math.PI * 2 - deltaAngle );\n\
+          } else {\n\
+            angle = aStartAngle + t * deltaAngle;\n\
+          }\n\
+\n\
+          var tx = aX + xRadius * Math.cos( angle );\n\
+          var ty = aY + yRadius * Math.sin( angle );\n\
+\n\
+          points.push( new Point( tx, ty ) );\n\
+\n\
         }\n\
 \n\
-        var tx = aX + xRadius * Math.cos( angle );\n\
-        var ty = aY + yRadius * Math.sin( angle );\n\
+        break;\n\
 \n\
-\t\t\t\tpoints.push( new Point( tx, ty ) );\n\
+      } // end switch\n\
 \n\
-\t\t\t}\n\
-\n\
-\t\t  break;\n\
-\n\
-\t\t} // end switch\n\
-\n\
-\t}\n\
-\n\
+    }\n\
 \n\
 \t// Normalize to remove the closing point by default.\n\
 \t// var lastPoint = points[ points.length - 1];\n\
@@ -1225,7 +1189,8 @@ Path.prototype.getPoints = function( divisions, closedPath ) {\n\
 \n\
 \treturn points;\n\
 \n\
-};\n\
+  }\n\
+}\n\
 \n\
 var Shape = {};\n\
 Shape.Utils = {\n\
