@@ -996,27 +996,15 @@ Path.prototype = {\n\
 , bezierCurveTo: function( aCP1x, aCP1y,\n\
                            aCP2x, aCP2y,\n\
                            aX, aY ) {\n\
-\n\
-    var args = Array.prototype.slice.call( arguments );\n\
-\n\
-    var lastargs = this.actions[ this.actions.length - 1 ].args;\n\
-\n\
-    var x0 = lastargs[ lastargs.length - 2 ];\n\
-    var y0 = lastargs[ lastargs.length - 1 ];\n\
-\n\
-    this.actions.push( { action: Path.actions.BEZIER_CURVE_TO, args: args } );\n\
-\n\
+    this.actions.push( { action: Path.actions.BEZIER_CURVE_TO, args: arguments } );\n\
   }\n\
 \n\
 , arc: function ( aX, aY, aRadius, aStartAngle, aEndAngle, aClockwise ) {\n\
     this.ellipse(aX, aY, aRadius, aRadius, aStartAngle, aEndAngle, aClockwise);\n\
   }\n\
 \n\
-, ellipse: function ( aX, aY, xRadius, yRadius,\n\
-                      aStartAngle, aEndAngle, aClockwise ) {\n\
-\n\
-    var args = Array.prototype.slice.call( arguments );\n\
-    this.actions.push( { action: Path.actions.ELLIPSE, args: args } );\n\
+, ellipse: function ( aX, aY, xRadius, yRadius, aStartAngle, aEndAngle, aClockwise ) {\n\
+    this.actions.push( { action: Path.actions.ELLIPSE, args: arguments } );\n\
   }\n\
 \n\
 , getPoints: function( divisions, closedPath ) {\n\
@@ -1078,8 +1066,8 @@ Path.prototype = {\n\
 \n\
           t = j / divisions;\n\
 \n\
-          tx = Shape.Utils.b2( t, cpx0, cpx1, cpx );\n\
-          ty = Shape.Utils.b2( t, cpy0, cpy1, cpy );\n\
+          tx = b2( t, cpx0, cpx1, cpx );\n\
+          ty = b2( t, cpy0, cpy1, cpy );\n\
 \n\
           points.push( new Point( tx, ty ) );\n\
 \n\
@@ -1114,13 +1102,12 @@ Path.prototype = {\n\
 \n\
         }\n\
 \n\
-\n\
         for ( j = 1; j <= divisions; j ++ ) {\n\
 \n\
           t = j / divisions;\n\
 \n\
-          tx = Shape.Utils.b3( t, cpx0, cpx1, cpx2, cpx );\n\
-          ty = Shape.Utils.b3( t, cpy0, cpy1, cpy2, cpy );\n\
+          tx = b3( t, cpx0, cpx1, cpx2, cpx );\n\
+          ty = b3( t, cpy0, cpy1, cpy2, cpy );\n\
 \n\
           points.push( new Point( tx, ty ) );\n\
 \n\
@@ -1194,355 +1181,53 @@ Path.prototype = {\n\
 \treturn points;\n\
 \n\
   }\n\
+};\n\
+\n\
+\n\
+// Bezier Curves formulas obtained from\n\
+// http://en.wikipedia.org/wiki/B%C3%A9zier_curve\n\
+\n\
+// Quad Bezier Functions\n\
+function b2p0 ( t, p ) {\n\
+  var k = 1 - t;\n\
+  return k * k * p;\n\
 }\n\
 \n\
-var Shape = {};\n\
-Shape.Utils = {\n\
-\n\
-\t/*\n\
-\t\tcontour - array of vector2 for contour\n\
-\t\tholes   - array of array of vector2\n\
-\t*/\n\
-\n\
-\tremoveHoles: function ( contour, holes ) {\n\
-\n\
-\t\tvar shape = contour.concat(); // work on this shape\n\
-\t\tvar allpoints = shape.concat();\n\
-\n\
-\t\t/* For each isolated shape, find the closest points and break to the hole to allow triangulation */\n\
-\n\
-\n\
-\t\tvar prevShapeVert, nextShapeVert,\n\
-\t\t\tprevHoleVert, nextHoleVert,\n\
-\t\t\tholeIndex, shapeIndex,\n\
-\t\t\tshapeId, shapeGroup,\n\
-\t\t\th, h2,\n\
-\t\t\thole, shortest, d,\n\
-\t\t\tp, pts1, pts2,\n\
-\t\t\ttmpShape1, tmpShape2,\n\
-\t\t\ttmpHole1, tmpHole2,\n\
-\t\t\tverts = [];\n\
-\n\
-\t\tfor ( h = 0; h < holes.length; h ++ ) {\n\
-\n\
-\t\t\thole = holes[ h ];\n\
-\n\
-\t\t\t/*\n\
-\t\t\tshapeholes[ h ].concat(); // preserves original\n\
-\t\t\tholes.push( hole );\n\
-\t\t\t*/\n\
-\n\
-\t\t\tArray.prototype.push.apply( allpoints, hole );\n\
-\n\
-\t\t\tshortest = Number.POSITIVE_INFINITY;\n\
-\n\
-\n\
-\t\t\t// Find the shortest pair of pts between shape and hole\n\
-\n\
-\t\t\t// Note: Actually, I'm not sure now if we could optimize this to be faster than O(m*n)\n\
-\t\t\t// Using distanceToSquared() intead of distanceTo() should speed a little\n\
-\t\t\t// since running square roots operations are reduced.\n\
-\n\
-\t\t\tfor ( h2 = 0; h2 < hole.length; h2 ++ ) {\n\
-\n\
-\t\t\t\tpts1 = hole[ h2 ];\n\
-\t\t\t\tvar dist = [];\n\
-\n\
-\t\t\t\tfor ( p = 0; p < shape.length; p++ ) {\n\
-\n\
-\t\t\t\t\tpts2 = shape[ p ];\n\
-\t\t\t\t\td = pts1.distanceToSquared( pts2 );\n\
-\t\t\t\t\tdist.push( d );\n\
-\n\
-\t\t\t\t\tif ( d < shortest ) {\n\
-\n\
-\t\t\t\t\t\tshortest = d;\n\
-\t\t\t\t\t\tholeIndex = h2;\n\
-\t\t\t\t\t\tshapeIndex = p;\n\
-\n\
-\t\t\t\t\t}\n\
-\n\
-\t\t\t\t}\n\
-\n\
-\t\t\t}\n\
-\n\
-\t\t\t//console.log(\"shortest\", shortest, dist);\n\
-\n\
-\t\t\tprevShapeVert = ( shapeIndex - 1 ) >= 0 ? shapeIndex - 1 : shape.length - 1;\n\
-\t\t\tprevHoleVert = ( holeIndex - 1 ) >= 0 ? holeIndex - 1 : hole.length - 1;\n\
-\n\
-\t\t\tvar areaapts = [\n\
-\n\
-\t\t\t\thole[ holeIndex ],\n\
-\t\t\t\tshape[ shapeIndex ],\n\
-\t\t\t\tshape[ prevShapeVert ]\n\
-\n\
-\t\t\t];\n\
-\n\
-\t\t\tvar areaa = THREE.FontUtils.Triangulate.area( areaapts );\n\
-\n\
-\t\t\tvar areabpts = [\n\
-\n\
-\t\t\t\thole[ holeIndex ],\n\
-\t\t\t\thole[ prevHoleVert ],\n\
-\t\t\t\tshape[ shapeIndex ]\n\
-\n\
-\t\t\t];\n\
-\n\
-\t\t\tvar areab = THREE.FontUtils.Triangulate.area( areabpts );\n\
-\n\
-\t\t\tvar shapeOffset = 1;\n\
-\t\t\tvar holeOffset = -1;\n\
-\n\
-\t\t\tvar oldShapeIndex = shapeIndex, oldHoleIndex = holeIndex;\n\
-\t\t\tshapeIndex += shapeOffset;\n\
-\t\t\tholeIndex += holeOffset;\n\
-\n\
-\t\t\tif ( shapeIndex < 0 ) { shapeIndex += shape.length;  }\n\
-\t\t\tshapeIndex %= shape.length;\n\
-\n\
-\t\t\tif ( holeIndex < 0 ) { holeIndex += hole.length;  }\n\
-\t\t\tholeIndex %= hole.length;\n\
-\n\
-\t\t\tprevShapeVert = ( shapeIndex - 1 ) >= 0 ? shapeIndex - 1 : shape.length - 1;\n\
-\t\t\tprevHoleVert = ( holeIndex - 1 ) >= 0 ? holeIndex - 1 : hole.length - 1;\n\
-\n\
-\t\t\tareaapts = [\n\
-\n\
-\t\t\t\thole[ holeIndex ],\n\
-\t\t\t\tshape[ shapeIndex ],\n\
-\t\t\t\tshape[ prevShapeVert ]\n\
-\n\
-\t\t\t];\n\
-\n\
-\t\t\tvar areaa2 = THREE.FontUtils.Triangulate.area( areaapts );\n\
-\n\
-\t\t\tareabpts = [\n\
-\n\
-\t\t\t\thole[ holeIndex ],\n\
-\t\t\t\thole[ prevHoleVert ],\n\
-\t\t\t\tshape[ shapeIndex ]\n\
-\n\
-\t\t\t];\n\
-\n\
-\t\t\tvar areab2 = THREE.FontUtils.Triangulate.area( areabpts );\n\
-\t\t\t//console.log(areaa,areab ,areaa2,areab2, ( areaa + areab ),  ( areaa2 + areab2 ));\n\
-\n\
-\t\t\tif ( ( areaa + areab ) > ( areaa2 + areab2 ) ) {\n\
-\n\
-\t\t\t\t// In case areas are not correct.\n\
-\t\t\t\t//console.log(\"USE THIS\");\n\
-\n\
-\t\t\t\tshapeIndex = oldShapeIndex;\n\
-\t\t\t\tholeIndex = oldHoleIndex ;\n\
-\n\
-\t\t\t\tif ( shapeIndex < 0 ) { shapeIndex += shape.length;  }\n\
-\t\t\t\tshapeIndex %= shape.length;\n\
-\n\
-\t\t\t\tif ( holeIndex < 0 ) { holeIndex += hole.length;  }\n\
-\t\t\t\tholeIndex %= hole.length;\n\
-\n\
-\t\t\t\tprevShapeVert = ( shapeIndex - 1 ) >= 0 ? shapeIndex - 1 : shape.length - 1;\n\
-\t\t\t\tprevHoleVert = ( holeIndex - 1 ) >= 0 ? holeIndex - 1 : hole.length - 1;\n\
-\n\
-\t\t\t} else {\n\
-\n\
-\t\t\t\t//console.log(\"USE THAT \")\n\
-\n\
-\t\t\t}\n\
-\n\
-\t\t\ttmpShape1 = shape.slice( 0, shapeIndex );\n\
-\t\t\ttmpShape2 = shape.slice( shapeIndex );\n\
-\t\t\ttmpHole1 = hole.slice( holeIndex );\n\
-\t\t\ttmpHole2 = hole.slice( 0, holeIndex );\n\
-\n\
-\t\t\t// Should check orders here again?\n\
-\n\
-\t\t\tvar trianglea = [\n\
-\n\
-\t\t\t\thole[ holeIndex ],\n\
-\t\t\t\tshape[ shapeIndex ],\n\
-\t\t\t\tshape[ prevShapeVert ]\n\
-\n\
-\t\t\t];\n\
-\n\
-\t\t\tvar triangleb = [\n\
-\n\
-\t\t\t\thole[ holeIndex ] ,\n\
-\t\t\t\thole[ prevHoleVert ],\n\
-\t\t\t\tshape[ shapeIndex ]\n\
-\n\
-\t\t\t];\n\
-\n\
-\t\t\tverts.push( trianglea );\n\
-\t\t\tverts.push( triangleb );\n\
-\n\
-\t\t\tshape = tmpShape1.concat( tmpHole1 ).concat( tmpHole2 ).concat( tmpShape2 );\n\
-\n\
-\t\t}\n\
-\n\
-\t\treturn {\n\
-\n\
-\t\t\tshape:shape, \t\t/* shape with no holes */\n\
-\t\t\tisolatedPts: verts, /* isolated faces */\n\
-\t\t\tallpoints: allpoints\n\
-\n\
-\t\t}\n\
-\n\
-\n\
-\t},\n\
-\n\
-\ttriangulateShape: function ( contour, holes ) {\n\
-\n\
-\t\tvar shapeWithoutHoles = THREE.Shape.Utils.removeHoles( contour, holes );\n\
-\n\
-\t\tvar shape = shapeWithoutHoles.shape,\n\
-\t\t\tallpoints = shapeWithoutHoles.allpoints,\n\
-\t\t\tisolatedPts = shapeWithoutHoles.isolatedPts;\n\
-\n\
-\t\tvar triangles = THREE.FontUtils.Triangulate( shape, false ); // True returns indices for points of spooled shape\n\
-\n\
-\t\t// To maintain reference to old shape, one must match coordinates, or offset the indices from original arrays. It's probably easier to do the first.\n\
-\n\
-\t\t//console.log( \"triangles\",triangles, triangles.length );\n\
-\t\t//console.log( \"allpoints\",allpoints, allpoints.length );\n\
-\n\
-\t\tvar i, il, f, face,\n\
-\t\t\tkey, index,\n\
-\t\t\tallPointsMap = {},\n\
-\t\t\tisolatedPointsMap = {};\n\
-\n\
-\t\t// prepare all points map\n\
-\n\
-\t\tfor ( i = 0, il = allpoints.length; i < il; i ++ ) {\n\
-\n\
-\t\t\tkey = allpoints[ i ].x + \":\" + allpoints[ i ].y;\n\
-\n\
-\t\t\tif ( allPointsMap[ key ] !== undefined ) {\n\
-\n\
-\t\t\t\tconsole.log( \"Duplicate point\", key );\n\
-\n\
-\t\t\t}\n\
-\n\
-\t\t\tallPointsMap[ key ] = i;\n\
-\n\
-\t\t}\n\
-\n\
-\t\t// check all face vertices against all points map\n\
-\n\
-\t\tfor ( i = 0, il = triangles.length; i < il; i ++ ) {\n\
-\n\
-\t\t\tface = triangles[ i ];\n\
-\n\
-\t\t\tfor ( f = 0; f < 3; f ++ ) {\n\
-\n\
-\t\t\t\tkey = face[ f ].x + \":\" + face[ f ].y;\n\
-\n\
-\t\t\t\tindex = allPointsMap[ key ];\n\
-\n\
-\t\t\t\tif ( index !== undefined ) {\n\
-\n\
-\t\t\t\t\tface[ f ] = index;\n\
-\n\
-\t\t\t\t}\n\
-\n\
-\t\t\t}\n\
-\n\
-\t\t}\n\
-\n\
-\t\t// check isolated points vertices against all points map\n\
-\n\
-\t\tfor ( i = 0, il = isolatedPts.length; i < il; i ++ ) {\n\
-\n\
-\t\t\tface = isolatedPts[ i ];\n\
-\n\
-\t\t\tfor ( f = 0; f < 3; f ++ ) {\n\
-\n\
-\t\t\t\tkey = face[ f ].x + \":\" + face[ f ].y;\n\
-\n\
-\t\t\t\tindex = allPointsMap[ key ];\n\
-\n\
-\t\t\t\tif ( index !== undefined ) {\n\
-\n\
-\t\t\t\t\tface[ f ] = index;\n\
-\n\
-\t\t\t\t}\n\
-\n\
-\t\t\t}\n\
-\n\
-\t\t}\n\
-\n\
-\t\treturn triangles.concat( isolatedPts );\n\
-\n\
-\t}, // end triangulate shapes\n\
-\n\
-\n\
-\t// Bezier Curves formulas obtained from\n\
-\t// http://en.wikipedia.org/wiki/B%C3%A9zier_curve\n\
-\n\
-\t// Quad Bezier Functions\n\
-\n\
-\tb2p0: function ( t, p ) {\n\
-\n\
-\t\tvar k = 1 - t;\n\
-\t\treturn k * k * p;\n\
-\n\
-\t},\n\
-\n\
-\tb2p1: function ( t, p ) {\n\
-\n\
-\t\treturn 2 * ( 1 - t ) * t * p;\n\
-\n\
-\t},\n\
-\n\
-\tb2p2: function ( t, p ) {\n\
-\n\
-\t\treturn t * t * p;\n\
-\n\
-\t},\n\
-\n\
-\tb2: function ( t, p0, p1, p2 ) {\n\
-\n\
-\t\treturn this.b2p0( t, p0 ) + this.b2p1( t, p1 ) + this.b2p2( t, p2 );\n\
-\n\
-\t},\n\
-\n\
-\t// Cubic Bezier Functions\n\
-\n\
-\tb3p0: function ( t, p ) {\n\
-\n\
-\t\tvar k = 1 - t;\n\
-\t\treturn k * k * k * p;\n\
-\n\
-\t},\n\
-\n\
-\tb3p1: function ( t, p ) {\n\
-\n\
-\t\tvar k = 1 - t;\n\
-\t\treturn 3 * k * k * t * p;\n\
-\n\
-\t},\n\
-\n\
-\tb3p2: function ( t, p ) {\n\
-\n\
-\t\tvar k = 1 - t;\n\
-\t\treturn 3 * k * t * t * p;\n\
-\n\
-\t},\n\
-\n\
-\tb3p3: function ( t, p ) {\n\
-\n\
-\t\treturn t * t * t * p;\n\
-\n\
-\t},\n\
-\n\
-\tb3: function ( t, p0, p1, p2, p3 ) {\n\
-\n\
-\t\treturn this.b3p0( t, p0 ) + this.b3p1( t, p1 ) + this.b3p2( t, p2 ) +  this.b3p3( t, p3 );\n\
-\n\
-\t}\n\
-\n\
-};\n\
+function b2p1 ( t, p ) {\n\
+  return 2 * ( 1 - t ) * t * p;\n\
+}\n\
+\n\
+function b2p2 ( t, p ) {\n\
+  return t * t * p;\n\
+}\n\
+\n\
+function b2 ( t, p0, p1, p2 ) {\n\
+  return b2p0( t, p0 ) + b2p1( t, p1 ) + b2p2( t, p2 );\n\
+}\n\
+\n\
+// Cubic Bezier Functions\n\
+function b3p0 ( t, p ) {\n\
+  var k = 1 - t;\n\
+  return k * k * k * p;\n\
+}\n\
+\n\
+function b3p1 ( t, p ) {\n\
+  var k = 1 - t;\n\
+  return 3 * k * k * t * p;\n\
+}\n\
+\n\
+function b3p2 ( t, p ) {\n\
+  var k = 1 - t;\n\
+  return 3 * k * t * t * p;\n\
+}\n\
+\n\
+function b3p3 ( t, p ) {\n\
+  return t * t * t * p;\n\
+}\n\
+\n\
+function b3 ( t, p0, p1, p2, p3 ) {\n\
+  return b3p0( t, p0 ) + b3p1( t, p1 ) + b3p2( t, p2 ) +  b3p3( t, p3 );\n\
+}\n\
 //@ sourceURL=gcanvas/lib/path.js"
 ));
 require.register("gcanvas/lib/font.js", Function("exports, require, module",
