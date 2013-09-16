@@ -42484,12 +42484,6 @@ function GCanvas(driver, width, height) {\n\
   this.fillStrategy = 'crosshatch';\n\
   this.driver = driver || new GCodeDriver();\n\
   this.position = new three.Vector3(0,0,0);\n\
-  this.postProcs = [];\n\
-  this.postProcessApply = function(params) {\n\
-    this.postProcs.forEach(function(t) {\n\
-      t.call(this, params);\n\
-    }, this);\n\
-  };\n\
   this.stack = [];\n\
 \n\
   this.motion = new Motion(this);\n\
@@ -42517,8 +42511,6 @@ GCanvas.prototype = {\n\
     if(!prev) return;\n\
     this.matrix = prev.matrix;\n\
     this.rotation = prev.rotation;\n\
-  }\n\
-, postProc: function() {\n\
   }\n\
 , beginPath: function() {\n\
     this.path = new three.Path();\n\
@@ -42745,7 +42737,6 @@ GCanvas.prototype = {\n\
       height = Math.max(height, box.maxY);\n\
     });\n\
 \n\
-    // console.log(width, height);\n\
     return {width: width, height: height};\n\
   }\n\
 , stroke: function() {\n\
