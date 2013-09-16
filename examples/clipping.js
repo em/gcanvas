@@ -1,5 +1,6 @@
 example('clipping', function(ctx) {
-  ctx.arc(100, 100, 75, 0, Math.PI*2);
+  ctx.arc(100, 50, 55, 0, Math.PI*2);
+  ctx.arc(100, 120, 55, 0, Math.PI*2);
   ctx.clip();
 
   ctx.beginPath();
