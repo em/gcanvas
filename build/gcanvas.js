@@ -223,11 +223,10 @@ function GCanvas(driver, width, height) {\n\
   this.matrix = new Matrix();\n\
   this.rotation = 0; \n\
   this.depth = 1;\n\
-  this.depthOfCut = 0.25;\n\
+  this.depthOfCut = 0;\n\
   this.toolDiameter = 5;\n\
   this.fillStrategy = 'crosshatch';\n\
   this.driver = driver || new GCodeDriver();\n\
-  this.position = new Point(0,0,0);\n\
   this.stack = [];\n\
   this.motion = new Motion(this);\n\
 \n\
@@ -464,15 +463,20 @@ GCanvas.prototype = {\n\
   }\n\
 , stroke: function() {\n\
     this.layers(function() {\n\
-      this.subPaths.forEach(this.motion.followPath, this.motion);\n\
+      this.motion.followPath(this.subPaths);\n\
     });\n\
   }\n\
 , layers: function(fn) {\n\
-     // this.motion.linear({z: this.position.z + this.depthOfCut});\n\
-     // while(this.position.z < this.depth) {\n\
-     //   this.motion.linear({z: this.position.z + this.depthOfCut});\n\
-     // }\n\
-     fn.call(this);\n\
+    if(this.depth <= this.depthOfCut || this.depthOfCut === 0) {\n\
+      this.motion.targetDepth = this.depth;\n\
+      fn.call(this);\n\
+      return;\n\
+    }\n\
+\n\
+    for(var depth=this.depthOfCut; depth <= this.depth; depth += this.depthOfCut) {\n\
+      this.motion.targetDepth = Math.min(depth, this.depth);\n\
+      fn.call(this);\n\
+    }\n\
   }\n\
 , fillText: function(text, x, y, params) {\n\
       var fontProps = parseFont(this.font);\n\
@@ -6742,24 +6746,21 @@ var Point = require('./math/point')\n\
 \n\
 /**\n\
  * Realtime motion interface\n\
- * These actually send commands to the driver.\n\
+ * This actually sends commands to the driver.\n\
  * */\n\
 function Motion(ctx) {\n\
   this.ctx = ctx;\n\
   this.position = new Point(0,0,0);\n\
+  this.targetDepth = 0; // Current depth for plunge/retract\n\
 }\n\
 \n\
 Motion.prototype = {\n\
   retract: function() {\n\
-  this.prevZ = this.ctx.position.z;\n\
-  this.linear({z:0});\n\
-}\n\
+    this.linear({z:0});\n\
+  }\n\
 , plunge: function() {\n\
-  if(this.prevZ)\n\
-    this.linear({z: this.prevZ});\n\
-  else\n\
-    this.linear({z: this.ctx.depthOfCut});\n\
-}\n\
+    this.linear({z: this.targetDepth});\n\
+  }\n\
 , rapid: function(params) {\n\
     var newPosition = this.mergePosition(params);\n\
     if(!newPosition) return;\n\
@@ -6772,21 +6773,21 @@ Motion.prototype = {\n\
     if(!newPosition) return;\n\
 \n\
     this.ctx.driver.linear.call(this.ctx.driver, params);\n\
-    this.ctx.position = newPosition;\n\
+    this.position = newPosition;\n\
   }\n\
 , arcCW: function(params) {\n\
     var newPosition = this.mergePosition(params);\n\
     // if(!newPosition) return;\n\
 \n\
     this.ctx.driver.arcCW.call(this.ctx.driver, params);\n\
-    this.ctx.position = newPosition;\n\
+    this.position = newPosition;\n\
   }\n\
 , arcCCW: function(params) {\n\
     var newPosition = this.mergePosition(params);\n\
     // if(!newPosition) return;\n\
 \n\
     this.ctx.driver.arcCCW.call(this.ctx.driver, params);\n\
-    this.ctx.position = newPosition;\n\
+    this.position = newPosition;\n\
   }\n\
 , mergePosition: function(params) {\n\
     if(params.x)\n\
@@ -6797,11 +6798,11 @@ Motion.prototype = {\n\
       params.z = Math.round(params.z * 1000000) / 1000000;\n\
 \n\
     var v1 = new Point(\n\
-          params.x === undefined ? this.ctx.position.x : params.x\n\
-        , params.y === undefined ? this.ctx.position.y : params.y\n\
-        , params.z === undefined ? this.ctx.position.z : params.z);\n\
+          params.x === undefined ? this.position.x : params.x\n\
+        , params.y === undefined ? this.position.y : params.y\n\
+        , params.z === undefined ? this.position.z : params.z);\n\
 \n\
-    if(utils.samePos(this.ctx.position, v1)) {\n\
+    if(utils.samePos(this.position, v1)) {\n\
       return false;\n\
     }\n\
 \n\
@@ -6809,6 +6810,12 @@ Motion.prototype = {\n\
   }\n\
 \n\
 , followPath: function(path) {\n\
+\n\
+    if(path.forEach) {\n\
+      path.forEach(this.followPath, this);\n\
+      return;\n\
+    }\n\
+\n\
     var each = {};\n\
     var motion = this;\n\
     var driver = this.ctx.driver;\n\
@@ -6874,9 +6881,9 @@ Motion.prototype = {\n\
     }\n\
   }\n\
 \n\
-, _interpolate: function(name, args, mx, my) {\n\
+, _interpolate: function(name, args) {\n\
     var path = new Path();\n\
-    path.moveTo(mx,my);\n\
+    path.moveTo(this.position.x, this.position.y);\n\
     path[name].apply(path, args);\n\
 \n\
     var pts = path.getPoints(40);\n\
