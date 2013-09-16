@@ -200,211 +200,400 @@ require.register("gcanvas/index.js", Function("exports, require, module",
 "module.exports = require('./lib/gcanvas')\n\
 //@ sourceURL=gcanvas/index.js"
 ));
-require.register("gcanvas/lib/FontUtils.js", Function("exports, require, module",
-"/**\n\
- * @author zz85 / http://www.lab4games.net/zz85/blog\n\
- * @author alteredq / http://alteredqualia.com/\n\
- *\n\
- * For Text operations in three.js (See TextGeometry)\n\
- *\n\
- * It uses techniques used in:\n\
- *\n\
- * \ttypeface.js and canvastext\n\
- * \t\tFor converting fonts and rendering with javascript\n\
- *\t\thttp://typeface.neocracy.org\n\
- *\n\
- *\tTriangulation ported from AS3\n\
- *\t\tSimple Polygon Triangulation\n\
- *\t\thttp://actionsnippet.com/?p=1462\n\
- *\n\
- * \tA Method to triangulate shapes with holes\n\
- *\t\thttp://www.sakri.net/blog/2009/06/12/an-approach-to-triangulating-polygons-with-holes/\n\
- *\n\
- */\n\
-\n\
-var Path = require('./path');\n\
-\n\
-var FontUtils = {\n\
-\n\
-\tfaces : {},\n\
-\n\
-\t// Just for now. face[weight][style]\n\
-\n\
-\tface : \"helvetiker\",\n\
-\tweight: \"normal\",\n\
-\tstyle : \"normal\",\n\
-\tsize : 150,\n\
-\tdivisions : 10,\n\
-\n\
-\tgetFace : function() {\n\
-\n\
-\t\treturn this.faces[ this.face ][ this.weight ][ this.style ];\n\
-\n\
-\t},\n\
-\n\
-\tloadFace : function( data ) {\n\
-\n\
-\t\tvar family = data.familyName.toLowerCase();\n\
-\n\
-\t\tvar ThreeFont = this;\n\
-\n\
-\t\tThreeFont.faces[ family ] = ThreeFont.faces[ family ] || {};\n\
-\n\
-\t\tThreeFont.faces[ family ][ data.cssFontWeight ] = ThreeFont.faces[ family ][ data.cssFontWeight ] || {};\n\
-\t\tThreeFont.faces[ family ][ data.cssFontWeight ][ data.cssFontStyle ] = data;\n\
-\n\
-\t\tvar face = ThreeFont.faces[ family ][ data.cssFontWeight ][ data.cssFontStyle ] = data;\n\
-\n\
-\t\treturn data;\n\
-\n\
-\t},\n\
-\n\
-\tdrawText : function( text ) {\n\
-\t\tvar i, p,\n\
-\t\t\tface = this.getFace(),\n\
-\t\t\tscale = this.size / face.resolution,\n\
-\t\t\toffset = 0,\n\
-\t\t\tchars = String( text ).split( '' ),\n\
-\t\t\tlength = chars.length;\n\
-\n\
-\t\tvar fontPaths = [];\n\
-\n\
-\t\tfor ( i = 0; i < length; i ++ ) {\n\
-\t\t\tvar path = new Path();\n\
-\n\
-\t\t\tvar ret = this.extractGlyphPoints( chars[ i ], face, scale, offset, path );\n\
-\t\t\toffset += ret.offset;\n\
-\n\
-\t\t\tfontPaths.push( ret.path );\n\
-\n\
-\t\t}\n\
-\n\
-\t\tvar width = offset / 2;\n\
-\t\t\n\
-\t\treturn { paths : fontPaths, offset : width };\n\
-\t},\n\
-\n\
-\textractGlyphPoints : function( c, face, scale, offset, path ) {\n\
-\n\
-\t\tvar pts = [];\n\
-\n\
-\t\tvar i, i2, divisions,\n\
-\t\t\toutline, action, length,\n\
-\t\t\tscaleX, scaleY,\n\
-\t\t\tx, y, cpx, cpy, cpx0, cpy0, cpx1, cpy1, cpx2, cpy2,\n\
-\t\t\tlaste,\n\
-\t\t\tglyph = face.glyphs[ c ] || face.glyphs[ '?' ];\n\
-\n\
-\t\tif ( !glyph ) return;\n\
-\n\
-\t\tif ( glyph.o ) {\n\
-\n\
-\t\t\toutline = glyph._cachedOutline || ( glyph._cachedOutline = glyph.o.split( ' ' ) );\n\
-\t\t\tlength = outline.length;\n\
-\n\
-\t\t\tscaleX = scale;\n\
-\t\t\tscaleY = -scale;\n\
-\n\
-\t\t\tfor ( i = 0; i < length; ) {\n\
-\n\
-\t\t\t\taction = outline[ i ++ ];\n\
-\n\
-\t\t\t\t//console.log( action );\n\
-\n\
-\t\t\t\tswitch( action ) {\n\
-\n\
-\t\t\t\tcase 'm':\n\
-\n\
-\t\t\t\t\t// Move To\n\
-\n\
-\t\t\t\t\tx = outline[ i++ ] * scaleX + offset;\n\
-\t\t\t\t\ty = outline[ i++ ] * scaleY;\n\
-\n\
-\t\t\t\t\tpath.moveTo( x, y );\n\
-\t\t\t\t\tbreak;\n\
-\n\
-\t\t\t\tcase 'l':\n\
-\n\
-\t\t\t\t\t// Line To\n\
-\n\
-\t\t\t\t\tx = outline[ i++ ] * scaleX + offset;\n\
-\t\t\t\t\ty = outline[ i++ ] * scaleY;\n\
-\t\t\t\t\tpath.lineTo(x,y);\n\
-\t\t\t\t\tbreak;\n\
-\n\
-\t\t\t\tcase 'q':\n\
-\n\
-\t\t\t\t\t// QuadraticCurveTo\n\
-\n\
-\t\t\t\t\tcpx  = outline[ i++ ] * scaleX + offset;\n\
-\t\t\t\t\tcpy  = outline[ i++ ] * scaleY;\n\
-\t\t\t\t\tcpx1 = outline[ i++ ] * scaleX + offset;\n\
-\t\t\t\t\tcpy1 = outline[ i++ ] * scaleY;\n\
-\n\
-\t\t\t\t\tpath.quadraticCurveTo(cpx1, cpy1, cpx, cpy);\n\
-\n\
-\t\t\t\t\tlaste = pts[ pts.length - 1 ];\n\
-\n\
-\t\t\t\t\tif ( laste ) {\n\
-\n\
-\t\t\t\t\t\tcpx0 = laste.x;\n\
-\t\t\t\t\t\tcpy0 = laste.y;\n\
-\n\
-\t\t\t\t\t\tfor ( i2 = 1, divisions = this.divisions; i2 <= divisions; i2 ++ ) {\n\
-\n\
-\t\t\t\t\t\t\tvar t = i2 / divisions;\n\
-\t\t\t\t\t\t\tvar tx = Shape.Utils.b2( t, cpx0, cpx1, cpx );\n\
-\t\t\t\t\t\t\tvar ty = Shape.Utils.b2( t, cpy0, cpy1, cpy );\n\
-\t\t\t\t\t  }\n\
-\n\
-\t\t\t\t  }\n\
-\n\
-\t\t\t\t  break;\n\
-\n\
-\t\t\t\tcase 'b':\n\
-\n\
-\t\t\t\t\t// Cubic Bezier Curve\n\
-\n\
-\t\t\t\t\tcpx  = outline[ i++ ] *  scaleX + offset;\n\
-\t\t\t\t\tcpy  = outline[ i++ ] *  scaleY;\n\
-\t\t\t\t\tcpx1 = outline[ i++ ] *  scaleX + offset;\n\
-\t\t\t\t\tcpy1 = outline[ i++ ] * -scaleY;\n\
-\t\t\t\t\tcpx2 = outline[ i++ ] *  scaleX + offset;\n\
-\t\t\t\t\tcpy2 = outline[ i++ ] * -scaleY;\n\
-\n\
-\t\t\t\t\tpath.bezierCurveTo( cpx, cpy, cpx1, cpy1, cpx2, cpy2 );\n\
-\n\
-\t\t\t\t\tlaste = pts[ pts.length - 1 ];\n\
-\n\
-\t\t\t\t\tif ( laste ) {\n\
-\n\
-\t\t\t\t\t\tcpx0 = laste.x;\n\
-\t\t\t\t\t\tcpy0 = laste.y;\n\
-\n\
-\t\t\t\t\t\tfor ( i2 = 1, divisions = this.divisions; i2 <= divisions; i2 ++ ) {\n\
-\n\
-\t\t\t\t\t\t\tvar t = i2 / divisions;\n\
-\t\t\t\t\t\t\tvar tx = Shape.Utils.b3( t, cpx0, cpx1, cpx2, cpx );\n\
-\t\t\t\t\t\t\tvar ty = Shape.Utils.b3( t, cpy0, cpy1, cpy2, cpy );\n\
-\n\
-\t\t\t\t\t\t}\n\
-\n\
-\t\t\t\t\t}\n\
-\n\
-\t\t\t\t\tbreak;\n\
-\n\
-\t\t\t\t}\n\
-\n\
-\t\t\t}\n\
-\t\t}\n\
-\n\
-\t\treturn { offset: glyph.ha*scale, path:path};\n\
-\t}\n\
-\n\
+require.register("gcanvas/lib/gcanvas.js", Function("exports, require, module",
+"module.exports = GCanvas;\n\
+\n\
+var Path = require('./path')\n\
+  , Motion = require('./motion')\n\
+  , GCodeDriver = require('./drivers/gcode')\n\
+  , Point = require('./math/point')\n\
+  , Matrix = require('./math/matrix')\n\
+  , ClipperLib = require('./clipper')\n\
+  , Font = require('./font')\n\
+  , parseFont = require('./parsefont')\n\
+  , utils = require('./utils');\n\
+\n\
+function GCanvas(driver, width, height) {\n\
+  this.canvas = {\n\
+    width: width,\n\
+    height: height\n\
+  };\n\
+\n\
+  this.font = \"7pt Helvetiker\";\n\
+  this.matrix = new Matrix();\n\
+  this.rotation = 0; \n\
+  this.depth = 1;\n\
+  this.depthOfCut = 0.25;\n\
+  this.toolDiameter = 5;\n\
+  this.fillStrategy = 'crosshatch';\n\
+  this.driver = driver || new GCodeDriver();\n\
+  this.position = new Point(0,0,0);\n\
+  this.stack = [];\n\
+  this.motion = new Motion(this);\n\
+\n\
+  this.beginPath();\n\
+}\n\
+\n\
+GCanvas.prototype = {\n\
+  save: function() {\n\
+    this.stack.push({\n\
+      matrix: this.matrix.clone(),\n\
+      rotation: this.rotation\n\
+    });\n\
+  }\n\
+, restore: function() {\n\
+    var prev = this.stack.pop();\n\
+    if(!prev) return;\n\
+    this.matrix = prev.matrix;\n\
+    this.rotation = prev.rotation;\n\
+  }\n\
+, beginPath: function() {\n\
+    this.path = new Path();\n\
+    this.subPaths = [this.path];\n\
+  }\n\
+, rotate: function(angle) {\n\
+    this.matrix = this.matrix.rotate(angle);\n\
+  }\n\
+, translate: function(x,y) {\n\
+    this.matrix = this.matrix.translate(x,y);\n\
+  }\n\
+, scale: function(x,y) {\n\
+    this.matrix = this.matrix.scale(x,y);\n\
+  }\n\
+  // TODO: clean up\n\
+, _transformPoint: function(a, i) {\n\
+    i = i || 0;\n\
+    if(a.length) {\n\
+      var v = new Point(a[i], a[i+1]);\n\
+      v = this.matrix.transformPoint(v);\n\
+      a[i] = v.x; \n\
+      a[i+1] = v.y; \n\
+    }\n\
+    else if(a.x) {\n\
+      var v = new Point(a.x, a.y);\n\
+      v = this.matrix.transformPoint(v);\n\
+      a.x = v.x; \n\
+      a.y = v.y; \n\
+    }\n\
+  }\n\
+, _ensurePath: function(x,y) {\n\
+    if(this.path.actions.length === 0) {\n\
+      this.path.moveTo(x,y);\n\
+    }\n\
+  }\n\
+, moveTo: function(x,y) {\n\
+    this._transformPoint(arguments);\n\
+    this.path = new Path();\n\
+    this.path.moveTo(x,y);\n\
+    this.subPaths.push( this.path );\n\
+  }\n\
+, lineTo: function(x,y) {\n\
+    this._transformPoint(arguments);\n\
+    this._ensurePath(x,y);\n\
+    this.path.lineTo(x,y);\n\
+  }\n\
+, arc: function (x, y, radius,\n\
+\t\t\t\t\t\t\t\t\t  aStartAngle,\n\
+                    aEndAngle,\n\
+                    aClockwise ) {\n\
+    // In the conversion to points we lose the distinction\n\
+    // between 0 and pi2 so we must optimize out 0 here \n\
+    // or else they will be treated as full circles.\n\
+    if(aStartAngle - aEndAngle === 0) {\n\
+      this.lineTo();\n\
+      return;\n\
+    }\n\
+\n\
+    // See portal2 example\n\
+    if(aEndAngle-aStartAngle === -Math.PI*2)\n\
+      aEndAngle = Math.PI*2;\n\
+\n\
+    var center = new Point(x, y, 0);\n\
+    var points = utils.arcToPoints(center,\n\
+                                   aStartAngle,\n\
+                                   aEndAngle,\n\
+                                   radius);\n\
+    // center.applyMatrix(this.matrix);\n\
+    this._transformPoint(center);\n\
+    this._transformPoint(points.start);\n\
+    this._transformPoint(points.end);\n\
+\n\
+    var res = utils.pointsToArc(center,\n\
+                                points.start,\n\
+                                points.end);\n\
+\n\
+    this._ensurePath(points.start.x, points.start.y);\n\
+    this.path.arc(center.x, center.y, res.radius, res.start, res.end, aClockwise);\n\
+  }\n\
+, bezierCurveTo: function( aCP1x, aCP1y,\n\
+                           aCP2x, aCP2y,\n\
+                           aX, aY ) {\n\
+\n\
+    this._transformPoint(arguments, 0);\n\
+    this._transformPoint(arguments, 2);\n\
+    this._transformPoint(arguments, 4);\n\
+\n\
+    this.path.bezierCurveTo.apply(this.path, arguments);\n\
+  }\n\
+\n\
+, quadraticCurveTo: function( aCPx, aCPy, aX, aY ) {\n\
+    this._transformPoint(arguments, 0);\n\
+    this._transformPoint(arguments, 2);\n\
+\n\
+    this.path.quadraticCurveTo.apply(this.path, arguments);\n\
+  }\n\
+\n\
+, _offsetStroke: function(delta) {\n\
+    var cpr = new ClipperLib.Clipper();\n\
+    var polygons = [];\n\
+    this.subPaths.forEach(function(path) {\n\
+      if(path.actions.length !== 0)\n\
+        polygons.push( path.getPoints(40).map(function(p) {\n\
+          return {X: p.x, Y: p.y};\n\
+        }) );\n\
+    });\n\
+\n\
+    function path2poly(path) {\n\
+      var poly = [];\n\
+      if(path.actions.length !== 0)\n\
+        poly.push( path.getPoints(40).map(function(p) {\n\
+          return {X: p.x, Y: p.y};\n\
+        }) );\n\
+        return poly;\n\
+    }\n\
+\n\
+\n\
+    polygons = ClipperLib.Clean(polygons, cleandelta * scale);\n\
+\n\
+    if(this.clipRegion) {\n\
+      var cpr = new ClipperLib.Clipper();\n\
+      var subject_fillType = 0;\n\
+      var clip_fillType = 1;\n\
+      var clip_polygons = path2poly(this.clipRegion);\n\
+      // var clipType = ClipperLib.ClipType.ctIntersection;\n\
+      var clipType = 0;\n\
+      cpr.AddPolygons(polygons, ClipperLib.PolyType.ptSubject);\n\
+      cpr.AddPolygons(clip_polygons, ClipperLib.PolyType.ptClip);\n\
+      var result = [];\n\
+      var succeeded = cpr.Execute(clipType, result, subject_fillType, clip_fillType);\n\
+      polygons = result;\n\
+    }\n\
+\n\
+    scaleup(polygons, 1000);\n\
+\n\
+    delta *= 1000;\n\
+\n\
+    var scale = 1;\n\
+    var cleandelta = 0.1; // 0.1 should be the appropriate delta in different cases\n\
+\n\
+    polygons = cpr.SimplifyPolygons(polygons, ClipperLib.PolyFillType.pftNonZero);\n\
+    // polygons = ClipperLib.Clean(polygons, cleandelta * scale);\n\
+\n\
+    cpr.AddPolygons(polygons, ClipperLib.PolyType.ptSubject);\n\
+\n\
+    var joinType = ClipperLib.JoinType.jtSquare;\n\
+    var miterLimit = 1;\n\
+    var AutoFix = true;\n\
+\n\
+    var offsetted_polygon = cpr.OffsetPolygons(polygons, delta, joinType, miterLimit, AutoFix);\n\
+\n\
+\n\
+    scaleup(offsetted_polygon, 1/1000);\n\
+\n\
+    function scaleup(poly, scale) {\n\
+      var i, j;\n\
+      if (!scale) scale = 1;\n\
+      for(i = 0; i < poly.length; i++) {\n\
+        for(j = 0; j < poly[i].length; j++) {\n\
+          poly[i][j].X *= scale;\n\
+          poly[i][j].Y *= scale;\n\
+        }\n\
+      }\n\
+      return poly;\n\
+    }\n\
+\n\
+    // converts polygons to SVG path string\n\
+    function polys2path (poly, scale) {\n\
+      var path = new Path(), i, j;\n\
+      if (!scale) scale = 1;\n\
+      for(i = 0; i < poly.length; i++) {\n\
+        path.moveTo(poly[i][0].X, poly[i][0].Y);\n\
+\n\
+        for(j = 1; j < poly[i].length; j++){\n\
+          path.lineTo(poly[i][j].X, poly[i][j].Y);\n\
+        }\n\
+\n\
+        path.lineTo(poly[i][0].X, poly[i][0].Y);\n\
+      }\n\
+      // console.log(path);\n\
+      return path;\n\
+    }\n\
+\n\
+    // console.log(offsetted_polygon);\n\
+\n\
+    if(offsetted_polygon.length === 0\n\
+      || offsetted_polygon[0].length === 0) return true;\n\
+\n\
+    this._strokePath(polys2path(offsetted_polygon));\n\
+  }\n\
+, clip: function() {\n\
+    this.clipRegion = this.path;\n\
+  }\n\
+, fill: function() {\n\
+    for(var i = - this.toolDiameter/2; i > -1000; i -= this.toolDiameter) {\n\
+      var done = this._offsetStroke(i);\n\
+      if(done) return;\n\
+    }\n\
+  }\n\
+, rect: function(x,y,w,h) { \n\
+    this.moveTo(x,y);\n\
+    this.lineTo(x+w,y);\n\
+    this.lineTo(x+w,y+h);\n\
+    this.lineTo(x,y+h);\n\
+    this.lineTo(x,y);\n\
+  }\n\
+, fillRect: function(x,y,w,h) { \n\
+    this.beginPath();\n\
+    this.rect.apply(this, arguments);\n\
+    this.fill();\n\
+  }\n\
+, measureText: function(text) {\n\
+    // Removed until I have cleaner way to do it\n\
+  }\n\
+, stroke: function() {\n\
+    this.layers(function() {\n\
+      this.subPaths.forEach(this._strokePath, this);\n\
+    });\n\
+\n\
+  }\n\
+, _strokePath: function(path) {\n\
+    var each = {};\n\
+    var motion = this.motion;\n\
+    var driver = this.driver;\n\
+    var item;\n\
+\n\
+    each[Path.actions.MOVE_TO] = function(x,y) {\n\
+      motion.retract();\n\
+      motion.rapid({x:x,y:y});\n\
+    };\n\
+\n\
+    each[Path.actions.LINE_TO] = function(x,y) {\n\
+      motion.plunge();\n\
+      motion.linear({x:x,y:y});\n\
+    };\n\
+\n\
+    // 3js just converts a bunch of stuff to absellipse\n\
+    // but for our purposes this weird lossiness works\n\
+    // fine since we should detect ellipses that are arcs\n\
+    // and optimizing by using the native methods anyway.\n\
+    each[Path.actions.ELLIPSE] = function(x, y, rx, ry,\n\
+\t\t\t\t\t\t\t\t\t  aStart, aEnd, aClockwise , mx, my) {\n\
+      motion.plunge();\n\
+\n\
+      // Detect plain arc\n\
+      if(utils.sameFloat(rx,ry) &&\n\
+        (driver.arcCW && !aClockwise) ||\n\
+        (driver.arcCCW && aClockwise) ) {\n\
+          var center = new Point(x, y);\n\
+          var points = utils.arcToPoints(center,\n\
+                                         aStart,\n\
+                                         aEnd,\n\
+                                         rx);\n\
+          var params = {\n\
+            x: points.end.x, y: points.end.y,\n\
+            i: x, j: y\n\
+          };\n\
+\n\
+          if(aClockwise)\n\
+            motion.arcCCW(params);\n\
+          else\n\
+            motion.arcCW(params);\n\
+      }\n\
+      else {\n\
+        this._interpolate('ellipse', arguments, mx, my);\n\
+      }\n\
+    };\n\
+\n\
+    each[Path.actions.BEZIER_CURVE_TO] = function() {\n\
+      var lastargs = path.actions[ i - 1 ].args;\n\
+      var x0 = lastargs[ lastargs.length - 2 ];\n\
+      var y0 = lastargs[ lastargs.length - 1 ];\n\
+\n\
+      this._interpolate('bezierCurveTo', arguments, x0, y0);\n\
+    };\n\
+\n\
+    each[Path.actions.QUADRATIC_CURVE_TO] = function() {\n\
+      var lastargs = path.actions[ i - 1 ].args;\n\
+      var x0 = lastargs[ lastargs.length - 2 ];\n\
+      var y0 = lastargs[ lastargs.length - 1 ];\n\
+\n\
+      this._interpolate('quadraticCurveTo', arguments, x0, y0);\n\
+    };\n\
+\n\
+    for(var i = 0, l = path.actions.length; i < l; ++i) {\n\
+      item = path.actions[i]\n\
+      each[item.action].apply(this, item.args);\n\
+    }\n\
+\n\
+  }\n\
+, layers: function(fn) {\n\
+     // this.motion.linear({z: this.position.z + this.depthOfCut});\n\
+     // while(this.position.z < this.depth) {\n\
+     //   this.motion.linear({z: this.position.z + this.depthOfCut});\n\
+     // }\n\
+     fn.call(this);\n\
+  }\n\
+, fillText: function(text, x, y, params) {\n\
+      var fontProps = parseFont(this.font);\n\
+      var font = new Font(fontProps);\n\
+\n\
+      this.beginPath();\n\
+      this.save();\n\
+      this.translate(x, y);\n\
+      font.drawText(this, text);\n\
+      this.fill();\n\
+\n\
+      this.restore();\n\
+  }\n\
+\n\
+, strokeText: function(text, x, y, params) {\n\
+    this.layers(function() {\n\
+      var fontProps = parseFont(this.font);\n\
+      var font = new Font(fontProps);\n\
+\n\
+      this.beginPath();\n\
+      this.save();\n\
+      this.translate(x, y);\n\
+      font.drawText(this, text);\n\
+      this.stroke();\n\
+\n\
+      this.restore();\n\
+    });\n\
+  }\n\
+\n\
+/**\n\
+ *   \n\
+ * */\n\
+, _interpolate: function(name, args, mx, my) {\n\
+    var path = new Path();\n\
+    path.moveTo(mx,my);\n\
+    path[name].apply(path, args);\n\
+\n\
+    var pts = path.getPoints(40);\n\
+    for(var i=0,l=pts.length; i < l; ++i) {\n\
+      var p=pts[i];\n\
+      this.motion.linear({x:p.x, y:p.y});\n\
+    };\n\
+  }\n\
 };\n\
 \n\
-module.exports = FontUtils;\n\
-//@ sourceURL=gcanvas/lib/FontUtils.js"
+GCanvas.Filter = require('./drivers/filter');\n\
+GCanvas.Simulator = require('./drivers/simulator');\n\
+\n\
+var helvetiker = require('./fonts/helvetiker_regular.typeface');\n\
+Font.load(helvetiker);\n\
+\n\
+//@ sourceURL=gcanvas/lib/gcanvas.js"
 ));
 require.register("gcanvas/lib/math/point.js", Function("exports, require, module",
 "module.exports = Point;\n\
@@ -1470,6 +1659,182 @@ Shape.Utils = {\n\
 \n\
 };\n\
 //@ sourceURL=gcanvas/lib/path.js"
+));
+require.register("gcanvas/lib/font.js", Function("exports, require, module",
+"/**\n\
+ * Derived from code originally written by zz85 for three.js\n\
+ * http://www.lab4games.net/zz85/blog\n\
+ * Thanks zz85!\n\
+ **/\n\
+\n\
+module.exports = Font;\n\
+\n\
+var Path = require('./path');\n\
+\n\
+function Font(props) {\n\
+  this.face = Font.faces[props.family] ? props.family : 'helvetiker';\n\
+\tthis.weight = props.weight || \"normal\";\n\
+\tthis.style = props.style || \"normal\";\n\
+  this.size = props.size || 20;\n\
+  this.divisions = 10;\n\
+}\n\
+\n\
+Font.faces = {}; // cache\n\
+\n\
+Font.prototype = {\n\
+\tgetFace : function() {\n\
+\t\treturn Font.faces[ this.face ][ this.weight ][ this.style ];\n\
+\t},\n\
+\n\
+\tdrawText : function(ctx, text) {\n\
+\t\tvar i, p,\n\
+\t\t\tface = this.getFace(),\n\
+\t\t\tscale = this.size / face.resolution,\n\
+\t\t\toffset = 0,\n\
+\t\t\tchars = String( text ).split( '' ),\n\
+\t\t\tlength = chars.length;\n\
+\n\
+\t\tvar fontPaths = [];\n\
+\n\
+\t\tfor ( i = 0; i < length; i ++ ) {\n\
+\t\t\tvar ret = this.extractGlyphPoints( chars[ i ], face, scale, offset, ctx );\n\
+\t\t\toffset += ret.offset;\n\
+\t\t}\n\
+\n\
+\t\tvar width = offset / 2;\n\
+\t\t\n\
+\t\treturn { paths : fontPaths, offset : width };\n\
+\t},\n\
+\n\
+\textractGlyphPoints : function( c, face, scale, offset, path ) {\n\
+\n\
+\t\tvar pts = [];\n\
+\n\
+\t\tvar i, i2, divisions,\n\
+\t\t\toutline, action, length,\n\
+\t\t\tscaleX, scaleY,\n\
+\t\t\tx, y, cpx, cpy, cpx0, cpy0, cpx1, cpy1, cpx2, cpy2,\n\
+\t\t\tlaste,\n\
+\t\t\tglyph = face.glyphs[ c ] || face.glyphs[ '?' ];\n\
+\n\
+\t\tif ( !glyph ) return;\n\
+\n\
+\t\tif ( glyph.o ) {\n\
+\n\
+\t\t\toutline = glyph._cachedOutline || ( glyph._cachedOutline = glyph.o.split( ' ' ) );\n\
+\t\t\tlength = outline.length;\n\
+\n\
+\t\t\tscaleX = scale;\n\
+\t\t\tscaleY = -scale;\n\
+\n\
+\t\t\tfor ( i = 0; i < length; ) {\n\
+\n\
+\t\t\t\taction = outline[ i ++ ];\n\
+\n\
+\t\t\t\t//console.log( action );\n\
+\n\
+\t\t\t\tswitch( action ) {\n\
+\n\
+\t\t\t\tcase 'm':\n\
+\n\
+\t\t\t\t\t// Move To\n\
+\n\
+\t\t\t\t\tx = outline[ i++ ] * scaleX + offset;\n\
+\t\t\t\t\ty = outline[ i++ ] * scaleY;\n\
+\n\
+\t\t\t\t\tpath.moveTo( x, y );\n\
+\t\t\t\t\tbreak;\n\
+\n\
+\t\t\t\tcase 'l':\n\
+\n\
+\t\t\t\t\t// Line To\n\
+\n\
+\t\t\t\t\tx = outline[ i++ ] * scaleX + offset;\n\
+\t\t\t\t\ty = outline[ i++ ] * scaleY;\n\
+\t\t\t\t\tpath.lineTo(x,y);\n\
+\t\t\t\t\tbreak;\n\
+\n\
+\t\t\t\tcase 'q':\n\
+\n\
+\t\t\t\t\t// QuadraticCurveTo\n\
+\n\
+\t\t\t\t\tcpx  = outline[ i++ ] * scaleX + offset;\n\
+\t\t\t\t\tcpy  = outline[ i++ ] * scaleY;\n\
+\t\t\t\t\tcpx1 = outline[ i++ ] * scaleX + offset;\n\
+\t\t\t\t\tcpy1 = outline[ i++ ] * scaleY;\n\
+\n\
+\t\t\t\t\tpath.quadraticCurveTo(cpx1, cpy1, cpx, cpy);\n\
+\n\
+\t\t\t\t\tlaste = pts[ pts.length - 1 ];\n\
+\n\
+\t\t\t\t\tif ( laste ) {\n\
+\n\
+\t\t\t\t\t\tcpx0 = laste.x;\n\
+\t\t\t\t\t\tcpy0 = laste.y;\n\
+\n\
+\t\t\t\t\t\tfor ( i2 = 1, divisions = this.divisions; i2 <= divisions; i2 ++ ) {\n\
+\n\
+\t\t\t\t\t\t\tvar t = i2 / divisions;\n\
+\t\t\t\t\t\t\tvar tx = Shape.Utils.b2( t, cpx0, cpx1, cpx );\n\
+\t\t\t\t\t\t\tvar ty = Shape.Utils.b2( t, cpy0, cpy1, cpy );\n\
+\t\t\t\t\t  }\n\
+\n\
+\t\t\t\t  }\n\
+\n\
+\t\t\t\t  break;\n\
+\n\
+\t\t\t\tcase 'b':\n\
+\n\
+\t\t\t\t\t// Cubic Bezier Curve\n\
+\n\
+\t\t\t\t\tcpx  = outline[ i++ ] *  scaleX + offset;\n\
+\t\t\t\t\tcpy  = outline[ i++ ] *  scaleY;\n\
+\t\t\t\t\tcpx1 = outline[ i++ ] *  scaleX + offset;\n\
+\t\t\t\t\tcpy1 = outline[ i++ ] * -scaleY;\n\
+\t\t\t\t\tcpx2 = outline[ i++ ] *  scaleX + offset;\n\
+\t\t\t\t\tcpy2 = outline[ i++ ] * -scaleY;\n\
+\n\
+\t\t\t\t\tpath.bezierCurveTo( cpx, cpy, cpx1, cpy1, cpx2, cpy2 );\n\
+\n\
+\t\t\t\t\tlaste = pts[ pts.length - 1 ];\n\
+\n\
+\t\t\t\t\tif ( laste ) {\n\
+\n\
+\t\t\t\t\t\tcpx0 = laste.x;\n\
+\t\t\t\t\t\tcpy0 = laste.y;\n\
+\n\
+\t\t\t\t\t\tfor ( i2 = 1, divisions = this.divisions; i2 <= divisions; i2 ++ ) {\n\
+\n\
+\t\t\t\t\t\t\tvar t = i2 / divisions;\n\
+\t\t\t\t\t\t\tvar tx = Shape.Utils.b3( t, cpx0, cpx1, cpx2, cpx );\n\
+\t\t\t\t\t\t\tvar ty = Shape.Utils.b3( t, cpy0, cpy1, cpy2, cpy );\n\
+\n\
+\t\t\t\t\t\t}\n\
+\n\
+\t\t\t\t\t}\n\
+\n\
+\t\t\t\t\tbreak;\n\
+\n\
+\t\t\t\t}\n\
+\n\
+\t\t\t}\n\
+\t\t}\n\
+\n\
+\t\treturn { offset: glyph.ha*scale, path:path};\n\
+\t}\n\
+\n\
+};\n\
+\n\
+Font.load = function( data ) {\n\
+  var family = data.familyName.toLowerCase();\n\
+  Font.faces[ family ] = Font.faces[ family ] || {};\n\
+  Font.faces[ family ][ data.cssFontWeight ] = Font.faces[ family ][ data.cssFontWeight ] || {};\n\
+  Font.faces[ family ][ data.cssFontWeight ][ data.cssFontStyle ] = data;\n\
+  var face = Font.faces[ family ][ data.cssFontWeight ][ data.cssFontStyle ] = data;\n\
+  return data;\n\
+};\n\
+\n\
+//@ sourceURL=gcanvas/lib/font.js"
 ));
 require.register("gcanvas/lib/clipper.js", Function("exports, require, module",
 "/*******************************************************************************\n\
@@ -6486,432 +6851,6 @@ require.register("gcanvas/lib/clipper.js", Function("exports, require, module",
 \n\
   module.exports = ClipperLib;\n\
 //@ sourceURL=gcanvas/lib/clipper.js"
-));
-require.register("gcanvas/lib/gcanvas.js", Function("exports, require, module",
-"module.exports = GCanvas;\n\
-\n\
-var Path = require('./path')\n\
-  , Motion = require('./motion')\n\
-  , GCodeDriver = require('./drivers/gcode')\n\
-  , Point = require('./math/point')\n\
-  , Matrix = require('./math/matrix')\n\
-  , parseFont = require('./parsefont')\n\
-  , ClipperLib = require('./clipper')\n\
-  , FontUtils = require('./FontUtils')\n\
-  , utils = require('./utils');\n\
-\n\
-function GCanvas(driver, width, height) {\n\
-  this.canvas = {\n\
-    width: width,\n\
-    height: height\n\
-  };\n\
-\n\
-  this.font = \"7pt Helvetiker\";\n\
-  this.matrix = new Matrix();\n\
-  this.rotation = 0; \n\
-  this.depth = 1;\n\
-  this.depthOfCut = 0.25;\n\
-  this.toolDiameter = 5;\n\
-  this.fillStrategy = 'crosshatch';\n\
-  this.driver = driver || new GCodeDriver();\n\
-  this.position = new Point(0,0,0);\n\
-  this.stack = [];\n\
-  this.motion = new Motion(this);\n\
-\n\
-  this.beginPath();\n\
-}\n\
-\n\
-GCanvas.prototype = {\n\
-  save: function() {\n\
-    this.stack.push({\n\
-      matrix: this.matrix.clone(),\n\
-      rotation: this.rotation\n\
-    });\n\
-  }\n\
-, restore: function() {\n\
-    var prev = this.stack.pop();\n\
-    if(!prev) return;\n\
-    this.matrix = prev.matrix;\n\
-    this.rotation = prev.rotation;\n\
-  }\n\
-, beginPath: function() {\n\
-    this.path = new Path();\n\
-    this.subPaths = [this.path];\n\
-  }\n\
-, rotate: function(angle) {\n\
-    this.matrix = this.matrix.rotate(angle);\n\
-  }\n\
-, translate: function(x,y) {\n\
-    this.matrix = this.matrix.translate(x,y);\n\
-  }\n\
-, scale: function(x,y) {\n\
-    this.matrix = this.matrix.scale(x,y);\n\
-  }\n\
-  // TODO: clean up\n\
-, _transformPoint: function(a, i) {\n\
-    i = i || 0;\n\
-    if(a.length) {\n\
-      var v = new Point(a[i], a[i+1]);\n\
-      v = this.matrix.transformPoint(v);\n\
-      a[i] = v.x; \n\
-      a[i+1] = v.y; \n\
-    }\n\
-    else if(a.x) {\n\
-      var v = new Point(a.x, a.y);\n\
-      v = this.matrix.transformPoint(v);\n\
-      a.x = v.x; \n\
-      a.y = v.y; \n\
-    }\n\
-  }\n\
-, _ensurePath: function(x,y) {\n\
-    if(this.path.actions.length === 0) {\n\
-      this.path.moveTo(x,y);\n\
-    }\n\
-  }\n\
-, moveTo: function(x,y) {\n\
-    this._transformPoint(arguments);\n\
-    this.path = new Path();\n\
-    this.path.moveTo(x,y);\n\
-    this.subPaths.push( this.path );\n\
-  }\n\
-, lineTo: function(x,y) {\n\
-    this._transformPoint(arguments);\n\
-    this._ensurePath(x,y);\n\
-    this.path.lineTo(x,y);\n\
-  }\n\
-, arc: function (x, y, radius,\n\
-\t\t\t\t\t\t\t\t\t  aStartAngle,\n\
-                    aEndAngle,\n\
-                    aClockwise ) {\n\
-    // In the conversion to points we lose the distinction\n\
-    // between 0 and pi2 so we must optimize out 0 here \n\
-    // or else they will be treated as full circles.\n\
-    if(aStartAngle - aEndAngle === 0) {\n\
-      this.lineTo();\n\
-      return;\n\
-    }\n\
-\n\
-    // See portal2 example\n\
-    if(aEndAngle-aStartAngle === -Math.PI*2)\n\
-      aEndAngle = Math.PI*2;\n\
-\n\
-    var center = new Point(x, y, 0);\n\
-    var points = utils.arcToPoints(center,\n\
-                                   aStartAngle,\n\
-                                   aEndAngle,\n\
-                                   radius);\n\
-    // center.applyMatrix(this.matrix);\n\
-    this._transformPoint(center);\n\
-    this._transformPoint(points.start);\n\
-    this._transformPoint(points.end);\n\
-\n\
-    var res = utils.pointsToArc(center,\n\
-                                points.start,\n\
-                                points.end);\n\
-\n\
-    this._ensurePath(points.start.x, points.start.y);\n\
-    this.path.arc(center.x, center.y, res.radius, res.start, res.end, aClockwise);\n\
-  }\n\
-, bezierCurveTo: function( aCP1x, aCP1y,\n\
-                           aCP2x, aCP2y,\n\
-                           aX, aY ) {\n\
-\n\
-    this._transformPoint(arguments, 0);\n\
-    this._transformPoint(arguments, 2);\n\
-    this._transformPoint(arguments, 4);\n\
-\n\
-    this.path.bezierCurveTo.apply(this.path, arguments);\n\
-  }\n\
-\n\
-, quadraticCurveTo: function( aCPx, aCPy, aX, aY ) {\n\
-    this._transformPoint(arguments, 0);\n\
-    this._transformPoint(arguments, 2);\n\
-\n\
-    this.path.quadraticCurveTo.apply(this.path, arguments);\n\
-  }\n\
-\n\
-, _offsetStroke: function(delta) {\n\
-    var cpr = new ClipperLib.Clipper();\n\
-    var polygons = [];\n\
-    this.subPaths.forEach(function(path) {\n\
-      if(path.actions.length !== 0)\n\
-        polygons.push( path.getPoints(40).map(function(p) {\n\
-          return {X: p.x, Y: p.y};\n\
-        }) );\n\
-    });\n\
-\n\
-    function path2poly(path) {\n\
-      var poly = [];\n\
-      if(path.actions.length !== 0)\n\
-        poly.push( path.getPoints(40).map(function(p) {\n\
-          return {X: p.x, Y: p.y};\n\
-        }) );\n\
-        return poly;\n\
-    }\n\
-\n\
-\n\
-    polygons = ClipperLib.Clean(polygons, cleandelta * scale);\n\
-\n\
-    if(this.clipRegion) {\n\
-      var cpr = new ClipperLib.Clipper();\n\
-      var subject_fillType = 0;\n\
-      var clip_fillType = 1;\n\
-      var clip_polygons = path2poly(this.clipRegion);\n\
-      // var clipType = ClipperLib.ClipType.ctIntersection;\n\
-      var clipType = 0;\n\
-      cpr.AddPolygons(polygons, ClipperLib.PolyType.ptSubject);\n\
-      cpr.AddPolygons(clip_polygons, ClipperLib.PolyType.ptClip);\n\
-      var result = [];\n\
-      var succeeded = cpr.Execute(clipType, result, subject_fillType, clip_fillType);\n\
-      polygons = result;\n\
-    }\n\
-\n\
-    scaleup(polygons, 1000);\n\
-\n\
-    delta *= 1000;\n\
-\n\
-    var scale = 1;\n\
-    var cleandelta = 0.1; // 0.1 should be the appropriate delta in different cases\n\
-\n\
-    polygons = cpr.SimplifyPolygons(polygons, ClipperLib.PolyFillType.pftNonZero);\n\
-    // polygons = ClipperLib.Clean(polygons, cleandelta * scale);\n\
-\n\
-    cpr.AddPolygons(polygons, ClipperLib.PolyType.ptSubject);\n\
-\n\
-    var joinType = ClipperLib.JoinType.jtSquare;\n\
-    var miterLimit = 1;\n\
-    var AutoFix = true;\n\
-\n\
-    var offsetted_polygon = cpr.OffsetPolygons(polygons, delta, joinType, miterLimit, AutoFix);\n\
-\n\
-\n\
-    scaleup(offsetted_polygon, 1/1000);\n\
-\n\
-    function scaleup(poly, scale) {\n\
-      var i, j;\n\
-      if (!scale) scale = 1;\n\
-      for(i = 0; i < poly.length; i++) {\n\
-        for(j = 0; j < poly[i].length; j++) {\n\
-          poly[i][j].X *= scale;\n\
-          poly[i][j].Y *= scale;\n\
-        }\n\
-      }\n\
-      return poly;\n\
-    }\n\
-\n\
-    // converts polygons to SVG path string\n\
-    function polys2path (poly, scale) {\n\
-      var path = new Path(), i, j;\n\
-      if (!scale) scale = 1;\n\
-      for(i = 0; i < poly.length; i++) {\n\
-        path.moveTo(poly[i][0].X, poly[i][0].Y);\n\
-\n\
-        for(j = 1; j < poly[i].length; j++){\n\
-          path.lineTo(poly[i][j].X, poly[i][j].Y);\n\
-        }\n\
-\n\
-        path.lineTo(poly[i][0].X, poly[i][0].Y);\n\
-      }\n\
-      // console.log(path);\n\
-      return path;\n\
-    }\n\
-\n\
-    // console.log(offsetted_polygon);\n\
-\n\
-    if(offsetted_polygon.length === 0\n\
-      || offsetted_polygon[0].length === 0) return true;\n\
-\n\
-    this._strokePath(polys2path(offsetted_polygon));\n\
-  }\n\
-, clip: function() {\n\
-    this.clipRegion = this.path;\n\
-  }\n\
-, fill: function() {\n\
-    for(var i = - this.toolDiameter/2; i > -1000; i -= this.toolDiameter) {\n\
-      var done = this._offsetStroke(i);\n\
-      if(done) return;\n\
-    }\n\
-  }\n\
-, rect: function(x,y,w,h) { \n\
-    this.moveTo(x,y);\n\
-    this.lineTo(x+w,y);\n\
-    this.lineTo(x+w,y+h);\n\
-    this.lineTo(x,y+h);\n\
-    this.lineTo(x,y);\n\
-  }\n\
-, fillRect: function(x,y,w,h) { \n\
-    this.beginPath();\n\
-    this.rect.apply(this, arguments);\n\
-    this.fill();\n\
-  }\n\
-, measureText: function(text) {\n\
-    var width=0, height=0;\n\
-    var paths = FontUtils.drawText(text).paths;\n\
-    paths.forEach(function(path) {\n\
-      var box = path.getBoundingBox();\n\
-      width += box.maxX;\n\
-      height = Math.max(height, box.maxY);\n\
-    });\n\
-\n\
-    return {width: width, height: height};\n\
-  }\n\
-, stroke: function() {\n\
-    this.layers(function() {\n\
-      this.subPaths.forEach(this._strokePath, this);\n\
-    });\n\
-\n\
-  }\n\
-, _strokePath: function(path) {\n\
-    var each = {};\n\
-    var motion = this.motion;\n\
-    var driver = this.driver;\n\
-    var item;\n\
-\n\
-    each[Path.actions.MOVE_TO] = function(x,y) {\n\
-      motion.retract();\n\
-      motion.rapid({x:x,y:y});\n\
-    };\n\
-\n\
-    each[Path.actions.LINE_TO] = function(x,y) {\n\
-      motion.plunge();\n\
-      motion.linear({x:x,y:y});\n\
-    };\n\
-\n\
-    // 3js just converts a bunch of stuff to absellipse\n\
-    // but for our purposes this weird lossiness works\n\
-    // fine since we should detect ellipses that are arcs\n\
-    // and optimizing by using the native methods anyway.\n\
-    each[Path.actions.ELLIPSE] = function(x, y, rx, ry,\n\
-\t\t\t\t\t\t\t\t\t  aStart, aEnd, aClockwise , mx, my) {\n\
-      motion.plunge();\n\
-\n\
-      // Detect plain arc\n\
-      if(utils.sameFloat(rx,ry) &&\n\
-        (driver.arcCW && !aClockwise) ||\n\
-        (driver.arcCCW && aClockwise) ) {\n\
-          var center = new Point(x, y);\n\
-          var points = utils.arcToPoints(center,\n\
-                                         aStart,\n\
-                                         aEnd,\n\
-                                         rx);\n\
-          var params = {\n\
-            x: points.end.x, y: points.end.y,\n\
-            i: x, j: y\n\
-          };\n\
-\n\
-          if(aClockwise)\n\
-            motion.arcCCW(params);\n\
-          else\n\
-            motion.arcCW(params);\n\
-      }\n\
-      else {\n\
-        this._interpolate('ellipse', arguments, mx, my);\n\
-      }\n\
-    };\n\
-\n\
-    each[Path.actions.BEZIER_CURVE_TO] = function() {\n\
-      var lastargs = path.actions[ i - 1 ].args;\n\
-      var x0 = lastargs[ lastargs.length - 2 ];\n\
-      var y0 = lastargs[ lastargs.length - 1 ];\n\
-\n\
-      this._interpolate('bezierCurveTo', arguments, x0, y0);\n\
-    };\n\
-\n\
-    each[Path.actions.QUADRATIC_CURVE_TO] = function() {\n\
-      var lastargs = path.actions[ i - 1 ].args;\n\
-      var x0 = lastargs[ lastargs.length - 2 ];\n\
-      var y0 = lastargs[ lastargs.length - 1 ];\n\
-\n\
-      this._interpolate('quadraticCurveTo', arguments, x0, y0);\n\
-    };\n\
-\n\
-    for(var i = 0, l = path.actions.length; i < l; ++i) {\n\
-      item = path.actions[i]\n\
-      each[item.action].apply(this, item.args);\n\
-    }\n\
-\n\
-  }\n\
-, layers: function(fn) {\n\
-     // this.motion.linear({z: this.position.z + this.depthOfCut});\n\
-     // while(this.position.z < this.depth) {\n\
-     //   this.motion.linear({z: this.position.z + this.depthOfCut});\n\
-     // }\n\
-     fn.call(this);\n\
-  }\n\
-, fillText: function(text, x, y, params) {\n\
-    this.layers(function() {\n\
-      this.beginPath();\n\
-      var fontProps = parseFont(this.font);\n\
-      FontUtils.weight = fontProps.weight;\n\
-      FontUtils.style = fontProps.style;\n\
-      FontUtils.size = fontProps.size;\n\
-      FontUtils.face = FontUtils.faces[fontProps.family] ? fontProps.family : 'helvetiker';\n\
-\n\
-      var paths = FontUtils.drawText(text).paths;\n\
-\n\
-      this.save();\n\
-      this.translate(x, y);\n\
-\n\
-      paths.forEach(function(path,i) {\n\
-        path.actions.forEach(function(action) {\n\
-          this[action.action].apply(this, action.args);\n\
-        }, this);\n\
-      }, this);\n\
-      this.fill();\n\
-\n\
-      this.restore();\n\
-    });\n\
-  }\n\
-\n\
-, strokeText: function(text, x, y, params) {\n\
-    this.layers(function() {\n\
-\n\
-      var fontProps = parseFont(this.font);\n\
-      FontUtils.weight = fontProps.weight;\n\
-      FontUtils.style = fontProps.style;\n\
-      FontUtils.size = fontProps.size;\n\
-      FontUtils.face = FontUtils.faces[fontProps.family] ? fontProps.family : 'helvetiker';\n\
-\n\
-      var paths = FontUtils.drawText(text).paths;\n\
-\n\
-      this.save();\n\
-      this.translate(x, y);\n\
-\n\
-      paths.forEach(function(path,i) {\n\
-        path.actions.forEach(function(action) {\n\
-          this[action.action].apply(this, action.args);\n\
-        }, this);\n\
-      }, this);\n\
-\n\
-      this.stroke();\n\
-      this.restore();\n\
-    });\n\
-  }\n\
-\n\
-/**\n\
- *   \n\
- * */\n\
-, _interpolate: function(name, args, mx, my) {\n\
-    var path = new Path();\n\
-    path.moveTo(mx,my);\n\
-    path[name].apply(path, args);\n\
-\n\
-    var pts = path.getPoints(40);\n\
-    for(var i=0,l=pts.length; i < l; ++i) {\n\
-      var p=pts[i];\n\
-      this.motion.linear({x:p.x, y:p.y});\n\
-    };\n\
-  }\n\
-};\n\
-\n\
-GCanvas.Filter = require('./drivers/filter');\n\
-GCanvas.Simulator = require('./drivers/simulator');\n\
-\n\
-// TODO: Real ttf font loading (UGH!)\n\
-var helvetiker = require('./fonts/helvetiker_regular.typeface');\n\
-FontUtils.loadFace(helvetiker);\n\
-\n\
-//@ sourceURL=gcanvas/lib/gcanvas.js"
 ));
 require.register("gcanvas/lib/motion.js", Function("exports, require, module",
 "module.exports = Motion;\n\
