@@ -260,11 +260,6 @@ var FontUtils = {\n\
 \t},\n\
 \n\
 \tdrawText : function( text ) {\n\
-\n\
-\t\tvar characterPts = [], allPts = [];\n\
-\n\
-\t\t// RenderText\n\
-\n\
 \t\tvar i, p,\n\
 \t\t\tface = this.getFace(),\n\
 \t\t\tscale = this.size / face.resolution,\n\
@@ -275,7 +270,6 @@ var FontUtils = {\n\
 \t\tvar fontPaths = [];\n\
 \n\
 \t\tfor ( i = 0; i < length; i ++ ) {\n\
-\n\
 \t\t\tvar path = new Path();\n\
 \n\
 \t\t\tvar ret = this.extractGlyphPoints( chars[ i ], face, scale, offset, path );\n\
@@ -285,28 +279,10 @@ var FontUtils = {\n\
 \n\
 \t\t}\n\
 \n\
-\t\t// get the width\n\
-\n\
 \t\tvar width = offset / 2;\n\
-\t\t//\n\
-\t\t// for ( p = 0; p < allPts.length; p++ ) {\n\
-\t\t//\n\
-\t\t// \tallPts[ p ].x -= width;\n\
-\t\t//\n\
-\t\t// }\n\
-\n\
-\t\t//var extract = this.extractPoints( allPts, characterPts );\n\
-\t\t//extract.contour = allPts;\n\
-\n\
-\t\t//extract.paths = fontPaths;\n\
-\t\t//extract.offset = width;\n\
-\n\
+\t\t\n\
 \t\treturn { paths : fontPaths, offset : width };\n\
-\n\
 \t},\n\
-\n\
-\n\
-\n\
 \n\
 \textractGlyphPoints : function( c, face, scale, offset, path ) {\n\
 \n\
@@ -421,8 +397,6 @@ var FontUtils = {\n\
 \n\
 \t\t\t}\n\
 \t\t}\n\
-\n\
-\n\
 \n\
 \t\treturn { offset: glyph.ha*scale, path:path};\n\
 \t}\n\
@@ -885,49 +859,24 @@ Path.actions = {\n\
 \tELLIPSE: 'ellipse'\n\
 };\n\
 \n\
-Path.prototype.fromPoints = function ( vectors ) {\n\
+Path.prototype.fromPoints = function ( points ) {\n\
+\tthis.moveTo( points[ 0 ].x, points[ 0 ].y );\n\
 \n\
-\tthis.moveTo( vectors[ 0 ].x, vectors[ 0 ].y );\n\
-\n\
-\tfor ( var v = 1, vlen = vectors.length; v < vlen; v ++ ) {\n\
-\n\
-\t\tthis.lineTo( vectors[ v ].x, vectors[ v ].y );\n\
-\n\
+\tfor ( var v = 1, vlen = points.length; v < vlen; v ++ ) {\n\
+\t\tthis.lineTo( points[ v ].x, points[ v ].y );\n\
 \t};\n\
-\n\
 };\n\
 \n\
 Path.prototype.moveTo = function ( x, y ) {\n\
-\n\
-\tvar args = Array.prototype.slice.call( arguments );\n\
-\tthis.actions.push( { action: Path.actions.MOVE_TO, args: args } );\n\
-\n\
+\tthis.actions.push( { action: Path.actions.MOVE_TO, args: arguments } );\n\
 };\n\
 \n\
 Path.prototype.lineTo = function ( x, y ) {\n\
-\n\
-\tvar args = Array.prototype.slice.call( arguments );\n\
-\n\
-\tvar lastargs = this.actions[ this.actions.length - 1 ].args;\n\
-\n\
-\tvar x0 = lastargs[ lastargs.length - 2 ];\n\
-\tvar y0 = lastargs[ lastargs.length - 1 ];\n\
-\n\
-  this.actions.push( { action: Path.actions.LINE_TO, args: args } );\n\
-\n\
+  this.actions.push( { action: Path.actions.LINE_TO, args: arguments } );\n\
 };\n\
 \n\
 Path.prototype.quadraticCurveTo = function( aCPx, aCPy, aX, aY ) {\n\
-\n\
-\tvar args = Array.prototype.slice.call( arguments );\n\
-\n\
-\tvar lastargs = this.actions[ this.actions.length - 1 ].args;\n\
-\n\
-\tvar x0 = lastargs[ lastargs.length - 2 ];\n\
-\tvar y0 = lastargs[ lastargs.length - 1 ];\n\
-\n\
-\tthis.actions.push( { action: Path.actions.QUADRATIC_CURVE_TO, args: args } );\n\
-\n\
+\tthis.actions.push( { action: Path.actions.QUADRATIC_CURVE_TO, args: arguments } );\n\
 };\n\
 \n\
 Path.prototype.bezierCurveTo = function( aCP1x, aCP1y,\n\
@@ -6856,16 +6805,24 @@ GCanvas.prototype = {\n\
             motion.arcCW(params);\n\
       }\n\
       else {\n\
-        this._interpolate('ellipse', arguments, i === 0);\n\
+        this._interpolate('ellipse', arguments, mx, my);\n\
       }\n\
     };\n\
 \n\
     each[Path.actions.BEZIER_CURVE_TO] = function() {\n\
-      this._interpolate('bezierCurveTo', arguments);\n\
+      var lastargs = path.actions[ i - 1 ].args;\n\
+      var x0 = lastargs[ lastargs.length - 2 ];\n\
+      var y0 = lastargs[ lastargs.length - 1 ];\n\
+\n\
+      this._interpolate('bezierCurveTo', arguments, x0, y0);\n\
     };\n\
 \n\
     each[Path.actions.QUADRATIC_CURVE_TO] = function() {\n\
-      this._interpolate('quadraticCurveTo', arguments);\n\
+      var lastargs = path.actions[ i - 1 ].args;\n\
+      var x0 = lastargs[ lastargs.length - 2 ];\n\
+      var y0 = lastargs[ lastargs.length - 1 ];\n\
+\n\
+      this._interpolate('quadraticCurveTo', arguments, x0, y0);\n\
     };\n\
 \n\
     for(var i = 0, l = path.actions.length; i < l; ++i) {\n\
@@ -6934,22 +6891,16 @@ GCanvas.prototype = {\n\
 /**\n\
  *   \n\
  * */\n\
-, _interpolate: function(name, args, moveToFirst) {\n\
-    var path = new Path([this.position]);\n\
+, _interpolate: function(name, args, mx, my) {\n\
+    var path = new Path();\n\
+    path.moveTo(mx,my);\n\
     path[name].apply(path, args);\n\
 \n\
     var pts = path.getPoints(40);\n\
     for(var i=0,l=pts.length; i < l; ++i) {\n\
       var p=pts[i];\n\
-      this._ensurePath(p);\n\
-      if(i === 0 && moveToFirst)\n\
-        this.motion.rapid({x:p.x, y:p.y});\n\
-      else\n\
-        this.motion.linear({x:p.x, y:p.y});\n\
+      this.motion.linear({x:p.x, y:p.y});\n\
     };\n\
-\n\
-    // close it\n\
-    // this.motion.linear({x:p.x, y:p.y});\n\
   }\n\
 };\n\
 \n\
@@ -6974,6 +6925,7 @@ var Point = require('./math/point')\n\
  * */\n\
 function Motion(ctx) {\n\
   this.ctx = ctx;\n\
+  this.position = new Point(0,0,0);\n\
 }\n\
 \n\
 Motion.prototype = {\n\
@@ -6992,7 +6944,7 @@ Motion.prototype = {\n\
     if(!newPosition) return;\n\
 \n\
     this.ctx.driver.rapid.call(this.ctx.driver, params);\n\
-    this.ctx.position = newPosition;\n\
+    this.position = newPosition;\n\
   }\n\
 , linear: function(params) {\n\
     var newPosition = this.mergePosition(params);\n\
