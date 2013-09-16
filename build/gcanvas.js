@@ -430,7 +430,7 @@ GCanvas.prototype = {\n\
     if(offsetted_polygon.length === 0\n\
       || offsetted_polygon[0].length === 0) return true;\n\
 \n\
-    this._strokePath(polys2path(offsetted_polygon));\n\
+    this.motion.followPath(polys2path(offsetted_polygon));\n\
   }\n\
 , clip: function() {\n\
     this.clipRegion = this.subPaths.slice(0,-1);\n\
@@ -459,79 +459,8 @@ GCanvas.prototype = {\n\
   }\n\
 , stroke: function() {\n\
     this.layers(function() {\n\
-      this.subPaths.forEach(this._strokePath, this);\n\
+      this.subPaths.forEach(this.motion.followPath, this.motion);\n\
     });\n\
-\n\
-  }\n\
-, _strokePath: function(path) {\n\
-    var each = {};\n\
-    var motion = this.motion;\n\
-    var driver = this.driver;\n\
-    var item;\n\
-\n\
-    each[Path.actions.MOVE_TO] = function(x,y) {\n\
-      motion.retract();\n\
-      motion.rapid({x:x,y:y});\n\
-    };\n\
-\n\
-    each[Path.actions.LINE_TO] = function(x,y) {\n\
-      motion.plunge();\n\
-      motion.linear({x:x,y:y});\n\
-    };\n\
-\n\
-    // 3js just converts a bunch of stuff to absellipse\n\
-    // but for our purposes this weird lossiness works\n\
-    // fine since we should detect ellipses that are arcs\n\
-    // and optimizing by using the native methods anyway.\n\
-    each[Path.actions.ELLIPSE] = function(x, y, rx, ry,\n\
-\t\t\t\t\t\t\t\t\t  aStart, aEnd, aClockwise , mx, my) {\n\
-      motion.plunge();\n\
-\n\
-      // Detect plain arc\n\
-      if(utils.sameFloat(rx,ry) &&\n\
-        (driver.arcCW && !aClockwise) ||\n\
-        (driver.arcCCW && aClockwise) ) {\n\
-          var center = new Point(x, y);\n\
-          var points = utils.arcToPoints(center,\n\
-                                         aStart,\n\
-                                         aEnd,\n\
-                                         rx);\n\
-          var params = {\n\
-            x: points.end.x, y: points.end.y,\n\
-            i: x, j: y\n\
-          };\n\
-\n\
-          if(aClockwise)\n\
-            motion.arcCCW(params);\n\
-          else\n\
-            motion.arcCW(params);\n\
-      }\n\
-      else {\n\
-        this._interpolate('ellipse', arguments, mx, my);\n\
-      }\n\
-    };\n\
-\n\
-    each[Path.actions.BEZIER_CURVE_TO] = function() {\n\
-      var lastargs = path.actions[ i - 1 ].args;\n\
-      var x0 = lastargs[ lastargs.length - 2 ];\n\
-      var y0 = lastargs[ lastargs.length - 1 ];\n\
-\n\
-      this._interpolate('bezierCurveTo', arguments, x0, y0);\n\
-    };\n\
-\n\
-    each[Path.actions.QUADRATIC_CURVE_TO] = function() {\n\
-      var lastargs = path.actions[ i - 1 ].args;\n\
-      var x0 = lastargs[ lastargs.length - 2 ];\n\
-      var y0 = lastargs[ lastargs.length - 1 ];\n\
-\n\
-      this._interpolate('quadraticCurveTo', arguments, x0, y0);\n\
-    };\n\
-\n\
-    for(var i = 0, l = path.actions.length; i < l; ++i) {\n\
-      item = path.actions[i]\n\
-      each[item.action].apply(this, item.args);\n\
-    }\n\
-\n\
   }\n\
 , layers: function(fn) {\n\
      // this.motion.linear({z: this.position.z + this.depthOfCut});\n\
@@ -566,21 +495,6 @@ GCanvas.prototype = {\n\
 \n\
       this.restore();\n\
     });\n\
-  }\n\
-\n\
-/**\n\
- *   \n\
- * */\n\
-, _interpolate: function(name, args, mx, my) {\n\
-    var path = new Path();\n\
-    path.moveTo(mx,my);\n\
-    path[name].apply(path, args);\n\
-\n\
-    var pts = path.getPoints(40);\n\
-    for(var i=0,l=pts.length; i < l; ++i) {\n\
-      var p=pts[i];\n\
-      this.motion.linear({x:p.x, y:p.y});\n\
-    };\n\
   }\n\
 };\n\
 \n\
@@ -6858,6 +6772,7 @@ require.register("gcanvas/lib/motion.js", Function("exports, require, module",
 "module.exports = Motion;\n\
 \n\
 var Point = require('./math/point')\n\
+  , Path = require('./path')\n\
   , utils = require('./utils');\n\
 \n\
 /**\n\
@@ -6926,6 +6841,84 @@ Motion.prototype = {\n\
     }\n\
 \n\
     return v1;\n\
+  }\n\
+\n\
+, followPath: function(path) {\n\
+    var each = {};\n\
+    var motion = this;\n\
+    var driver = this.ctx.driver;\n\
+    var item;\n\
+\n\
+    each[Path.actions.MOVE_TO] = function(x,y) {\n\
+      motion.retract();\n\
+      motion.rapid({x:x,y:y});\n\
+    };\n\
+\n\
+    each[Path.actions.LINE_TO] = function(x,y) {\n\
+      motion.plunge();\n\
+      motion.linear({x:x,y:y});\n\
+    };\n\
+\n\
+    each[Path.actions.ELLIPSE] = function(x, y, rx, ry,\n\
+\t\t\t\t\t\t\t\t\t  aStart, aEnd, aClockwise , mx, my) {\n\
+      motion.plunge();\n\
+\n\
+      // Detect plain arc\n\
+      if(utils.sameFloat(rx,ry) &&\n\
+        (driver.arcCW && !aClockwise) ||\n\
+        (driver.arcCCW && aClockwise) ) {\n\
+          var center = new Point(x, y);\n\
+          var points = utils.arcToPoints(center,\n\
+                                         aStart,\n\
+                                         aEnd,\n\
+                                         rx);\n\
+          var params = {\n\
+            x: points.end.x, y: points.end.y,\n\
+            i: x, j: y\n\
+          };\n\
+\n\
+          if(aClockwise)\n\
+            motion.arcCCW(params);\n\
+          else\n\
+            motion.arcCW(params);\n\
+      }\n\
+      else {\n\
+        this._interpolate('ellipse', arguments, mx, my);\n\
+      }\n\
+    };\n\
+\n\
+    each[Path.actions.BEZIER_CURVE_TO] = function() {\n\
+      var lastargs = path.actions[ i - 1 ].args;\n\
+      var x0 = lastargs[ lastargs.length - 2 ];\n\
+      var y0 = lastargs[ lastargs.length - 1 ];\n\
+\n\
+      this._interpolate('bezierCurveTo', arguments, x0, y0);\n\
+    };\n\
+\n\
+    each[Path.actions.QUADRATIC_CURVE_TO] = function() {\n\
+      var lastargs = path.actions[ i - 1 ].args;\n\
+      var x0 = lastargs[ lastargs.length - 2 ];\n\
+      var y0 = lastargs[ lastargs.length - 1 ];\n\
+\n\
+      this._interpolate('quadraticCurveTo', arguments, x0, y0);\n\
+    };\n\
+\n\
+    for(var i = 0, l = path.actions.length; i < l; ++i) {\n\
+      item = path.actions[i]\n\
+      each[item.action].apply(this, item.args);\n\
+    }\n\
+  }\n\
+\n\
+, _interpolate: function(name, args, mx, my) {\n\
+    var path = new Path();\n\
+    path.moveTo(mx,my);\n\
+    path[name].apply(path, args);\n\
+\n\
+    var pts = path.getPoints(40);\n\
+    for(var i=0,l=pts.length; i < l; ++i) {\n\
+      var p=pts[i];\n\
+      this.linear({x:p.x, y:p.y});\n\
+    };\n\
   }\n\
 };\n\
 //@ sourceURL=gcanvas/lib/motion.js"
