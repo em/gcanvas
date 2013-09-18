@@ -11,7 +11,6 @@ ctx.depthOfCut = 0.25; // 4 passes
 ctx.strokeText("Robots are cool", "20pt");
 ```
 
-
 ### Non-standard extensions to Canvas 
 
 Additional context properties are added for milling
@@ -47,14 +46,30 @@ independent of the actual drawing making 1mm = 10px.
 To work in inches I `scale(25.4, 25.4)` rather than bothering to issue a G20 to the driver.
   
 ### Defining stock material
-
 Draw it and use `clip()`! It works perfectly.
+
+
+### Command line utility
+GCanvas comes with a command line utility that you can use to write
+machining tasks as simple standalone .js files. Just define a main(context) function in the script, and gcanvas will pass it a
+pre-built context that outputs to stdout.
+
+```
+// helloworld.js
+function main(ctx) {
+  ctx.strokeText("Hello World");
+}
+```
+```
+$ gcanvas helloworld.js | serialportterm -baud 9600 /dev/tty.usbmodem1337
+```
 
 ### Why
 
 1. The most common machining tasks are 2.5D.
 2. Easily run drawing code against a real canvas for previewing.
 3. A good basis for implementing more specific Javascript milling tools. e.g. svg, pcbs
+4. I absolutely despise every CAD program out there and the surprising lack of unix philosophy in the robotics industry. 
 
 ### License
 
