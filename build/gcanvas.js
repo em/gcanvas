@@ -223,7 +223,7 @@ function GCanvas(driver, width, height) {\n\
   this.matrix = new Matrix();\n\
   this.rotation = 0; \n\
   this.depth = 1;\n\
-  this.depthOfCut = 0;\n\
+  this.depthOfCut = 1;\n\
   this.toolDiameter = 5;\n\
   this.fillStrategy = 'crosshatch';\n\
   this.driver = driver || new GCodeDriver();\n\
@@ -441,12 +441,14 @@ GCanvas.prototype = {\n\
     this.clipRegion.push(this.path.clone());\n\
   }\n\
 , fill: function() {\n\
-    for(var i = - this.toolDiameter/2; i > -1000; i -= this.toolDiameter) {\n\
-      var done = this._offsetStroke(i);\n\
-      if(done) return;\n\
-    }\n\
+    this.layers(function() {\n\
+      for(var i = - this.toolDiameter/2; i > -1000; i -= this.toolDiameter) {\n\
+        var done = this._offsetStroke(i);\n\
+        if(done) return;\n\
+      }\n\
+    });\n\
   }\n\
-, rect: function(x,y,w,h) { \n\
+, rect: function(x,y,w,h) {\n\
     this.moveTo(x,y);\n\
     this.lineTo(x+w,y);\n\
     this.lineTo(x+w,y+h);\n\
@@ -467,7 +469,7 @@ GCanvas.prototype = {\n\
     });\n\
   }\n\
 , layers: function(fn) {\n\
-    if(this.depth <= this.depthOfCut || this.depthOfCut === 0) {\n\
+    if(this.depth <= this.depthOfCut || !this.depthOfCut) {\n\
       this.motion.targetDepth = this.depth;\n\
       fn.call(this);\n\
       return;\n\

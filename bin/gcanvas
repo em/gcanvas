@@ -1,0 +1,44 @@
+#!/usr/bin/env node
+
+var fs = require('fs')
+  , program = require('commander')
+  , path = require('path')
+  , basename = path.basename
+  , dirname = path.dirname
+  , resolve = path.resolve
+  , exists = fs.existsSync || path.existsSync
+  , GCanvas = require('../');
+
+program
+  .version(require('../package.json').version)
+  .usage('[options] <file ...>')
+  .option('-m, --main <name>', 'Name of entry function to call. Default main(ctx)', 'main')
+
+program.parse(process.argv);
+
+function run(file) {
+  var util = require('util'),
+      vm = require('vm'),
+      sandbox = {};
+
+  var code = fs.readFileSync(file);
+  var script = vm.createScript(code, file);
+  script.runInNewContext(sandbox);
+
+  if(!sandbox[program.main]) {
+    console.error('No '+program.main+'() function found. Define it or use -m to specify another entry point.');
+    process.exit();
+  }
+
+  var gctx = new GCanvas();
+
+  sandbox[program.main](gctx);
+};
+
+if(program.args.length === 0) {
+  program.outputHelp();
+}
+
+program.args.forEach(function(file) {
+  run(file);
+});

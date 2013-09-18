@@ -3,10 +3,11 @@
   "version": "0.0.1",
   "description": "A Canvas API implementation that generates Gcode",
   "dependencies": {
-    "component": "*"
+    "commander": "2.0.0"
   },
   "devDependencies": {
-    "mocha": "*"
+    "component": "*"
+  , "mocha": "*"
   , "chai": "*"
   },
   "repository": "em/gcanvas",
