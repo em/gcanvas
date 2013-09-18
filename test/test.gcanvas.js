@@ -8,7 +8,7 @@ describe('GCanvas', function() {
     robot = new TestDriver();
     hand = new TestDriver();
     ctx = new GCanvas(robot);
-    ctx.depth = 1;
+    ctx.depth = 0;
     ctx.depthOfCut = 0;
   });
 
@@ -21,7 +21,7 @@ describe('GCanvas', function() {
     });
 
     it('retracts tool', function() {
-      ctx.depthOfCut = 1;
+      ctx.depth = 1;
       ctx.moveTo(0,0);
       ctx.lineTo(10,0);
       ctx.moveTo(10,10);
@@ -57,7 +57,7 @@ describe('GCanvas', function() {
     });
 
     it('plunges tool', function() {
-      ctx.depthOfCut = 1;
+      ctx.depth = 1;
       ctx.moveTo(0,0);
       ctx.lineTo(10,10);
       ctx.stroke();
@@ -91,7 +91,7 @@ describe('GCanvas', function() {
     });
 
     it('plunges tool', function() {
-      ctx.depthOfCut = 1;
+      ctx.depth = 1;
       ctx.arc(10, 10, 10, 0, Math.PI);
       ctx.stroke();
 
