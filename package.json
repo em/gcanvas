@@ -1,7 +1,10 @@
 {
   "name": "gcanvas",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A Canvas API implementation that generates Gcode",
+  "bin": {
+    "gcanvas": "./bin/gcanvas"
+  },
   "dependencies": {
     "commander": "2.0.0"
   },
@@ -10,7 +13,10 @@
   , "mocha": "*"
   , "chai": "*"
   },
-  "repository": "em/gcanvas",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/em/gcanvas.git"
+  },
   "author": "Emery Denuccio",
   "license": "MIT"
 }
