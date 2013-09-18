@@ -6449,40 +6449,60 @@ Motion.prototype = {\n\
     this.linear({z: this.targetDepth});\n\
   }\n\
 , rapid: function(params) {\n\
-    var newPosition = this.mergePosition(params);\n\
+    var newPosition = this.postProcess(params);\n\
     if(!newPosition) return;\n\
 \n\
     this.ctx.driver.rapid.call(this.ctx.driver, params);\n\
     this.position = newPosition;\n\
   }\n\
 , linear: function(params) {\n\
-    var newPosition = this.mergePosition(params);\n\
+    var newPosition = this.postProcess(params);\n\
     if(!newPosition) return;\n\
 \n\
     this.ctx.driver.linear.call(this.ctx.driver, params);\n\
     this.position = newPosition;\n\
   }\n\
 , arcCW: function(params) {\n\
-    var newPosition = this.mergePosition(params);\n\
-    // if(!newPosition) return;\n\
+    var newPosition = this.postProcess(params);\n\
 \n\
     this.ctx.driver.arcCW.call(this.ctx.driver, params);\n\
     this.position = newPosition;\n\
   }\n\
 , arcCCW: function(params) {\n\
-    var newPosition = this.mergePosition(params);\n\
-    // if(!newPosition) return;\n\
+    var newPosition = this.postProcess(params);\n\
 \n\
     this.ctx.driver.arcCCW.call(this.ctx.driver, params);\n\
     this.position = newPosition;\n\
   }\n\
-, mergePosition: function(params) {\n\
+, postProcess: function(params) {\n\
     if(params.x)\n\
       params.x = Math.round(params.x * 1000000) / 1000000;\n\
     if(params.y)\n\
       params.y = Math.round(params.y * 1000000) / 1000000;\n\
     if(params.z)\n\
       params.z = Math.round(params.z * 1000000) / 1000000;\n\
+    if(params.i)\n\
+      params.i = Math.round(params.i * 1000000) / 1000000;\n\
+    if(params.j)\n\
+      params.j = Math.round(params.j * 1000000) / 1000000;\n\
+\n\
+    // Set new spindle speed changed\n\
+    if(this.ctx.speed != this.currentSpeed) {\n\
+      this.ctx.driver.speed(this.ctx.speed);\n\
+      this.currentSpeed = this.ctx.speed;\n\
+    }\n\
+\n\
+    // Set new feedrate changed\n\
+    if(this.ctx.feed != this.currentFeed) {\n\
+      this.ctx.driver.feed(this.ctx.feed);\n\
+      this.currentFeed = this.ctx.feed;\n\
+    }\n\
+\n\
+    // Set coolant if changed\n\
+    if(this.ctx.coolant != this.currentCoolant) {\n\
+      this.ctx.driver.coolant(this.ctx.coolant);\n\
+      this.currentCoolant = this.ctx.coolant;\n\
+    }\n\
 \n\
     var v1 = new Point(\n\
           params.x === undefined ? this.position.x : params.x\n\
@@ -6762,27 +6782,44 @@ function GCodeDriver(stream) {\n\
 }\n\
 \n\
 GCodeDriver.prototype = {\n\
-  g: function(code, params) {\n\
-    var command = 'G'+code;\n\
+  send: function(code, params) {\n\
+    var command = code;\n\
     for(var k in params) {\n\
       command += ' ' + k.toUpperCase() + params[k];\n\
     }\n\
     this.stream.write(command);\n\
   }\n\
-, send: function(command) {\n\
-    this.stream.write(command);\n\
- }\n\
+, speed: function(n) {\n\
+    this.send('S'+n);\n\
+  }\n\
+, feed: function(n) {\n\
+    this.send('F'+n);\n\
+  }\n\
+, coolant: function(type) {\n\
+    if(type === 'mist') {\n\
+      // special\n\
+      this.send('M07');\n\
+    }\n\
+    else if(type) {\n\
+      // flood\n\
+      this.send('M08');\n\
+    }\n\
+    else {\n\
+      // off\n\
+      this.send('M09');\n\
+    }\n\
+  }\n\
 , rapid: function(params) {\n\
-    this.g(0, params);\n\
+    this.send('G0', params);\n\
   }\n\
 , linear: function(params) {\n\
-    this.g(1, params);\n\
+    this.send('G1', params);\n\
   }\n\
 , arcCW: function(params) {\n\
-    this.g(2, params);\n\
+    this.send('G2', params);\n\
   }\n\
 , arcCCW: function(params) {\n\
-    this.g(3, params);\n\
+    this.send('G3', params);\n\
   }\n\
 };\n\
 //@ sourceURL=gcanvas/lib/drivers/gcode.js"
