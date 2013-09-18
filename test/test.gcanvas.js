@@ -103,6 +103,50 @@ describe('GCanvas', function() {
     });
   });
 
+
+  describe('context.feed', function() {
+    it('calls driver.speed() before next move', function() {
+      ctx.moveTo(0,0);
+      ctx.lineTo(10,10);
+      ctx.feed = 100;
+      ctx.stroke();
+
+      hand.feed(100);
+      hand.linear({x:10,y:10});
+
+      expect(robot.result).eql(hand.result);
+    });
+  });
+
+  describe('context.speed', function() {
+    it('calls driver.speed() before next move', function() {
+      ctx.moveTo(0,0);
+      ctx.lineTo(10,10);
+      ctx.speed = 100;
+      ctx.stroke();
+
+      hand.speed(100);
+      hand.linear({x:10,y:10});
+
+      expect(robot.result).eql(hand.result);
+    });
+  });
+
+  describe('context.coolant', function() {
+    it('calls driver.coolant() before next move', function() {
+      ctx.moveTo(0,0);
+      ctx.lineTo(10,10);
+      ctx.coolant = "flood";
+      ctx.stroke();
+
+      hand.coolant("flood");
+      hand.linear({x:10,y:10});
+
+      expect(robot.result).eql(hand.result);
+    });
+  });
+
+
   describe('#fill', function() {
   });
 });

@@ -14,18 +14,31 @@ ctx.strokeText("Robots are cool", "20pt");
 
 ### Non-standard extensions to Canvas 
 
-Additional context properties are added to bring 2D to 2.5D,
+Additional context properties are added for milling
 and to support stroke-alignment which the canvas spec doesn't have yet (but really needs).
 
-* `context.depth` specifies the total resultant depth of all layered cuts.
-* `context.depthOfCut` specifies the depth of each cut per layer.
+* `context.depth` Specifies the Z depth to cut into the work. If not set the Z axis never changes. 
+
+* `context.depthOfCut` Specifies an incrementing depth of each cut in layers up to `context.depth`.
+
+* `context.toolDiameter` This must be set for fill() to work properly because it has to calculate tool offsets.
+
+* `context.feed` Sets the feedrate by sending a single F command.
+
+* `context.speed` Sets the spindle speed by sending a single S command.
+
+* `context.coolant` Can be true, false, "mist" (M07) or "flood" (M08). True defaults to "flood".
+
 * `context.strokeAlign` can be 'inset', 'outset', or 'center' (default)
 
-### Unit conversion
+In the future I plan to determine most of these automatically with two properties, `context.material` and `context.tool`. But they should always be overridable and it makes sense to get the basics right first.
 
+### Unit conversion
 GCanvas doesn't have any built-in understanding of units,
-because `scale()` works perfectly for this.
-I usually mill in mm's which means if I do a `lineTo(0,10)`,
+because `scale()` works perfectly for this, and is compatible
+with a normal canvas.
+
+I usually mill in mm's which means if I do a `lineTo(10,0)`,
 on my CNC machine that is 10mm on the X axis, but in a browser
 canvas that's 10px. That isn't always so bad but if I am working
 on something really detailed I usually `scale(10,10)` the preview only,

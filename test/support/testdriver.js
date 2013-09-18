@@ -5,12 +5,25 @@ function TestDriver() {
   this.result = [];
 };
 
-['rapid', 'linear', 'arcCW', 'arcCCW'].forEach(function(name) {
+[
+  'rapid'
+, 'linear'
+, 'arcCW'
+, 'arcCCW'
+, 'speed'
+, 'feed'
+, 'coolant'
+].forEach(function(name) {
   TestDriver.prototype[name] = function(params) {
     var id = name;
-    Object.keys(params).sort().forEach(function(k) {
-      id += ' ' + k + Number(params[k]).toFixed()
-    });
+    if(typeof params === 'object') {
+      Object.keys(params).sort().forEach(function(k) {
+        id += ' ' + k + Number(params[k]).toFixed()
+      });
+    }
+    else {
+      id = name + ' ' + params;
+    }
 
     this.result.push(id); 
   }
