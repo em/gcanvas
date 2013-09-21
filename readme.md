@@ -69,7 +69,6 @@ $ gcanvas helloworld.js | serialportterm -baud 9600 /dev/tty.usbmodem1337
 1. The most common machining tasks are 2.5D.
 2. Easily run drawing code against a real canvas for previewing.
 3. A good basis for implementing more specific Javascript milling tools. e.g. svg, pcbs
-4. I absolutely despise every CAD program out there and the surprising lack of unix philosophy in the robotics industry. 
 
 ### License
 
