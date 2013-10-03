@@ -25,14 +25,14 @@ function run(file) {
   var script = vm.createScript(code, file);
   script.runInNewContext(sandbox);
 
-  if(!sandbox[program.main]) {
-    console.error('No '+program.main+'() function found. Define it or use -m to specify another entry point.');
+  if(!sandbox[program.entry]) {
+    console.error('No '+program.entry+'() function found. Define it or use -m to specify another entry point.');
     process.exit();
   }
 
   var gctx = new GCanvas();
 
-  sandbox[program.main](gctx);
+  sandbox[program.entry](gctx);
 };
 
 if(program.args.length === 0) {

@@ -6553,7 +6553,7 @@ Motion.prototype = {\n\
                                          rx);\n\
           var params = {\n\
             x: points.end.x, y: points.end.y,\n\
-            i: x, j: y\n\
+            i: x-points.start.x, j: y-points.start.y\n\
           };\n\
 \n\
           if(aClockwise)\n\

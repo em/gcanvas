@@ -75,7 +75,7 @@ describe('GCanvas', function() {
       ctx.stroke();
 
       hand.rapid({x:20,y:10});
-      hand.arcCW({x:0,y:10,i:10,j:10});
+      hand.arcCW({x:0,y:10,i:-10,j:0});
 
       expect(robot.result).eql(hand.result);
     });
@@ -85,7 +85,7 @@ describe('GCanvas', function() {
       ctx.stroke();
 
       hand.rapid({x:20,y:10});
-      hand.arcCCW({x:0,y:10,i:10,j:10});
+      hand.arcCCW({x:0,y:10,i:-10,j:0});
 
       expect(robot.result).eql(hand.result);
     });
@@ -97,7 +97,7 @@ describe('GCanvas', function() {
 
       hand.rapid({x:20,y:10});
       hand.linear({z:1});
-      hand.arcCW({x:0,y:10,i:10,j:10});
+      hand.arcCW({x:0,y:10,i:-10,j:0});
 
       expect(robot.result).eql(hand.result);
     });
