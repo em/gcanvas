@@ -8,7 +8,7 @@ describe('GCanvas', function() {
     robot = new TestDriver();
     hand = new TestDriver();
     ctx = new GCanvas(robot);
-    ctx.depth = 1;
+    ctx.depth = 0;
     ctx.depthOfCut = 0;
   });
 
@@ -21,7 +21,7 @@ describe('GCanvas', function() {
     });
 
     it('retracts tool', function() {
-      ctx.depthOfCut = 1;
+      ctx.depth = 1;
       ctx.moveTo(0,0);
       ctx.lineTo(10,0);
       ctx.moveTo(10,10);
@@ -29,7 +29,7 @@ describe('GCanvas', function() {
 
       hand.linear({z:1}); // plunge
       hand.linear({x:10,y:0}); // lineTo
-      hand.linear({z:0}); // retract
+      hand.rapid({z:0}); // retract
       hand.rapid({x:10,y:10}); // moveTo
 
       expect(robot.result).eql(hand.result);
@@ -57,7 +57,7 @@ describe('GCanvas', function() {
     });
 
     it('plunges tool', function() {
-      ctx.depthOfCut = 1;
+      ctx.depth = 1;
       ctx.moveTo(0,0);
       ctx.lineTo(10,10);
       ctx.stroke();
@@ -75,7 +75,7 @@ describe('GCanvas', function() {
       ctx.stroke();
 
       hand.rapid({x:20,y:10});
-      hand.arcCW({x:0,y:10,i:10,j:10});
+      hand.arcCW({x:0,y:10,i:-10,j:0});
 
       expect(robot.result).eql(hand.result);
     });
@@ -85,23 +85,67 @@ describe('GCanvas', function() {
       ctx.stroke();
 
       hand.rapid({x:20,y:10});
-      hand.arcCCW({x:0,y:10,i:10,j:10});
+      hand.arcCCW({x:0,y:10,i:-10,j:0});
 
       expect(robot.result).eql(hand.result);
     });
 
     it('plunges tool', function() {
-      ctx.depthOfCut = 1;
+      ctx.depth = 1;
       ctx.arc(10, 10, 10, 0, Math.PI);
       ctx.stroke();
 
       hand.rapid({x:20,y:10});
       hand.linear({z:1});
-      hand.arcCW({x:0,y:10,i:10,j:10});
+      hand.arcCW({x:0,y:10,i:-10,j:0});
 
       expect(robot.result).eql(hand.result);
     });
   });
+
+
+  describe('context.feed', function() {
+    it('calls driver.speed() before next move', function() {
+      ctx.moveTo(0,0);
+      ctx.lineTo(10,10);
+      ctx.feed = 100;
+      ctx.stroke();
+
+      hand.feed(100);
+      hand.linear({x:10,y:10});
+
+      expect(robot.result).eql(hand.result);
+    });
+  });
+
+  describe('context.speed', function() {
+    it('calls driver.speed() before next move', function() {
+      ctx.moveTo(0,0);
+      ctx.lineTo(10,10);
+      ctx.speed = 100;
+      ctx.stroke();
+
+      hand.speed(100);
+      hand.linear({x:10,y:10});
+
+      expect(robot.result).eql(hand.result);
+    });
+  });
+
+  describe('context.coolant', function() {
+    it('calls driver.coolant() before next move', function() {
+      ctx.moveTo(0,0);
+      ctx.lineTo(10,10);
+      ctx.coolant = "flood";
+      ctx.stroke();
+
+      hand.coolant("flood");
+      hand.linear({x:10,y:10});
+
+      expect(robot.result).eql(hand.result);
+    });
+  });
+
 
   describe('#fill', function() {
   });

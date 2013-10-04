@@ -29,4 +29,31 @@ describe('GcodeDriver', function() {
     driver.arcCCW({x:0,y:10,i:10, j:5});
     expect(result).eql(['G3 X0 Y10 I10 J5']);
   });
+
+  it('#speed', function() {
+    driver.speed(100);
+    expect(result).eql(['S100']);
+  });
+
+  it('#feed', function() {
+    driver.feed(100);
+    expect(result).eql(['F100']);
+  });
+
+  describe('#coolant', function() {
+    it('uses M07 if "mist"', function() {
+      driver.coolant("mist");
+      expect(result).eql(['M07']);
+    })
+
+    it('uses M08 if true or "flood"', function() {
+      driver.coolant(true);
+      expect(result).eql(['M08']);
+    })
+
+    it('sends M09 if false or "off"', function() {
+      driver.coolant(false);
+      expect(result).eql(['M09']);
+    })
+  });
 });

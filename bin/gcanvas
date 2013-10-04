@@ -1,0 +1,48 @@
+#!/usr/bin/env node
+
+var fs = require('fs')
+  , program = require('commander')
+  , path = require('path')
+  , basename = path.basename
+  , dirname = path.dirname
+  , resolve = path.resolve
+  , exists = fs.existsSync || path.existsSync
+  , GCanvas = require('../');
+
+program
+  .version(require('../package.json').version)
+  .usage('[options] <file ...>')
+  .option('-e, --entry <name>', 'Name of entry function to call. Defaults to main(ctx)', 'main')
+
+program.parse(process.argv);
+
+var gctx = new GCanvas();
+
+function run(file) {
+  var util = require('util'),
+      vm = require('vm'),
+      sandbox = {};
+
+  var code = fs.readFileSync(file);
+  var script = vm.createScript(code, file);
+  script.runInNewContext(sandbox);
+
+  if(!sandbox[program.entry]) {
+    console.error('No '+program.entry+'() function found. Define it or use -m to specify another entry point.');
+    process.exit();
+  }
+
+  sandbox[program.entry](gctx);
+};
+
+if(program.args.length === 0) {
+  program.outputHelp();
+}
+
+program.args.forEach(function(file) {
+  run(file);
+});
+
+// cleanup
+gctx.motion.retract();
+gctx.motion.rapid({x:0,y:0,z:0});

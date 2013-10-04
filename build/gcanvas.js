@@ -223,11 +223,10 @@ function GCanvas(driver, width, height) {\n\
   this.matrix = new Matrix();\n\
   this.rotation = 0; \n\
   this.depth = 1;\n\
-  this.depthOfCut = 0.25;\n\
+  this.depthOfCut = 1;\n\
+  this.surface = 0;\n\
   this.toolDiameter = 5;\n\
-  this.fillStrategy = 'crosshatch';\n\
   this.driver = driver || new GCodeDriver();\n\
-  this.position = new Point(0,0,0);\n\
   this.stack = [];\n\
   this.motion = new Motion(this);\n\
 \n\
@@ -248,8 +247,13 @@ GCanvas.prototype = {\n\
     this.rotation = prev.rotation;\n\
   }\n\
 , beginPath: function() {\n\
+    this.prevSubPaths = this.subPaths;\n\
     this.path = new Path();\n\
     this.subPaths = [this.path];\n\
+  }\n\
+, _restorePath: function() {\n\
+    this.subPaths = this.prevSubPaths;\n\
+    this.path = this.subPaths[this.subPaths.length-1] || new Path();\n\
   }\n\
 , rotate: function(angle) {\n\
     this.matrix = this.matrix.rotate(angle);\n\
@@ -437,12 +441,14 @@ GCanvas.prototype = {\n\
     this.clipRegion.push(this.path.clone());\n\
   }\n\
 , fill: function() {\n\
-    for(var i = - this.toolDiameter/2; i > -1000; i -= this.toolDiameter) {\n\
-      var done = this._offsetStroke(i);\n\
-      if(done) return;\n\
-    }\n\
+    this.layers(function() {\n\
+      for(var i = - this.toolDiameter/2; i > -1000; i -= this.toolDiameter) {\n\
+        var done = this._offsetStroke(i);\n\
+        if(done) return;\n\
+      }\n\
+    });\n\
   }\n\
-, rect: function(x,y,w,h) { \n\
+, rect: function(x,y,w,h) {\n\
     this.moveTo(x,y);\n\
     this.lineTo(x+w,y);\n\
     this.lineTo(x+w,y+h);\n\
@@ -459,15 +465,29 @@ GCanvas.prototype = {\n\
   }\n\
 , stroke: function() {\n\
     this.layers(function() {\n\
-      this.subPaths.forEach(this.motion.followPath, this.motion);\n\
+      this.motion.followPath(this.subPaths);\n\
     });\n\
   }\n\
 , layers: function(fn) {\n\
-     // this.motion.linear({z: this.position.z + this.depthOfCut});\n\
-     // while(this.position.z < this.depth) {\n\
-     //   this.motion.linear({z: this.position.z + this.depthOfCut});\n\
-     // }\n\
-     fn.call(this);\n\
+    if(this.depth <= this.depthOfCut || !this.depthOfCut) {\n\
+      this.motion.targetDepth = this.depth;\n\
+      fn.call(this);\n\
+      return;\n\
+    }\n\
+\n\
+    var surface = this.surface || 0;\n\
+    var start = surface + this.depthOfCut;\n\
+\n\
+    for(var depth=start;\n\
+        depth <= this.depth;\n\
+        depth += this.depthOfCut) {\n\
+      // Clip to actual depth\n\
+      depth = Math.min(depth, this.depth);\n\
+      // Set new target depth in motion\n\
+      this.motion.targetDepth = depth;\n\
+      // Run the callback\n\
+      fn.call(this);\n\
+    }\n\
   }\n\
 , fillText: function(text, x, y, params) {\n\
       var fontProps = parseFont(this.font);\n\
@@ -492,8 +512,8 @@ GCanvas.prototype = {\n\
       this.translate(x, y);\n\
       font.drawText(this, text);\n\
       this.stroke();\n\
-\n\
       this.restore();\n\
+      this._restorePath();\n\
     });\n\
   }\n\
 };\n\
@@ -952,264 +972,210 @@ function Path( points ) {\n\
 Path.actions = {\n\
 \tMOVE_TO: 'moveTo',\n\
 \tLINE_TO: 'lineTo',\n\
-\tQUADRATIC_CURVE_TO: 'quadraticCurveTo', // Bezier quadratic curve\n\
-\tBEZIER_CURVE_TO: 'bezierCurveTo', \t\t// Bezier cubic curve\n\
-\tCSPLINE_THRU: 'splineThru',\t\t\t\t// Catmull-rom spline\n\
+\tQUADRATIC_CURVE_TO: 'quadraticCurveTo',\n\
+\tBEZIER_CURVE_TO: 'bezierCurveTo',\n\
 \tELLIPSE: 'ellipse'\n\
 };\n\
 \n\
-Path.prototype.clone = function() {\n\
-  var path = new Path();\n\
-  path.actions = this.actions.slice(0);\n\
-  return path;\n\
-}\n\
+Path.prototype = {\n\
+  clone: function() {\n\
+    var path = new Path();\n\
+    path.actions = this.actions.slice(0);\n\
+    return path;\n\
+  }\n\
 \n\
-Path.prototype.fromPoints = function ( points ) {\n\
-\tthis.moveTo( points[ 0 ].x, points[ 0 ].y );\n\
+, fromPoints: function ( points ) {\n\
+    this.moveTo( points[ 0 ].x, points[ 0 ].y );\n\
 \n\
-\tfor ( var v = 1, vlen = points.length; v < vlen; v ++ ) {\n\
-\t\tthis.lineTo( points[ v ].x, points[ v ].y );\n\
-\t};\n\
-};\n\
+    for ( var v = 1, vlen = points.length; v < vlen; v ++ ) {\n\
+      this.lineTo( points[ v ].x, points[ v ].y );\n\
+    };\n\
+  }\n\
 \n\
-Path.prototype.moveTo = function ( x, y ) {\n\
-\tthis.actions.push( { action: Path.actions.MOVE_TO, args: arguments } );\n\
-};\n\
+, moveTo: function ( x, y ) {\n\
+    this.actions.push( { action: Path.actions.MOVE_TO, args: arguments } );\n\
+  }\n\
 \n\
-Path.prototype.lineTo = function ( x, y ) {\n\
-  this.actions.push( { action: Path.actions.LINE_TO, args: arguments } );\n\
-};\n\
+, lineTo: function ( x, y ) {\n\
+    this.actions.push( { action: Path.actions.LINE_TO, args: arguments } );\n\
+  }\n\
 \n\
-Path.prototype.quadraticCurveTo = function( aCPx, aCPy, aX, aY ) {\n\
-\tthis.actions.push( { action: Path.actions.QUADRATIC_CURVE_TO, args: arguments } );\n\
-};\n\
+, quadraticCurveTo: function( aCPx, aCPy, aX, aY ) {\n\
+    this.actions.push( { action: Path.actions.QUADRATIC_CURVE_TO, args: arguments } );\n\
+  }\n\
 \n\
-Path.prototype.bezierCurveTo = function( aCP1x, aCP1y,\n\
-\t\t\t\t\t\t\t\t\t\t\t   aCP2x, aCP2y,\n\
-\t\t\t\t\t\t\t\t\t\t\t   aX, aY ) {\n\
+, bezierCurveTo: function( aCP1x, aCP1y,\n\
+                           aCP2x, aCP2y,\n\
+                           aX, aY ) {\n\
+    this.actions.push( { action: Path.actions.BEZIER_CURVE_TO, args: arguments } );\n\
+  }\n\
 \n\
-\tvar args = Array.prototype.slice.call( arguments );\n\
+, arc: function ( aX, aY, aRadius, aStartAngle, aEndAngle, aClockwise ) {\n\
+    this.ellipse(aX, aY, aRadius, aRadius, aStartAngle, aEndAngle, aClockwise);\n\
+  }\n\
 \n\
-\tvar lastargs = this.actions[ this.actions.length - 1 ].args;\n\
+, ellipse: function ( aX, aY, xRadius, yRadius, aStartAngle, aEndAngle, aClockwise ) {\n\
+    this.actions.push( { action: Path.actions.ELLIPSE, args: arguments } );\n\
+  }\n\
 \n\
-\tvar x0 = lastargs[ lastargs.length - 2 ];\n\
-\tvar y0 = lastargs[ lastargs.length - 1 ];\n\
+, getPoints: function( divisions, closedPath ) {\n\
+    divisions = divisions || 12;\n\
 \n\
-\tthis.actions.push( { action: Path.actions.BEZIER_CURVE_TO, args: args } );\n\
+    var points = [];\n\
 \n\
-};\n\
+    var i, il, item, action, args;\n\
+    var cpx, cpy, cpx2, cpy2, cpx1, cpy1, cpx0, cpy0,\n\
+      laste, j,\n\
+      t, tx, ty;\n\
 \n\
-Path.prototype.splineThru = function( pts /*Array of Vector*/ ) {\n\
+    for ( i = 0, il = this.actions.length; i < il; i ++ ) {\n\
 \n\
-\tvar args = Array.prototype.slice.call( arguments );\n\
-\tvar lastargs = this.actions[ this.actions.length - 1 ].args;\n\
+      item = this.actions[ i ];\n\
 \n\
-\tvar x0 = lastargs[ lastargs.length - 2 ];\n\
-\tvar y0 = lastargs[ lastargs.length - 1 ];\n\
+      action = item.action;\n\
+      args = item.args;\n\
 \n\
-\tvar npts = [ new Point( x0, y0 ) ];\n\
-\tArray.prototype.push.apply( npts, pts );\n\
+      switch( action ) {\n\
 \n\
-\tthis.actions.push( { action: Path.actions.CSPLINE_THRU, args: args } );\n\
+      case Path.actions.MOVE_TO:\n\
 \n\
-};\n\
+        points.push( new Point( args[ 0 ], args[ 1 ] ) );\n\
 \n\
+        break;\n\
 \n\
-Path.prototype.arc = function ( aX, aY, aRadius,\n\
-\t\t\t\t\t\t\t\t\t  aStartAngle, aEndAngle, aClockwise ) {\n\
-\tthis.ellipse(aX, aY, aRadius, aRadius, aStartAngle, aEndAngle, aClockwise);\n\
-};\n\
+      case Path.actions.LINE_TO:\n\
 \n\
-Path.prototype.ellipse = function ( aX, aY, xRadius, yRadius,\n\
-\t\t\t\t\t\t\t\t\t  aStartAngle, aEndAngle, aClockwise ) {\n\
+        points.push( new Point( args[ 0 ], args[ 1 ] ) );\n\
 \n\
-\tvar args = Array.prototype.slice.call( arguments );\n\
-\tthis.actions.push( { action: Path.actions.ELLIPSE, args: args } );\n\
-};\n\
+        break;\n\
 \n\
-/* Return an array of vectors based on contour of the path */\n\
+      case Path.actions.QUADRATIC_CURVE_TO:\n\
 \n\
-Path.prototype.getPoints = function( divisions, closedPath ) {\n\
-\tdivisions = divisions || 12;\n\
+        cpx  = args[ 2 ];\n\
+        cpy  = args[ 3 ];\n\
 \n\
-\tvar points = [];\n\
+        cpx1 = args[ 0 ];\n\
+        cpy1 = args[ 1 ];\n\
 \n\
-\tvar i, il, item, action, args;\n\
-\tvar cpx, cpy, cpx2, cpy2, cpx1, cpy1, cpx0, cpy0,\n\
-\t\tlaste, j,\n\
-\t\tt, tx, ty;\n\
+        if ( points.length > 0 ) {\n\
 \n\
-\tfor ( i = 0, il = this.actions.length; i < il; i ++ ) {\n\
+          laste = points[ points.length - 1 ];\n\
 \n\
-\t\titem = this.actions[ i ];\n\
+          cpx0 = laste.x;\n\
+          cpy0 = laste.y;\n\
 \n\
-\t\taction = item.action;\n\
-\t\targs = item.args;\n\
+        } else {\n\
 \n\
-\t\tswitch( action ) {\n\
+          laste = this.actions[ i - 1 ].args;\n\
 \n\
-\t\tcase Path.actions.MOVE_TO:\n\
+          cpx0 = laste[ laste.length - 2 ];\n\
+          cpy0 = laste[ laste.length - 1 ];\n\
 \n\
-\t\t\tpoints.push( new Point( args[ 0 ], args[ 1 ] ) );\n\
-\n\
-\t\t\tbreak;\n\
-\n\
-\t\tcase Path.actions.LINE_TO:\n\
-\n\
-\t\t\tpoints.push( new Point( args[ 0 ], args[ 1 ] ) );\n\
-\n\
-\t\t\tbreak;\n\
-\n\
-\t\tcase Path.actions.QUADRATIC_CURVE_TO:\n\
-\n\
-\t\t\tcpx  = args[ 2 ];\n\
-\t\t\tcpy  = args[ 3 ];\n\
-\n\
-\t\t\tcpx1 = args[ 0 ];\n\
-\t\t\tcpy1 = args[ 1 ];\n\
-\n\
-\t\t\tif ( points.length > 0 ) {\n\
-\n\
-\t\t\t\tlaste = points[ points.length - 1 ];\n\
-\n\
-\t\t\t\tcpx0 = laste.x;\n\
-\t\t\t\tcpy0 = laste.y;\n\
-\n\
-\t\t\t} else {\n\
-\n\
-\t\t\t\tlaste = this.actions[ i - 1 ].args;\n\
-\n\
-\t\t\t\tcpx0 = laste[ laste.length - 2 ];\n\
-\t\t\t\tcpy0 = laste[ laste.length - 1 ];\n\
-\n\
-\t\t\t}\n\
-\n\
-\t\t\tfor ( j = 1; j <= divisions; j ++ ) {\n\
-\n\
-\t\t\t\tt = j / divisions;\n\
-\n\
-\t\t\t\ttx = Shape.Utils.b2( t, cpx0, cpx1, cpx );\n\
-\t\t\t\tty = Shape.Utils.b2( t, cpy0, cpy1, cpy );\n\
-\n\
-\t\t\t\tpoints.push( new Point( tx, ty ) );\n\
-\n\
-\t\t\t}\n\
-\n\
-\t\t\tbreak;\n\
-\n\
-\t\tcase Path.actions.BEZIER_CURVE_TO:\n\
-\n\
-\t\t\tcpx  = args[ 4 ];\n\
-\t\t\tcpy  = args[ 5 ];\n\
-\n\
-\t\t\tcpx1 = args[ 0 ];\n\
-\t\t\tcpy1 = args[ 1 ];\n\
-\n\
-\t\t\tcpx2 = args[ 2 ];\n\
-\t\t\tcpy2 = args[ 3 ];\n\
-\n\
-\t\t\tif ( points.length > 0 ) {\n\
-\n\
-\t\t\t\tlaste = points[ points.length - 1 ];\n\
-\n\
-\t\t\t\tcpx0 = laste.x;\n\
-\t\t\t\tcpy0 = laste.y;\n\
-\n\
-\t\t\t} else {\n\
-\n\
-\t\t\t\tlaste = this.actions[ i - 1 ].args;\n\
-\n\
-\t\t\t\tcpx0 = laste[ laste.length - 2 ];\n\
-\t\t\t\tcpy0 = laste[ laste.length - 1 ];\n\
-\n\
-\t\t\t}\n\
-\n\
-\n\
-\t\t\tfor ( j = 1; j <= divisions; j ++ ) {\n\
-\n\
-\t\t\t\tt = j / divisions;\n\
-\n\
-\t\t\t\ttx = Shape.Utils.b3( t, cpx0, cpx1, cpx2, cpx );\n\
-\t\t\t\tty = Shape.Utils.b3( t, cpy0, cpy1, cpy2, cpy );\n\
-\n\
-\t\t\t\tpoints.push( new Point( tx, ty ) );\n\
-\n\
-\t\t\t}\n\
-\n\
-\t\t\tbreak;\n\
-\n\
-\t\tcase Path.actions.CSPLINE_THRU:\n\
-\n\
-\t\t\tlaste = this.actions[ i - 1 ].args;\n\
-\n\
-\t\t\tvar last = new Point( laste[ laste.length - 2 ], laste[ laste.length - 1 ] );\n\
-\t\t\tvar spts = [ last ];\n\
-\n\
-\t\t\tvar n = divisions * args[ 0 ].length;\n\
-\n\
-\t\t\tspts = spts.concat( args[ 0 ] );\n\
-\n\
-\t\t\tvar spline = new SplineCurve( spts );\n\
-\n\
-\t\t\tfor ( j = 1; j <= n; j ++ ) {\n\
-\n\
-\t\t\t\tpoints.push( spline.getPointAt( j / n ) ) ;\n\
-\n\
-\t\t\t}\n\
-\n\
-\t\t\tbreak;\n\
-\n\
-\t\tcase Path.actions.ELLIPSE:\n\
-\n\
-\t\t\tvar aX = args[ 0 ], aY = args[ 1 ],\n\
-\t\t\t\txRadius = args[ 2 ],\n\
-\t\t\t\tyRadius = args[ 3 ],\n\
-\t\t\t\taStartAngle = args[ 4 ], aEndAngle = args[ 5 ],\n\
-\t\t\t\taClockwise = !!args[ 6 ];\n\
-\n\
-\t\t\tvar deltaAngle = aEndAngle - aStartAngle;\n\
-\t\t\tvar angle;\n\
-\n\
-\t\t\tfor ( j = 0; j <= divisions; j ++ ) {\n\
-\t\t\t\tt = j / divisions;\n\
-\n\
-        if(deltaAngle === -Math.PI*2) {\n\
-          deltaAngle = Math.PI*2;\n\
         }\n\
 \n\
-        if(deltaAngle < 0) {\n\
-          deltaAngle += Math.PI*2;\n\
+        for ( j = 1; j <= divisions; j ++ ) {\n\
+\n\
+          t = j / divisions;\n\
+\n\
+          tx = b2( t, cpx0, cpx1, cpx );\n\
+          ty = b2( t, cpy0, cpy1, cpy );\n\
+\n\
+          points.push( new Point( tx, ty ) );\n\
+\n\
         }\n\
 \n\
-        if(deltaAngle > Math.PI*2) {\n\
-          deltaAngle -= Math.PI*2;\n\
+        break;\n\
+\n\
+      case Path.actions.BEZIER_CURVE_TO:\n\
+\n\
+        cpx  = args[ 4 ];\n\
+        cpy  = args[ 5 ];\n\
+\n\
+        cpx1 = args[ 0 ];\n\
+        cpy1 = args[ 1 ];\n\
+\n\
+        cpx2 = args[ 2 ];\n\
+        cpy2 = args[ 3 ];\n\
+\n\
+        if ( points.length > 0 ) {\n\
+\n\
+          laste = points[ points.length - 1 ];\n\
+\n\
+          cpx0 = laste.x;\n\
+          cpy0 = laste.y;\n\
+\n\
+        } else {\n\
+\n\
+          laste = this.actions[ i - 1 ].args;\n\
+\n\
+          cpx0 = laste[ laste.length - 2 ];\n\
+          cpy0 = laste[ laste.length - 1 ];\n\
+\n\
         }\n\
 \n\
-        if ( aClockwise ) {\n\
-          // sin(pi) and sin(0) are the same\n\
-          // So we have to special case for full circles\n\
-          if(deltaAngle === Math.PI*2) {\n\
-            deltaAngle = 0;\n\
+        for ( j = 1; j <= divisions; j ++ ) {\n\
+\n\
+          t = j / divisions;\n\
+\n\
+          tx = b3( t, cpx0, cpx1, cpx2, cpx );\n\
+          ty = b3( t, cpy0, cpy1, cpy2, cpy );\n\
+\n\
+          points.push( new Point( tx, ty ) );\n\
+\n\
+        }\n\
+\n\
+        break;\n\
+\n\
+      case Path.actions.ELLIPSE:\n\
+\n\
+        var aX = args[ 0 ], aY = args[ 1 ],\n\
+          xRadius = args[ 2 ],\n\
+          yRadius = args[ 3 ],\n\
+          aStartAngle = args[ 4 ], aEndAngle = args[ 5 ],\n\
+          aClockwise = !!args[ 6 ];\n\
+\n\
+        var deltaAngle = aEndAngle - aStartAngle;\n\
+        var angle;\n\
+\n\
+        for ( j = 0; j <= divisions; j ++ ) {\n\
+          t = j / divisions;\n\
+\n\
+          if(deltaAngle === -Math.PI*2) {\n\
+            deltaAngle = Math.PI*2;\n\
           }\n\
 \n\
-          angle = aEndAngle + ( 1 - t ) * ( Math.PI * 2 - deltaAngle );\n\
-        } else {\n\
-          angle = aStartAngle + t * deltaAngle;\n\
+          if(deltaAngle < 0) {\n\
+            deltaAngle += Math.PI*2;\n\
+          }\n\
+\n\
+          if(deltaAngle > Math.PI*2) {\n\
+            deltaAngle -= Math.PI*2;\n\
+          }\n\
+\n\
+          if ( aClockwise ) {\n\
+            // sin(pi) and sin(0) are the same\n\
+            // So we have to special case for full circles\n\
+            if(deltaAngle === Math.PI*2) {\n\
+              deltaAngle = 0;\n\
+            }\n\
+\n\
+            angle = aEndAngle + ( 1 - t ) * ( Math.PI * 2 - deltaAngle );\n\
+          } else {\n\
+            angle = aStartAngle + t * deltaAngle;\n\
+          }\n\
+\n\
+          var tx = aX + xRadius * Math.cos( angle );\n\
+          var ty = aY + yRadius * Math.sin( angle );\n\
+\n\
+          points.push( new Point( tx, ty ) );\n\
+\n\
         }\n\
 \n\
-        var tx = aX + xRadius * Math.cos( angle );\n\
-        var ty = aY + yRadius * Math.sin( angle );\n\
+        break;\n\
 \n\
-\t\t\t\tpoints.push( new Point( tx, ty ) );\n\
+      } // end switch\n\
 \n\
-\t\t\t}\n\
-\n\
-\t\t  break;\n\
-\n\
-\t\t} // end switch\n\
-\n\
-\t}\n\
-\n\
+    }\n\
 \n\
 \t// Normalize to remove the closing point by default.\n\
 \t// var lastPoint = points[ points.length - 1];\n\
@@ -1225,355 +1191,54 @@ Path.prototype.getPoints = function( divisions, closedPath ) {\n\
 \n\
 \treturn points;\n\
 \n\
+  }\n\
 };\n\
 \n\
-var Shape = {};\n\
-Shape.Utils = {\n\
 \n\
-\t/*\n\
-\t\tcontour - array of vector2 for contour\n\
-\t\tholes   - array of array of vector2\n\
-\t*/\n\
-\n\
-\tremoveHoles: function ( contour, holes ) {\n\
-\n\
-\t\tvar shape = contour.concat(); // work on this shape\n\
-\t\tvar allpoints = shape.concat();\n\
-\n\
-\t\t/* For each isolated shape, find the closest points and break to the hole to allow triangulation */\n\
-\n\
-\n\
-\t\tvar prevShapeVert, nextShapeVert,\n\
-\t\t\tprevHoleVert, nextHoleVert,\n\
-\t\t\tholeIndex, shapeIndex,\n\
-\t\t\tshapeId, shapeGroup,\n\
-\t\t\th, h2,\n\
-\t\t\thole, shortest, d,\n\
-\t\t\tp, pts1, pts2,\n\
-\t\t\ttmpShape1, tmpShape2,\n\
-\t\t\ttmpHole1, tmpHole2,\n\
-\t\t\tverts = [];\n\
-\n\
-\t\tfor ( h = 0; h < holes.length; h ++ ) {\n\
-\n\
-\t\t\thole = holes[ h ];\n\
-\n\
-\t\t\t/*\n\
-\t\t\tshapeholes[ h ].concat(); // preserves original\n\
-\t\t\tholes.push( hole );\n\
-\t\t\t*/\n\
-\n\
-\t\t\tArray.prototype.push.apply( allpoints, hole );\n\
-\n\
-\t\t\tshortest = Number.POSITIVE_INFINITY;\n\
-\n\
-\n\
-\t\t\t// Find the shortest pair of pts between shape and hole\n\
-\n\
-\t\t\t// Note: Actually, I'm not sure now if we could optimize this to be faster than O(m*n)\n\
-\t\t\t// Using distanceToSquared() intead of distanceTo() should speed a little\n\
-\t\t\t// since running square roots operations are reduced.\n\
-\n\
-\t\t\tfor ( h2 = 0; h2 < hole.length; h2 ++ ) {\n\
-\n\
-\t\t\t\tpts1 = hole[ h2 ];\n\
-\t\t\t\tvar dist = [];\n\
-\n\
-\t\t\t\tfor ( p = 0; p < shape.length; p++ ) {\n\
-\n\
-\t\t\t\t\tpts2 = shape[ p ];\n\
-\t\t\t\t\td = pts1.distanceToSquared( pts2 );\n\
-\t\t\t\t\tdist.push( d );\n\
-\n\
-\t\t\t\t\tif ( d < shortest ) {\n\
-\n\
-\t\t\t\t\t\tshortest = d;\n\
-\t\t\t\t\t\tholeIndex = h2;\n\
-\t\t\t\t\t\tshapeIndex = p;\n\
-\n\
-\t\t\t\t\t}\n\
-\n\
-\t\t\t\t}\n\
-\n\
-\t\t\t}\n\
-\n\
-\t\t\t//console.log(\"shortest\", shortest, dist);\n\
-\n\
-\t\t\tprevShapeVert = ( shapeIndex - 1 ) >= 0 ? shapeIndex - 1 : shape.length - 1;\n\
-\t\t\tprevHoleVert = ( holeIndex - 1 ) >= 0 ? holeIndex - 1 : hole.length - 1;\n\
-\n\
-\t\t\tvar areaapts = [\n\
-\n\
-\t\t\t\thole[ holeIndex ],\n\
-\t\t\t\tshape[ shapeIndex ],\n\
-\t\t\t\tshape[ prevShapeVert ]\n\
-\n\
-\t\t\t];\n\
-\n\
-\t\t\tvar areaa = THREE.FontUtils.Triangulate.area( areaapts );\n\
-\n\
-\t\t\tvar areabpts = [\n\
-\n\
-\t\t\t\thole[ holeIndex ],\n\
-\t\t\t\thole[ prevHoleVert ],\n\
-\t\t\t\tshape[ shapeIndex ]\n\
-\n\
-\t\t\t];\n\
-\n\
-\t\t\tvar areab = THREE.FontUtils.Triangulate.area( areabpts );\n\
-\n\
-\t\t\tvar shapeOffset = 1;\n\
-\t\t\tvar holeOffset = -1;\n\
-\n\
-\t\t\tvar oldShapeIndex = shapeIndex, oldHoleIndex = holeIndex;\n\
-\t\t\tshapeIndex += shapeOffset;\n\
-\t\t\tholeIndex += holeOffset;\n\
-\n\
-\t\t\tif ( shapeIndex < 0 ) { shapeIndex += shape.length;  }\n\
-\t\t\tshapeIndex %= shape.length;\n\
-\n\
-\t\t\tif ( holeIndex < 0 ) { holeIndex += hole.length;  }\n\
-\t\t\tholeIndex %= hole.length;\n\
-\n\
-\t\t\tprevShapeVert = ( shapeIndex - 1 ) >= 0 ? shapeIndex - 1 : shape.length - 1;\n\
-\t\t\tprevHoleVert = ( holeIndex - 1 ) >= 0 ? holeIndex - 1 : hole.length - 1;\n\
-\n\
-\t\t\tareaapts = [\n\
-\n\
-\t\t\t\thole[ holeIndex ],\n\
-\t\t\t\tshape[ shapeIndex ],\n\
-\t\t\t\tshape[ prevShapeVert ]\n\
-\n\
-\t\t\t];\n\
-\n\
-\t\t\tvar areaa2 = THREE.FontUtils.Triangulate.area( areaapts );\n\
-\n\
-\t\t\tareabpts = [\n\
-\n\
-\t\t\t\thole[ holeIndex ],\n\
-\t\t\t\thole[ prevHoleVert ],\n\
-\t\t\t\tshape[ shapeIndex ]\n\
-\n\
-\t\t\t];\n\
-\n\
-\t\t\tvar areab2 = THREE.FontUtils.Triangulate.area( areabpts );\n\
-\t\t\t//console.log(areaa,areab ,areaa2,areab2, ( areaa + areab ),  ( areaa2 + areab2 ));\n\
-\n\
-\t\t\tif ( ( areaa + areab ) > ( areaa2 + areab2 ) ) {\n\
-\n\
-\t\t\t\t// In case areas are not correct.\n\
-\t\t\t\t//console.log(\"USE THIS\");\n\
-\n\
-\t\t\t\tshapeIndex = oldShapeIndex;\n\
-\t\t\t\tholeIndex = oldHoleIndex ;\n\
-\n\
-\t\t\t\tif ( shapeIndex < 0 ) { shapeIndex += shape.length;  }\n\
-\t\t\t\tshapeIndex %= shape.length;\n\
-\n\
-\t\t\t\tif ( holeIndex < 0 ) { holeIndex += hole.length;  }\n\
-\t\t\t\tholeIndex %= hole.length;\n\
-\n\
-\t\t\t\tprevShapeVert = ( shapeIndex - 1 ) >= 0 ? shapeIndex - 1 : shape.length - 1;\n\
-\t\t\t\tprevHoleVert = ( holeIndex - 1 ) >= 0 ? holeIndex - 1 : hole.length - 1;\n\
-\n\
-\t\t\t} else {\n\
-\n\
-\t\t\t\t//console.log(\"USE THAT \")\n\
-\n\
-\t\t\t}\n\
-\n\
-\t\t\ttmpShape1 = shape.slice( 0, shapeIndex );\n\
-\t\t\ttmpShape2 = shape.slice( shapeIndex );\n\
-\t\t\ttmpHole1 = hole.slice( holeIndex );\n\
-\t\t\ttmpHole2 = hole.slice( 0, holeIndex );\n\
-\n\
-\t\t\t// Should check orders here again?\n\
-\n\
-\t\t\tvar trianglea = [\n\
-\n\
-\t\t\t\thole[ holeIndex ],\n\
-\t\t\t\tshape[ shapeIndex ],\n\
-\t\t\t\tshape[ prevShapeVert ]\n\
-\n\
-\t\t\t];\n\
-\n\
-\t\t\tvar triangleb = [\n\
-\n\
-\t\t\t\thole[ holeIndex ] ,\n\
-\t\t\t\thole[ prevHoleVert ],\n\
-\t\t\t\tshape[ shapeIndex ]\n\
-\n\
-\t\t\t];\n\
-\n\
-\t\t\tverts.push( trianglea );\n\
-\t\t\tverts.push( triangleb );\n\
-\n\
-\t\t\tshape = tmpShape1.concat( tmpHole1 ).concat( tmpHole2 ).concat( tmpShape2 );\n\
-\n\
-\t\t}\n\
-\n\
-\t\treturn {\n\
-\n\
-\t\t\tshape:shape, \t\t/* shape with no holes */\n\
-\t\t\tisolatedPts: verts, /* isolated faces */\n\
-\t\t\tallpoints: allpoints\n\
-\n\
-\t\t}\n\
-\n\
-\n\
-\t},\n\
-\n\
-\ttriangulateShape: function ( contour, holes ) {\n\
-\n\
-\t\tvar shapeWithoutHoles = THREE.Shape.Utils.removeHoles( contour, holes );\n\
-\n\
-\t\tvar shape = shapeWithoutHoles.shape,\n\
-\t\t\tallpoints = shapeWithoutHoles.allpoints,\n\
-\t\t\tisolatedPts = shapeWithoutHoles.isolatedPts;\n\
-\n\
-\t\tvar triangles = THREE.FontUtils.Triangulate( shape, false ); // True returns indices for points of spooled shape\n\
-\n\
-\t\t// To maintain reference to old shape, one must match coordinates, or offset the indices from original arrays. It's probably easier to do the first.\n\
-\n\
-\t\t//console.log( \"triangles\",triangles, triangles.length );\n\
-\t\t//console.log( \"allpoints\",allpoints, allpoints.length );\n\
-\n\
-\t\tvar i, il, f, face,\n\
-\t\t\tkey, index,\n\
-\t\t\tallPointsMap = {},\n\
-\t\t\tisolatedPointsMap = {};\n\
-\n\
-\t\t// prepare all points map\n\
-\n\
-\t\tfor ( i = 0, il = allpoints.length; i < il; i ++ ) {\n\
-\n\
-\t\t\tkey = allpoints[ i ].x + \":\" + allpoints[ i ].y;\n\
-\n\
-\t\t\tif ( allPointsMap[ key ] !== undefined ) {\n\
-\n\
-\t\t\t\tconsole.log( \"Duplicate point\", key );\n\
-\n\
-\t\t\t}\n\
-\n\
-\t\t\tallPointsMap[ key ] = i;\n\
-\n\
-\t\t}\n\
-\n\
-\t\t// check all face vertices against all points map\n\
-\n\
-\t\tfor ( i = 0, il = triangles.length; i < il; i ++ ) {\n\
-\n\
-\t\t\tface = triangles[ i ];\n\
-\n\
-\t\t\tfor ( f = 0; f < 3; f ++ ) {\n\
-\n\
-\t\t\t\tkey = face[ f ].x + \":\" + face[ f ].y;\n\
-\n\
-\t\t\t\tindex = allPointsMap[ key ];\n\
-\n\
-\t\t\t\tif ( index !== undefined ) {\n\
-\n\
-\t\t\t\t\tface[ f ] = index;\n\
-\n\
-\t\t\t\t}\n\
-\n\
-\t\t\t}\n\
-\n\
-\t\t}\n\
-\n\
-\t\t// check isolated points vertices against all points map\n\
-\n\
-\t\tfor ( i = 0, il = isolatedPts.length; i < il; i ++ ) {\n\
-\n\
-\t\t\tface = isolatedPts[ i ];\n\
-\n\
-\t\t\tfor ( f = 0; f < 3; f ++ ) {\n\
-\n\
-\t\t\t\tkey = face[ f ].x + \":\" + face[ f ].y;\n\
-\n\
-\t\t\t\tindex = allPointsMap[ key ];\n\
-\n\
-\t\t\t\tif ( index !== undefined ) {\n\
-\n\
-\t\t\t\t\tface[ f ] = index;\n\
-\n\
-\t\t\t\t}\n\
-\n\
-\t\t\t}\n\
-\n\
-\t\t}\n\
-\n\
-\t\treturn triangles.concat( isolatedPts );\n\
-\n\
-\t}, // end triangulate shapes\n\
-\n\
-\n\
-\t// Bezier Curves formulas obtained from\n\
-\t// http://en.wikipedia.org/wiki/B%C3%A9zier_curve\n\
-\n\
-\t// Quad Bezier Functions\n\
-\n\
-\tb2p0: function ( t, p ) {\n\
-\n\
-\t\tvar k = 1 - t;\n\
-\t\treturn k * k * p;\n\
-\n\
-\t},\n\
-\n\
-\tb2p1: function ( t, p ) {\n\
-\n\
-\t\treturn 2 * ( 1 - t ) * t * p;\n\
-\n\
-\t},\n\
-\n\
-\tb2p2: function ( t, p ) {\n\
-\n\
-\t\treturn t * t * p;\n\
-\n\
-\t},\n\
-\n\
-\tb2: function ( t, p0, p1, p2 ) {\n\
-\n\
-\t\treturn this.b2p0( t, p0 ) + this.b2p1( t, p1 ) + this.b2p2( t, p2 );\n\
-\n\
-\t},\n\
-\n\
-\t// Cubic Bezier Functions\n\
-\n\
-\tb3p0: function ( t, p ) {\n\
-\n\
-\t\tvar k = 1 - t;\n\
-\t\treturn k * k * k * p;\n\
-\n\
-\t},\n\
-\n\
-\tb3p1: function ( t, p ) {\n\
-\n\
-\t\tvar k = 1 - t;\n\
-\t\treturn 3 * k * k * t * p;\n\
-\n\
-\t},\n\
-\n\
-\tb3p2: function ( t, p ) {\n\
-\n\
-\t\tvar k = 1 - t;\n\
-\t\treturn 3 * k * t * t * p;\n\
-\n\
-\t},\n\
-\n\
-\tb3p3: function ( t, p ) {\n\
-\n\
-\t\treturn t * t * t * p;\n\
-\n\
-\t},\n\
-\n\
-\tb3: function ( t, p0, p1, p2, p3 ) {\n\
-\n\
-\t\treturn this.b3p0( t, p0 ) + this.b3p1( t, p1 ) + this.b3p2( t, p2 ) +  this.b3p3( t, p3 );\n\
-\n\
-\t}\n\
-\n\
-};\n\
+// Bezier Curves formulas obtained from\n\
+// http://en.wikipedia.org/wiki/B%C3%A9zier_curve\n\
+\n\
+// Quad Bezier Functions\n\
+function b2p0 ( t, p ) {\n\
+  var k = 1 - t;\n\
+  return k * k * p;\n\
+}\n\
+\n\
+function b2p1 ( t, p ) {\n\
+  return 2 * ( 1 - t ) * t * p;\n\
+}\n\
+\n\
+function b2p2 ( t, p ) {\n\
+  return t * t * p;\n\
+}\n\
+\n\
+function b2 ( t, p0, p1, p2 ) {\n\
+  return b2p0( t, p0 ) + b2p1( t, p1 ) + b2p2( t, p2 );\n\
+}\n\
+\n\
+// Cubic Bezier Functions\n\
+function b3p0 ( t, p ) {\n\
+  var k = 1 - t;\n\
+  return k * k * k * p;\n\
+}\n\
+\n\
+function b3p1 ( t, p ) {\n\
+  var k = 1 - t;\n\
+  return 3 * k * k * t * p;\n\
+}\n\
+\n\
+function b3p2 ( t, p ) {\n\
+  var k = 1 - t;\n\
+  return 3 * k * t * t * p;\n\
+}\n\
+\n\
+function b3p3 ( t, p ) {\n\
+  return t * t * t * p;\n\
+}\n\
+\n\
+function b3 ( t, p0, p1, p2, p3 ) {\n\
+  return b3p0( t, p0 ) + b3p1( t, p1 ) + b3p2( t, p2 ) +  b3p3( t, p3 );\n\
+}\n\
 //@ sourceURL=gcanvas/lib/path.js"
 ));
 require.register("gcanvas/lib/font.js", Function("exports, require, module",
@@ -6777,66 +6442,86 @@ var Point = require('./math/point')\n\
 \n\
 /**\n\
  * Realtime motion interface\n\
- * These actually send commands to the driver.\n\
+ * This actually sends commands to the driver.\n\
  * */\n\
 function Motion(ctx) {\n\
   this.ctx = ctx;\n\
   this.position = new Point(0,0,0);\n\
+  this.targetDepth = 0; // Current depth for plunge/retract\n\
 }\n\
 \n\
 Motion.prototype = {\n\
   retract: function() {\n\
-  this.prevZ = this.ctx.position.z;\n\
-  this.linear({z:0});\n\
-}\n\
+    this.rapid({z:0});\n\
+  }\n\
 , plunge: function() {\n\
-  if(this.prevZ)\n\
-    this.linear({z: this.prevZ});\n\
-  else\n\
-    this.linear({z: this.ctx.depthOfCut});\n\
-}\n\
+    this.linear({z: this.targetDepth});\n\
+  }\n\
 , rapid: function(params) {\n\
-    var newPosition = this.mergePosition(params);\n\
+    var newPosition = this.postProcess(params);\n\
     if(!newPosition) return;\n\
 \n\
     this.ctx.driver.rapid.call(this.ctx.driver, params);\n\
     this.position = newPosition;\n\
   }\n\
 , linear: function(params) {\n\
-    var newPosition = this.mergePosition(params);\n\
+    var newPosition = this.postProcess(params);\n\
     if(!newPosition) return;\n\
 \n\
     this.ctx.driver.linear.call(this.ctx.driver, params);\n\
-    this.ctx.position = newPosition;\n\
+    this.position = newPosition;\n\
   }\n\
 , arcCW: function(params) {\n\
-    var newPosition = this.mergePosition(params);\n\
-    // if(!newPosition) return;\n\
+    var newPosition = this.postProcess(params);\n\
 \n\
     this.ctx.driver.arcCW.call(this.ctx.driver, params);\n\
-    this.ctx.position = newPosition;\n\
+    this.position = newPosition;\n\
   }\n\
 , arcCCW: function(params) {\n\
-    var newPosition = this.mergePosition(params);\n\
-    // if(!newPosition) return;\n\
+    var newPosition = this.postProcess(params);\n\
 \n\
     this.ctx.driver.arcCCW.call(this.ctx.driver, params);\n\
-    this.ctx.position = newPosition;\n\
+    this.position = newPosition;\n\
   }\n\
-, mergePosition: function(params) {\n\
+, postProcess: function(params) {\n\
     if(params.x)\n\
       params.x = Math.round(params.x * 1000000) / 1000000;\n\
     if(params.y)\n\
       params.y = Math.round(params.y * 1000000) / 1000000;\n\
     if(params.z)\n\
       params.z = Math.round(params.z * 1000000) / 1000000;\n\
+    if(params.i)\n\
+      params.i = Math.round(params.i * 1000000) / 1000000;\n\
+    if(params.j)\n\
+      params.j = Math.round(params.j * 1000000) / 1000000;\n\
+\n\
+    // Set new spindle speed changed\n\
+    if(this.ctx.driver.speed\n\
+       && this.ctx.speed != this.currentSpeed) {\n\
+      this.ctx.driver.speed(this.ctx.speed);\n\
+      this.currentSpeed = this.ctx.speed;\n\
+    }\n\
+\n\
+    // Set new feedrate changed\n\
+    if(this.ctx.driver.feed\n\
+       && this.ctx.feed != this.currentFeed) {\n\
+      this.ctx.driver.feed(this.ctx.feed);\n\
+      this.currentFeed = this.ctx.feed;\n\
+    }\n\
+\n\
+    // Set coolant if changed\n\
+    if(this.ctx.driver.coolant\n\
+       && this.ctx.coolant != this.currentCoolant) {\n\
+      this.ctx.driver.coolant(this.ctx.coolant);\n\
+      this.currentCoolant = this.ctx.coolant;\n\
+    }\n\
 \n\
     var v1 = new Point(\n\
-          params.x === undefined ? this.ctx.position.x : params.x\n\
-        , params.y === undefined ? this.ctx.position.y : params.y\n\
-        , params.z === undefined ? this.ctx.position.z : params.z);\n\
+          params.x === undefined ? this.position.x : params.x\n\
+        , params.y === undefined ? this.position.y : params.y\n\
+        , params.z === undefined ? this.position.z : params.z);\n\
 \n\
-    if(utils.samePos(this.ctx.position, v1)) {\n\
+    if(utils.samePos(this.position, v1)) {\n\
       return false;\n\
     }\n\
 \n\
@@ -6844,6 +6529,12 @@ Motion.prototype = {\n\
   }\n\
 \n\
 , followPath: function(path) {\n\
+\n\
+    if(path.forEach) {\n\
+      path.forEach(this.followPath, this);\n\
+      return;\n\
+    }\n\
+\n\
     var each = {};\n\
     var motion = this;\n\
     var driver = this.ctx.driver;\n\
@@ -6861,8 +6552,6 @@ Motion.prototype = {\n\
 \n\
     each[Path.actions.ELLIPSE] = function(x, y, rx, ry,\n\
 \t\t\t\t\t\t\t\t\t  aStart, aEnd, aClockwise , mx, my) {\n\
-      motion.plunge();\n\
-\n\
       // Detect plain arc\n\
       if(utils.sameFloat(rx,ry) &&\n\
         (driver.arcCW && !aClockwise) ||\n\
@@ -6874,8 +6563,13 @@ Motion.prototype = {\n\
                                          rx);\n\
           var params = {\n\
             x: points.end.x, y: points.end.y,\n\
-            i: x, j: y\n\
+            i: x-points.start.x, j: y-points.start.y\n\
           };\n\
+\n\
+          motion.retract();\n\
+          motion.rapid({x:points.start.x,\n\
+                       y:points.start.y});\n\
+          motion.plunge();\n\
 \n\
           if(aClockwise)\n\
             motion.arcCCW(params);\n\
@@ -6888,19 +6582,11 @@ Motion.prototype = {\n\
     };\n\
 \n\
     each[Path.actions.BEZIER_CURVE_TO] = function() {\n\
-      var lastargs = path.actions[ i - 1 ].args;\n\
-      var x0 = lastargs[ lastargs.length - 2 ];\n\
-      var y0 = lastargs[ lastargs.length - 1 ];\n\
-\n\
-      this._interpolate('bezierCurveTo', arguments, x0, y0);\n\
+      this._interpolate('bezierCurveTo', arguments);\n\
     };\n\
 \n\
     each[Path.actions.QUADRATIC_CURVE_TO] = function() {\n\
-      var lastargs = path.actions[ i - 1 ].args;\n\
-      var x0 = lastargs[ lastargs.length - 2 ];\n\
-      var y0 = lastargs[ lastargs.length - 1 ];\n\
-\n\
-      this._interpolate('quadraticCurveTo', arguments, x0, y0);\n\
+      this._interpolate('quadraticCurveTo', arguments);\n\
     };\n\
 \n\
     for(var i = 0, l = path.actions.length; i < l; ++i) {\n\
@@ -6909,9 +6595,9 @@ Motion.prototype = {\n\
     }\n\
   }\n\
 \n\
-, _interpolate: function(name, args, mx, my) {\n\
+, _interpolate: function(name, args) {\n\
     var path = new Path();\n\
-    path.moveTo(mx,my);\n\
+    path.moveTo(this.position.x, this.position.y);\n\
     path[name].apply(path, args);\n\
 \n\
     var pts = path.getPoints(40);\n\
@@ -7103,27 +6789,44 @@ function GCodeDriver(stream) {\n\
 }\n\
 \n\
 GCodeDriver.prototype = {\n\
-  g: function(code, params) {\n\
-    var command = 'G'+code;\n\
+  send: function(code, params) {\n\
+    var command = code;\n\
     for(var k in params) {\n\
       command += ' ' + k.toUpperCase() + params[k];\n\
     }\n\
     this.stream.write(command);\n\
   }\n\
-, send: function(command) {\n\
-    this.stream.write(command);\n\
- }\n\
+, speed: function(n) {\n\
+    this.send('S'+n);\n\
+  }\n\
+, feed: function(n) {\n\
+    this.send('F'+n);\n\
+  }\n\
+, coolant: function(type) {\n\
+    if(type === 'mist') {\n\
+      // special\n\
+      this.send('M07');\n\
+    }\n\
+    else if(type) {\n\
+      // flood\n\
+      this.send('M08');\n\
+    }\n\
+    else {\n\
+      // off\n\
+      this.send('M09');\n\
+    }\n\
+  }\n\
 , rapid: function(params) {\n\
-    this.g(0, params);\n\
+    this.send('G0', params);\n\
   }\n\
 , linear: function(params) {\n\
-    this.g(1, params);\n\
+    this.send('G1', params);\n\
   }\n\
 , arcCW: function(params) {\n\
-    this.g(2, params);\n\
+    this.send('G2', params);\n\
   }\n\
 , arcCCW: function(params) {\n\
-    this.g(3, params);\n\
+    this.send('G3', params);\n\
   }\n\
 };\n\
 //@ sourceURL=gcanvas/lib/drivers/gcode.js"
