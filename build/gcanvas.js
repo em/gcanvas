@@ -225,6 +225,7 @@ function GCanvas(driver, width, height) {\n\
   this.depth = 0;\n\
   this.depthOfCut = 0;\n\
   this.top = 0;\n\
+  this.aboveTop = 0;\n\
   this.toolDiameter = 5;\n\
   this.driver = driver || new GCodeDriver();\n\
   this.stack = [];\n\
@@ -6452,7 +6453,7 @@ function Motion(ctx) {\n\
 \n\
 Motion.prototype = {\n\
   retract: function() {\n\
-    this.rapid({z:0});\n\
+    this.rapid({z: this.ctx.aboveTop});\n\
   }\n\
 , plunge: function() {\n\
     this.linear({z: this.targetDepth});\n\
