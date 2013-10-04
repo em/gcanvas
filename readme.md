@@ -23,6 +23,8 @@ The project is still very new and some things are missing:
    Eventually it will respect toolDiameter like fill() does
    and produce the same results.
 
+* drawImage should eventually do something.
+
 ### Non-standard extensions to Canvas 
 
 Additional context properties are added for milling
