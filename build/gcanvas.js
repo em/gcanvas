@@ -222,8 +222,8 @@ function GCanvas(driver, width, height) {\n\
   this.font = \"7pt Helvetiker\";\n\
   this.matrix = new Matrix();\n\
   this.rotation = 0; \n\
-  this.depth = 1;\n\
-  this.depthOfCut = 1;\n\
+  this.depth = 0;\n\
+  this.depthOfCut = 0;\n\
   this.surface = 0;\n\
   this.toolDiameter = 5;\n\
   this.driver = driver || new GCodeDriver();\n\
