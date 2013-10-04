@@ -1,4 +1,4 @@
-function main() {
+function main(ctx) {
   ctx.scale(0.6,0.6);
   portal2(ctx);
 
