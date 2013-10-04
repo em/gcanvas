@@ -224,7 +224,7 @@ function GCanvas(driver, width, height) {\n\
   this.rotation = 0; \n\
   this.depth = 0;\n\
   this.depthOfCut = 0;\n\
-  this.surface = 0;\n\
+  this.top = 0;\n\
   this.toolDiameter = 5;\n\
   this.driver = driver || new GCodeDriver();\n\
   this.stack = [];\n\
@@ -476,14 +476,13 @@ GCanvas.prototype = {\n\
       return;\n\
     }\n\
 \n\
-    var surface = this.surface || 0;\n\
-    var start = surface + this.depthOfCut;\n\
+    var start = this.top + this.depthOfCut;\n\
 \n\
     for(var depth=start;\n\
-        depth <= this.depth;\n\
+        depth <= this.top+this.depth;\n\
         depth += this.depthOfCut) {\n\
       // Clip to actual depth\n\
-      depth = Math.min(depth, this.depth);\n\
+      depth = Math.min(depth, this.top+this.depth);\n\
       // Set new target depth in motion\n\
       this.motion.targetDepth = depth;\n\
       // Run the callback\n\

@@ -12,13 +12,13 @@ var fs = require('fs')
 program
   .version(require('../package.json').version)
   .usage('[options] <file ...>')
-  .option('-s, --speed <number>', 'spindle speed')
-  .option('-f, --feed <number>', 'feed rate')
-  .option('-d, --depth <number>', 'final cut depth')
-  .option('-c, --depthofcut <number>', 'depth of layered cut')
-  .option('-s, --surface <number>', 'distance to work surface')
-  .option('-w, --width <number>', 'canvas width')
-  .option('-h, --height <number>', 'canvas height')
+  .option('-s, --speed <number>', 'spindle speed', Number)
+  .option('-f, --feed <number>', 'feed rate', Number)
+  .option('-d, --depth <number>', 'z of final cut depth', Number)
+  .option('-c, --depthofcut <number>', 'z distance of layered cut', Number)
+  .option('-t, --top <number>', 'z of top of work top', Number)
+  .option('-w, --width <number>', 'canvas width', Number)
+  .option('-h, --height <number>', 'canvas height', Number)
   .option('-e, --entry <name>', 'name of entry function to call. defaults to main(ctx)', 'main')
 
 program.parse(process.argv);
@@ -29,7 +29,7 @@ if(program.speed) gctx.speed = program.speed;
 if(program.feed) gctx.feed = program.feed;
 if(program.depth) gctx.depth = program.depth;
 if(program.depthofcut) gctx.depthOfCut = program.depthofcut;
-if(program.surface) gctx.surface = program.surface;
+if(program.top) gctx.top = program.top;
 if(program.width) gctx.canvas.width = program.width;
 if(program.height) gctx.canvas.height = program.height;
 
