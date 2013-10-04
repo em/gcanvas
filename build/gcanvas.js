@@ -224,8 +224,8 @@ function GCanvas(driver, width, height) {\n\
   this.rotation = 0; \n\
   this.depth = 1;\n\
   this.depthOfCut = 1;\n\
+  this.surface = 0;\n\
   this.toolDiameter = 5;\n\
-  this.fillStrategy = 'crosshatch';\n\
   this.driver = driver || new GCodeDriver();\n\
   this.stack = [];\n\
   this.motion = new Motion(this);\n\
@@ -475,8 +475,17 @@ GCanvas.prototype = {\n\
       return;\n\
     }\n\
 \n\
-    for(var depth=this.depthOfCut; depth <= this.depth; depth += this.depthOfCut) {\n\
-      this.motion.targetDepth = Math.min(depth, this.depth);\n\
+    var surface = this.surface || 0;\n\
+    var start = surface + this.depthOfCut;\n\
+\n\
+    for(var depth=start;\n\
+        depth <= this.depth;\n\
+        depth += this.depthOfCut) {\n\
+      // Clip to actual depth\n\
+      depth = Math.min(depth, this.depth);\n\
+      // Set new target depth in motion\n\
+      this.motion.targetDepth = depth;\n\
+      // Run the callback\n\
       fn.call(this);\n\
     }\n\
   }\n\
@@ -6443,7 +6452,7 @@ function Motion(ctx) {\n\
 \n\
 Motion.prototype = {\n\
   retract: function() {\n\
-    this.linear({z:0});\n\
+    this.rapid({z:0});\n\
   }\n\
 , plunge: function() {\n\
     this.linear({z: this.targetDepth});\n\
@@ -6540,8 +6549,6 @@ Motion.prototype = {\n\
 \n\
     each[Path.actions.ELLIPSE] = function(x, y, rx, ry,\n\
 \t\t\t\t\t\t\t\t\t  aStart, aEnd, aClockwise , mx, my) {\n\
-      motion.plunge();\n\
-\n\
       // Detect plain arc\n\
       if(utils.sameFloat(rx,ry) &&\n\
         (driver.arcCW && !aClockwise) ||\n\
@@ -6556,6 +6563,11 @@ Motion.prototype = {\n\
             i: x-points.start.x, j: y-points.start.y\n\
           };\n\
 \n\
+          motion.retract();\n\
+          motion.rapid({x:points.start.x,\n\
+                       y:points.start.y});\n\
+          motion.plunge();\n\
+\n\
           if(aClockwise)\n\
             motion.arcCCW(params);\n\
           else\n\
@@ -6567,19 +6579,11 @@ Motion.prototype = {\n\
     };\n\
 \n\
     each[Path.actions.BEZIER_CURVE_TO] = function() {\n\
-      var lastargs = path.actions[ i - 1 ].args;\n\
-      var x0 = lastargs[ lastargs.length - 2 ];\n\
-      var y0 = lastargs[ lastargs.length - 1 ];\n\
-\n\
-      this._interpolate('bezierCurveTo', arguments, x0, y0);\n\
+      this._interpolate('bezierCurveTo', arguments);\n\
     };\n\
 \n\
     each[Path.actions.QUADRATIC_CURVE_TO] = function() {\n\
-      var lastargs = path.actions[ i - 1 ].args;\n\
-      var x0 = lastargs[ lastargs.length - 2 ];\n\
-      var y0 = lastargs[ lastargs.length - 1 ];\n\
-\n\
-      this._interpolate('quadraticCurveTo', arguments, x0, y0);\n\
+      this._interpolate('quadraticCurveTo', arguments);\n\
     };\n\
 \n\
     for(var i = 0, l = path.actions.length; i < l; ++i) {\n\

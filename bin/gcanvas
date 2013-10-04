@@ -16,6 +16,8 @@ program
 
 program.parse(process.argv);
 
+var gctx = new GCanvas();
+
 function run(file) {
   var util = require('util'),
       vm = require('vm'),
@@ -30,8 +32,6 @@ function run(file) {
     process.exit();
   }
 
-  var gctx = new GCanvas();
-
   sandbox[program.entry](gctx);
 };
 
@@ -42,3 +42,7 @@ if(program.args.length === 0) {
 program.args.forEach(function(file) {
   run(file);
 });
+
+// cleanup
+gctx.motion.retract();
+gctx.motion.rapid({x:0,y:0,z:0});

@@ -29,7 +29,7 @@ describe('GCanvas', function() {
 
       hand.linear({z:1}); // plunge
       hand.linear({x:10,y:0}); // lineTo
-      hand.linear({z:0}); // retract
+      hand.rapid({z:0}); // retract
       hand.rapid({x:10,y:10}); // moveTo
 
       expect(robot.result).eql(hand.result);
