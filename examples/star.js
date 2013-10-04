@@ -1,5 +1,4 @@
 example('filling', function(ctx) {
-  ctx.toolDiameter = 10;
   star(ctx, 100, 100, 90, 5, 0.5);
 
   function star(ctx, x, y, r, p, m) {

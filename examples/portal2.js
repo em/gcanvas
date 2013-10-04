@@ -81,7 +81,7 @@ example('portal2', function(ctx) {
     ctx.lineTo(160,290);
     ctx.stroke();
 
-    //restore the <code class="prettyprint">context</code> 
+    //restore the context
     //back to its initial state
     ctx.restore();
     // body...
