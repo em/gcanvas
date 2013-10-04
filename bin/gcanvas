@@ -12,14 +12,14 @@ var fs = require('fs')
 program
   .version(require('../package.json').version)
   .usage('[options] <file ...>')
-  .option('-s, --speed <number>', 'Spindle speed')
-  .option('-f, --feed <number>', 'Feed rate')
-  .option('-d, --depth <number>', 'Final cut depth')
-  .option('-c, --depthofcut <number>', 'Depth of layered cut')
-  .option('-s, --surface <number>', 'Distance to work surface')
-  .option('-w, --width <number>', 'Canvas width')
-  .option('-h, --height <number>', 'Canvas height')
-  .option('-e, --entry <name>', 'Name of entry function to call. Defaults to main(ctx)', 'main')
+  .option('-s, --speed <number>', 'spindle speed')
+  .option('-f, --feed <number>', 'feed rate')
+  .option('-d, --depth <number>', 'final cut depth')
+  .option('-c, --depthofcut <number>', 'depth of layered cut')
+  .option('-s, --surface <number>', 'distance to work surface')
+  .option('-w, --width <number>', 'canvas width')
+  .option('-h, --height <number>', 'canvas height')
+  .option('-e, --entry <name>', 'name of entry function to call. defaults to main(ctx)', 'main')
 
 program.parse(process.argv);
 
