@@ -1,6 +1,6 @@
 {
   "name": "gcanvas",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A Canvas API implementation that generates Gcode",
   "bin": {
     "gcanvas": "./bin/gcanvas"
