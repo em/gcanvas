@@ -30,11 +30,11 @@ The project is still very new and some things are missing:
 Additional context properties are added for milling
 and to support stroke-alignment (not yet implemented) which the canvas spec doesn't have yet (but really needs).
 
-* `context.depth` Specifies the total Z depth to cut into the work. If not set the Z axis never changes. 
+* `context.depth` Specifies the total Z depth to cut into the work relative to `context.top`. If not set the Z axis never changes. 
 
 * `context.depthOfCut` Specifies an incrementing depth of cut in layers up to `context.depth`.
 
-* `context.surface` The Z offset of the work surface. Use with depthOfCut otherwise you'll make make several passes before cutting anything. Defaults to 0.
+* `context.top` The Z position of the work surface. Use with depthOfCut otherwise you'll make make several passes before cutting anything. Defaults to 0.
  
 * `context.toolDiameter` This must be set for fill() to work properly because it has to calculate tool offsets.
 
