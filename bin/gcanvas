@@ -17,6 +17,8 @@ program
   .option('-d, --depth <number>', 'Final cut depth')
   .option('-c, --depthofcut <number>', 'Depth of layered cut')
   .option('-s, --surface <number>', 'Distance to work surface')
+  .option('-w, --width <number>', 'Canvas width')
+  .option('-h, --height <number>', 'Canvas height')
   .option('-e, --entry <name>', 'Name of entry function to call. Defaults to main(ctx)', 'main')
 
 program.parse(process.argv);
@@ -28,6 +30,8 @@ if(program.feed) gctx.feed = program.feed;
 if(program.depth) gctx.depth = program.depth;
 if(program.depthofcut) gctx.depthOfCut = program.depthofcut;
 if(program.surface) gctx.surface = program.surface;
+if(program.width) gctx.canvas.width = program.width;
+if(program.height) gctx.canvas.height = program.height;
 
 function run(file) {
   var util = require('util'),
