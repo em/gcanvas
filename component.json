@@ -2,9 +2,8 @@
   "name": "gcanvas",
   "repo": "em/gcanvas",
   "description": "",
-  "version": "0.0.1",
+  "version": "0.0.7",
   "keywords": [],
-  "locals": ["../three"],
   "development": {},
   "license": "MIT",
   "scripts": [

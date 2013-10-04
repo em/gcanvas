@@ -12,11 +12,26 @@ var fs = require('fs')
 program
   .version(require('../package.json').version)
   .usage('[options] <file ...>')
-  .option('-e, --entry <name>', 'Name of entry function to call. Defaults to main(ctx)', 'main')
+  .option('-s, --speed <number>', 'spindle speed')
+  .option('-f, --feed <number>', 'feed rate')
+  .option('-d, --depth <number>', 'final cut depth')
+  .option('-c, --depthofcut <number>', 'depth of layered cut')
+  .option('-s, --surface <number>', 'distance to work surface')
+  .option('-w, --width <number>', 'canvas width')
+  .option('-h, --height <number>', 'canvas height')
+  .option('-e, --entry <name>', 'name of entry function to call. defaults to main(ctx)', 'main')
 
 program.parse(process.argv);
 
 var gctx = new GCanvas();
+
+if(program.speed) gctx.speed = program.speed;
+if(program.feed) gctx.feed = program.feed;
+if(program.depth) gctx.depth = program.depth;
+if(program.depthofcut) gctx.depthOfCut = program.depthofcut;
+if(program.surface) gctx.surface = program.surface;
+if(program.width) gctx.canvas.width = program.width;
+if(program.height) gctx.canvas.height = program.height;
 
 function run(file) {
   var util = require('util'),

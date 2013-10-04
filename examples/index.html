@@ -123,6 +123,9 @@ function example(name, fn) {
   var simctx = new GCanvas(simdriver, 200, 200);
   var gcodectx = new GCanvas(null, 200, 200);
 
+  gcodectx.toolDiameter = 10;
+  simctx.toolDiameter = 10;
+
   var gcodeElem = ex.getElementsByClassName('gcode')[0];
   gcodectx.driver.stream.write = function(cmd) {
     var line = document.createElement('li');
@@ -143,7 +146,7 @@ function example(name, fn) {
 <script src="arc.js"></script>
 <script src="bezier.js"></script>
 <script src="quadratic.js"></script>
-<script src="star.js"></script>
+<script src="filling.js"></script>
 <script src="winding.js"></script>
 <script src="text.js"></script>
 <script src="clipping.js"></script>

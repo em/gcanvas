@@ -1,4 +1,4 @@
-example('portal2', function(ctx) {
+function main() {
   ctx.scale(0.6,0.6);
   portal2(ctx);
 
@@ -81,11 +81,11 @@ example('portal2', function(ctx) {
     ctx.lineTo(160,290);
     ctx.stroke();
 
-    //restore the <code class="prettyprint">context</code> 
+    //restore the context
     //back to its initial state
     ctx.restore();
     // body...
   }
-});
+}
 
-
+if(this.example) this.example('portal2', main);

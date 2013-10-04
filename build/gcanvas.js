@@ -222,8 +222,8 @@ function GCanvas(driver, width, height) {\n\
   this.font = \"7pt Helvetiker\";\n\
   this.matrix = new Matrix();\n\
   this.rotation = 0; \n\
-  this.depth = 1;\n\
-  this.depthOfCut = 1;\n\
+  this.depth = 0;\n\
+  this.depthOfCut = 0;\n\
   this.surface = 0;\n\
   this.toolDiameter = 5;\n\
   this.driver = driver || new GCodeDriver();\n\
@@ -392,8 +392,9 @@ GCanvas.prototype = {\n\
     var scale = 1;\n\
     var cleandelta = 0.1; // 0.1 should be the appropriate delta in different cases\n\
 \n\
-    var joinType = ClipperLib.JoinType.jtSquare;\n\
-    var miterLimit = 1;\n\
+    // var joinType = ClipperLib.JoinType.jtSquare;\n\
+    var joinType = 2;\n\
+    var miterLimit = 10;\n\
     var AutoFix = true;\n\
 \n\
     var offsetted_polygon = cpr.OffsetPolygons(polygons, delta, joinType, miterLimit, AutoFix);\n\
@@ -442,7 +443,7 @@ GCanvas.prototype = {\n\
   }\n\
 , fill: function() {\n\
     this.layers(function() {\n\
-      for(var i = - this.toolDiameter/2; i > -1000; i -= this.toolDiameter) {\n\
+      for(var i = - this.toolDiameter/2; i > -1000; i -= this.toolDiameter*0.75) {\n\
         var done = this._offsetStroke(i);\n\
         if(done) return;\n\
       }\n\

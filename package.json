@@ -1,7 +1,13 @@
 {
   "name": "gcanvas",
-  "version": "0.0.4",
+  "version": "0.0.8",
   "description": "A Canvas API implementation that generates Gcode",
+  "keywords": [
+    "canvas",
+    "cnc",
+    "mill",
+    "gcode"
+  ],
   "bin": {
     "gcanvas": "./bin/gcanvas"
   },
@@ -9,9 +15,9 @@
     "commander": "2.0.0"
   },
   "devDependencies": {
-    "component": "*"
-  , "mocha": "*"
-  , "chai": "*"
+    "component": "*",
+    "mocha": "*",
+    "chai": "*"
   },
   "repository": {
     "type": "git",
