@@ -6496,19 +6496,22 @@ Motion.prototype = {\n\
       params.j = Math.round(params.j * 1000000) / 1000000;\n\
 \n\
     // Set new spindle speed changed\n\
-    if(this.ctx.speed != this.currentSpeed) {\n\
+    if(this.ctx.driver.speed\n\
+       && this.ctx.speed != this.currentSpeed) {\n\
       this.ctx.driver.speed(this.ctx.speed);\n\
       this.currentSpeed = this.ctx.speed;\n\
     }\n\
 \n\
     // Set new feedrate changed\n\
-    if(this.ctx.feed != this.currentFeed) {\n\
+    if(this.ctx.driver.feed\n\
+       && this.ctx.feed != this.currentFeed) {\n\
       this.ctx.driver.feed(this.ctx.feed);\n\
       this.currentFeed = this.ctx.feed;\n\
     }\n\
 \n\
     // Set coolant if changed\n\
-    if(this.ctx.coolant != this.currentCoolant) {\n\
+    if(this.ctx.driver.coolant\n\
+       && this.ctx.coolant != this.currentCoolant) {\n\
       this.ctx.driver.coolant(this.ctx.coolant);\n\
       this.currentCoolant = this.ctx.coolant;\n\
     }\n\
