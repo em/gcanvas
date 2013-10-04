@@ -1,4 +1,4 @@
-example('filling', function(ctx) {
+function main(ctx) {
   star(ctx, 100, 100, 90, 5, 0.5);
 
   function star(ctx, x, y, r, p, m) {
@@ -12,4 +12,7 @@ example('filling', function(ctx) {
     }
     ctx.fill();
   }
-});
+}
+
+
+if(this.example) this.example('filling', main);

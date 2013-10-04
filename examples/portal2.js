@@ -1,4 +1,4 @@
-example('portal2', function(ctx) {
+function main() {
   ctx.scale(0.6,0.6);
   portal2(ctx);
 
@@ -86,6 +86,6 @@ example('portal2', function(ctx) {
     ctx.restore();
     // body...
   }
-});
+}
 
-
+if(this.example) this.example('portal2', main);

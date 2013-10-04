@@ -1,4 +1,4 @@
-example('clipping', function(ctx) {
+function main(ctx) {
   ctx.toolDiameter = 10;
   ctx.rect(20, 20, 160, 160);
   ctx.clip();
@@ -6,4 +6,6 @@ example('clipping', function(ctx) {
   ctx.beginPath();
   ctx.arc(100, 100, 90, 0, Math.PI*2);
   ctx.fill();
-});
+}
+
+if(this.example) this.example('clipping', main);
