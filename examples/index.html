@@ -109,6 +109,7 @@ function example(name, fn) {
   var ex = document.createElement('div');
   ex.className = 'example';
   ex.innerHTML = html;
+  ex.id = name;
   document.getElementById('examples').appendChild(ex);
 
   var jsElem = ex.getElementsByClassName('javascript')[0];
