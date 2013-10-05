@@ -84,6 +84,24 @@ function main(ctx) {
 $ gcanvas helloworld.js | serialportterm -baud 9600 /dev/tty.usbmodem1337
 ```
 
+#### Setups and tool changes
+
+The CLI exposes a global function `setup(name, fn)` which prompts for user
+intervention and raises the Z axis to 0.
+
+If the part requires multiple work setups and tool changes, break them into setup blocks:
+
+```
+setup('1/2" endmill', function(ctx) { 
+  ctx.toolDiameter = 1/2*25.4;
+  // ...
+});
+
+setup('face down', function(ctx) { 
+  // ...
+});
+```
+
 ### Why
 
 1. The most common machining tasks are 2.5D.
