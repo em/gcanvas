@@ -227,6 +227,7 @@ function GCanvas(driver, width, height) {\n\
   this.top = 0;\n\
   this.aboveTop = 0;\n\
   this.toolDiameter = 5;\n\
+  this.strokeAlign = 'center';\n\
   this.driver = driver || new GcodeDriver();\n\
   this.stack = [];\n\
   this.motion = new Motion(this);\n\
@@ -348,6 +349,12 @@ GCanvas.prototype = {\n\
   }\n\
 \n\
 , _offsetStroke: function(delta) {\n\
+    // Much much faster followPath if no offset\n\
+    if(delta === 0) {\n\
+      this.motion.followPath(this.subPaths);\n\
+      return;\n\
+    }\n\
+\n\
     var cpr = new ClipperLib.Clipper();\n\
     var polygons = [];\n\
     this.subPaths.forEach(function(path) {\n\
@@ -465,10 +472,20 @@ GCanvas.prototype = {\n\
     // Removed until I have cleaner way to do it\n\
   }\n\
 , stroke: function() {\n\
+    var offset = 0;\n\
+    if(this.strokeAlign === 'outset') {\n\
+      offset = this.toolDiameter;\n\
+    }\n\
+    if(this.strokeAlign === 'inset') {\n\
+      offset = -this.toolDiameter;\n\
+    }\n\
+\n\
     this.layers(function() {\n\
-      this.motion.followPath(this.subPaths);\n\
+      // _offsetStroke optimizes 0 offset for us\n\
+      this._offsetStroke(offset);\n\
     });\n\
   }\n\
+  \n\
 , layers: function(fn) {\n\
     if(this.depth <= this.depthOfCut || !this.depthOfCut) {\n\
       this.motion.targetDepth = this.depth;\n\

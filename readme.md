@@ -14,8 +14,6 @@ ctx.strokeText("Robots are cool", "20pt");
 ### TODO (Current Limitations)
 The project is still very new and some things are missing:
 
-* Stroke alignment. Only `center` now, just like standard canvas.
-
 * Read system ttf fonts. Right now, any fonts defaults to a single built-in Helvetiker font.
 
 * lineWidth, endCap, and miterLimit
@@ -28,7 +26,7 @@ The project is still very new and some things are missing:
 ### Non-standard extensions to Canvas 
 
 Additional context properties are added for milling
-and to support stroke-alignment (not yet implemented) which the canvas spec doesn't have yet (but really needs).
+and to support stroke-alignment which the canvas spec doesn't have yet (but really needs).
 
 * `context.depth` Specifies the total Z depth to cut into the work relative to `context.top`. If not set the Z axis never changes. 
 
@@ -48,7 +46,7 @@ and to support stroke-alignment (not yet implemented) which the canvas spec does
 
 * `context.coolant` Can be true, false, "mist" (M07) or "flood" (M08). True defaults to "flood".
 
-* `context.strokeAlign` (not yet implemented) can be 'inset', 'outset', or 'center' (default)
+* `context.strokeAlign` Can be 'inset', 'outset', or 'center' (default). Non-center alignment closes the path.
 
 In the future I plan to determine most of these automatically with two properties, `context.material` and `context.tool`. But they should always be overridable and it makes sense to get the basics right first.
 
