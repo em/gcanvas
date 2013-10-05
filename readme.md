@@ -37,8 +37,10 @@ and to support stroke-alignment (not yet implemented) which the canvas spec does
 * `context.top` The Z position of the work surface. Use with depthOfCut otherwise you'll make make several passes before cutting anything. Defaults to 0.
  
 * `context.aboveTop` The Z position of a safe area above the surface of the work. This is where the tool retracts to before rapid moves. It should be top-(a reasonable surface tolerance). Defaults to 0.
- 
+
 * `context.toolDiameter` This must be set for fill() to work properly because it has to calculate tool offsets.
+
+* `context.atc` Auto tool change. Sends `M06 T{context.atc}`. Make sure you update toolDiameter.
 
 * `context.feed` Sets the feedrate by sending a single F command.
 

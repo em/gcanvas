@@ -12,7 +12,8 @@
     "gcanvas": "./bin/gcanvas"
   },
   "dependencies": {
-    "commander": "2.0.0"
+    "commander": "2.0.0",
+    "stdunits": "*"
   },
   "devDependencies": {
     "component": "*",

@@ -196,6 +196,10 @@ require.relative = function(parent) {
 
   return localRequire;
 };
+require.register("em-stdunits/index.js", Function("exports, require, module",
+"module.exports = require('./stdunits');\n\
+//@ sourceURL=em-stdunits/index.js"
+));
 require.register("gcanvas/index.js", Function("exports, require, module",
 "module.exports = require('./lib/gcanvas')\n\
 //@ sourceURL=gcanvas/index.js"
@@ -205,7 +209,7 @@ require.register("gcanvas/lib/gcanvas.js", Function("exports, require, module",
 \n\
 var Path = require('./path')\n\
   , Motion = require('./motion')\n\
-  , GCodeDriver = require('./drivers/gcode')\n\
+  , GcodeDriver = require('./drivers/gcode')\n\
   , Point = require('./math/point')\n\
   , Matrix = require('./math/matrix')\n\
   , ClipperLib = require('./clipper')\n\
@@ -227,7 +231,7 @@ function GCanvas(driver, width, height) {\n\
   this.top = 0;\n\
   this.aboveTop = 0;\n\
   this.toolDiameter = 5;\n\
-  this.driver = driver || new GCodeDriver();\n\
+  this.driver = driver || new GcodeDriver();\n\
   this.stack = [];\n\
   this.motion = new Motion(this);\n\
 \n\
@@ -521,6 +525,7 @@ GCanvas.prototype = {\n\
 \n\
 GCanvas.Filter = require('./drivers/filter');\n\
 GCanvas.Simulator = require('./drivers/simulator');\n\
+GCanvas.GcodeDriver = GcodeDriver;\n\
 \n\
 var helvetiker = require('./fonts/helvetiker_regular.typeface');\n\
 Font.load(helvetiker);\n\
@@ -6496,6 +6501,13 @@ Motion.prototype = {\n\
     if(params.j)\n\
       params.j = Math.round(params.j * 1000000) / 1000000;\n\
 \n\
+    // Set new spindle atc changed\n\
+    if(this.ctx.driver.atc\n\
+       && this.ctx.atc != this.currentAtc) {\n\
+      this.ctx.driver.atc(this.ctx.atc);\n\
+      this.currentAtc = this.ctx.atc;\n\
+    }\n\
+\n\
     // Set new spindle speed changed\n\
     if(this.ctx.driver.speed\n\
        && this.ctx.speed != this.currentSpeed) {\n\
@@ -6781,6 +6793,8 @@ module.exports = {\n\
 require.register("gcanvas/lib/drivers/gcode.js", Function("exports, require, module",
 "module.exports = GCodeDriver;\n\
 \n\
+var units = require('stdunits');\n\
+\n\
 function GCodeDriver(stream) {\n\
   this.stream = stream || {\n\
     write: function(str) {\n\
@@ -6816,6 +6830,9 @@ GCodeDriver.prototype = {\n\
       // off\n\
       this.send('M09');\n\
     }\n\
+  }\n\
+, atc: function(id) {\n\
+    this.send('M6', {T: id});\n\
   }\n\
 , rapid: function(params) {\n\
     this.send('G0', params);\n\
@@ -6887,7 +6904,11 @@ The Font Software may be sold as part of a larger software package but no copy o
 \\r\\n\
 THE FONT SOFTWARE IS PROVIDED \\\"AS IS\\\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL MAGENTA OR PERSONS OR BODIES IN CHARGE OF ADMINISTRATION AND MAINTENANCE OF THE FONT SOFTWARE BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM OTHER DEALINGS IN THE FONT SOFTWARE.\",\"manufacturer_name\":\"Μagenta ltd\",\"font_sub_family_name\":\"Regular\"},\"descender\":-334,\"familyName\":\"Helvetiker\",\"lineHeight\":1522,\"underlineThickness\":50});\n\
 //@ sourceURL=gcanvas/lib/fonts/helvetiker_regular.typeface.js"
-));if (typeof exports == "object") {
+));
+require.alias("em-stdunits/index.js", "gcanvas/deps/stdunit/index.js");
+require.alias("em-stdunits/index.js", "gcanvas/deps/stdunit/index.js");
+require.alias("em-stdunits/index.js", "stdunit/index.js");
+require.alias("em-stdunits/index.js", "em-stdunits/index.js");if (typeof exports == "object") {
   module.exports = require("gcanvas");
 } else if (typeof define == "function" && define.amd) {
   define(function(){ return require("gcanvas"); });
