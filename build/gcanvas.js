@@ -6789,8 +6789,6 @@ module.exports = {\n\
 require.register("gcanvas/lib/drivers/gcode.js", Function("exports, require, module",
 "module.exports = GCodeDriver;\n\
 \n\
-var units = require('stdunits');\n\
-\n\
 function GCodeDriver(stream) {\n\
   this.stream = stream || {\n\
     write: function(str) {\n\
