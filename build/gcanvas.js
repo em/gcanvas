@@ -449,7 +449,7 @@ GCanvas.prototype = {\n\
     this.clipRegion.push(this.path.clone());\n\
   }\n\
 , fill: function() {\n\
-    this.layers(function() {\n\
+    this._layer(function() {\n\
       for(var i = - this.toolDiameter/2; i > -1000; i -= this.toolDiameter*0.75) {\n\
         var done = this._offsetStroke(i);\n\
         if(done) return;\n\
@@ -480,24 +480,25 @@ GCanvas.prototype = {\n\
       offset = -this.toolDiameter;\n\
     }\n\
 \n\
-    this.layers(function() {\n\
+    this._layer(function() {\n\
       // _offsetStroke optimizes 0 offset for us\n\
       this._offsetStroke(offset);\n\
     });\n\
   }\n\
   \n\
-, layers: function(fn) {\n\
-    if(this.depth <= this.depthOfCut || !this.depthOfCut) {\n\
-      this.motion.targetDepth = this.depth;\n\
+, _layer: function(fn) {\n\
+    var depthOfCut = this.depthOfCut || this.depth;\n\
+    var start = this.top + depthOfCut;\n\
+\n\
+    if(depthOfCut === 0) {\n\
+      this.motion.targetDepth = start;\n\
       fn.call(this);\n\
       return;\n\
     }\n\
 \n\
-    var start = this.top + this.depthOfCut;\n\
-\n\
     for(var depth=start;\n\
         depth <= this.top+this.depth;\n\
-        depth += this.depthOfCut) {\n\
+        depth += depthOfCut) {\n\
       // Clip to actual depth\n\
       depth = Math.min(depth, this.top+this.depth);\n\
       // Set new target depth in motion\n\
@@ -520,7 +521,7 @@ GCanvas.prototype = {\n\
   }\n\
 \n\
 , strokeText: function(text, x, y, params) {\n\
-    this.layers(function() {\n\
+    this._layer(function() {\n\
       var fontProps = parseFont(this.font);\n\
       var font = new Font(fontProps);\n\
 \n\

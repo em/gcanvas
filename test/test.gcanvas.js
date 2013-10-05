@@ -172,6 +172,30 @@ describe('GCanvas', function() {
     });
   });
 
+  describe('#_layer', function() {
+    it('increments in depthOfCut to depth', function() {
+      ctx.depth = 2;
+      ctx.depthOfCut = 1;
+      ctx.moveTo(0,0);
+      ctx.lineTo(10,10);
+      ctx.stroke();
+
+      // first layer
+      hand.linear({z:1}); // plunge
+      hand.linear({x:10,y:10}); // lineTo
+
+      // return to start
+      hand.rapid({z:0}); // retract
+      hand.rapid({x:0,y:0}); // moveTo
+
+      // second layer
+      hand.linear({z:2}); // plunge
+      hand.linear({x:10,y:10}); // lineTo
+
+
+      expect(robot.result).eql(hand.result);
+    });
+  });
 
   describe('#fill', function() {
   });
