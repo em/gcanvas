@@ -305,7 +305,6 @@ GCanvas.prototype = {\n\
     // between 0 and pi2 so we must optimize out 0 here \n\
     // or else they will be treated as full circles.\n\
     if(aStartAngle - aEndAngle === 0) {\n\
-      this.lineTo();\n\
       return;\n\
     }\n\
 \n\
@@ -6475,15 +6474,23 @@ Motion.prototype = {\n\
   }\n\
 , arcCW: function(params) {\n\
     var newPosition = this.postProcess(params);\n\
+    // Can be cyclic so we don't\n\
+    // ignore it if the position is the same\n\
 \n\
     this.ctx.driver.arcCW.call(this.ctx.driver, params);\n\
-    this.position = newPosition;\n\
+\n\
+    if(newPosition) {\n\
+      this.position = newPosition;\n\
+    }\n\
   }\n\
 , arcCCW: function(params) {\n\
     var newPosition = this.postProcess(params);\n\
 \n\
     this.ctx.driver.arcCCW.call(this.ctx.driver, params);\n\
-    this.position = newPosition;\n\
+\n\
+    if(newPosition) {\n\
+      this.position = newPosition;\n\
+    }\n\
   }\n\
 , postProcess: function(params) {\n\
     if(params.x)\n\
@@ -6550,6 +6557,11 @@ Motion.prototype = {\n\
     var item;\n\
 \n\
     each[Path.actions.MOVE_TO] = function(x,y) {\n\
+      // Optimize out 0 distances moves\n\
+      if(utils.sameFloat(x, this.position.x) &&\n\
+         utils.sameFloat(y, this.position.y)) {\n\
+        return;\n\
+      }\n\
       motion.retract();\n\
       motion.rapid({x:x,y:y});\n\
     };\n\
@@ -6561,6 +6573,9 @@ Motion.prototype = {\n\
 \n\
     each[Path.actions.ELLIPSE] = function(x, y, rx, ry,\n\
 \t\t\t\t\t\t\t\t\t  aStart, aEnd, aClockwise , mx, my) {\n\
+\n\
+      motion.plunge();\n\
+\n\
       // Detect plain arc\n\
       if(utils.sameFloat(rx,ry) &&\n\
         (driver.arcCW && !aClockwise) ||\n\
@@ -6574,11 +6589,6 @@ Motion.prototype = {\n\
             x: points.end.x, y: points.end.y,\n\
             i: x-points.start.x, j: y-points.start.y\n\
           };\n\
-\n\
-          motion.retract();\n\
-          motion.rapid({x:points.start.x,\n\
-                       y:points.start.y});\n\
-          motion.plunge();\n\
 \n\
           if(aClockwise)\n\
             motion.arcCCW(params);\n\

@@ -34,6 +34,16 @@ describe('GCanvas', function() {
 
       expect(robot.result).eql(hand.result);
     });
+
+    it('optimizes out 0 distance moves', function() {
+      ctx.moveTo(10,10);
+      ctx.moveTo(10,10);
+      ctx.stroke();
+      hand.rapid({x:10,y:10});
+      expect(robot.result).eql(hand.result);
+    });
+
+
   });
 
   describe('#lineTo', function() {
@@ -98,6 +108,22 @@ describe('GCanvas', function() {
       hand.rapid({x:20,y:10});
       hand.linear({z:1});
       hand.arcCW({x:0,y:10,i:-10,j:0});
+
+      expect(robot.result).eql(hand.result);
+    });
+
+    it('does not retract if not necessary', function() {
+      ctx.depth = 2;
+      ctx.depthOfCut=1;
+      ctx.arc(10, 10, 10, 0, Math.PI*2);
+      ctx.stroke();
+
+      hand.rapid({x:20,y:10});
+      hand.linear({z:1});
+      hand.arcCW({x:20,y:10,i:-10,j:0});
+      hand.linear({z:2});
+      hand.arcCW({x:20,y:10,i:-10,j:0});
+
 
       expect(robot.result).eql(hand.result);
     });
