@@ -196,10 +196,6 @@ require.relative = function(parent) {
 
   return localRequire;
 };
-require.register("em-stdunits/index.js", Function("exports, require, module",
-"module.exports = require('./stdunits');\n\
-//@ sourceURL=em-stdunits/index.js"
-));
 require.register("gcanvas/index.js", Function("exports, require, module",
 "module.exports = require('./lib/gcanvas')\n\
 //@ sourceURL=gcanvas/index.js"
@@ -6904,11 +6900,7 @@ The Font Software may be sold as part of a larger software package but no copy o
 \\r\\n\
 THE FONT SOFTWARE IS PROVIDED \\\"AS IS\\\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL MAGENTA OR PERSONS OR BODIES IN CHARGE OF ADMINISTRATION AND MAINTENANCE OF THE FONT SOFTWARE BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM OTHER DEALINGS IN THE FONT SOFTWARE.\",\"manufacturer_name\":\"Μagenta ltd\",\"font_sub_family_name\":\"Regular\"},\"descender\":-334,\"familyName\":\"Helvetiker\",\"lineHeight\":1522,\"underlineThickness\":50});\n\
 //@ sourceURL=gcanvas/lib/fonts/helvetiker_regular.typeface.js"
-));
-require.alias("em-stdunits/index.js", "gcanvas/deps/stdunit/index.js");
-require.alias("em-stdunits/index.js", "gcanvas/deps/stdunit/index.js");
-require.alias("em-stdunits/index.js", "stdunit/index.js");
-require.alias("em-stdunits/index.js", "em-stdunits/index.js");if (typeof exports == "object") {
+));if (typeof exports == "object") {
   module.exports = require("gcanvas");
 } else if (typeof define == "function" && define.amd) {
   define(function(){ return require("gcanvas"); });

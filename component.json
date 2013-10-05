@@ -5,7 +5,6 @@
   "version": "0.0.10",
   "keywords": [],
   "dependencies": {
-    "em/stdunits": "*"
   },
   "development": {},
   "license": "MIT",
