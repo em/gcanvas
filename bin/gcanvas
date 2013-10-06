@@ -97,4 +97,4 @@ program.args.forEach(function(file) {
 
 // cleanup
 gctx.motion.retract();
-gctx.motion.rapid({x:0,y:0,z:0});
+// gctx.motion.rapid({x:0,y:0,z:0});

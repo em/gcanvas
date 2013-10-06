@@ -231,6 +231,7 @@ function GCanvas(driver, width, height) {\n\
   this.driver = driver || new GcodeDriver();\n\
   this.stack = [];\n\
   this.motion = new Motion(this);\n\
+  this.surfaceTolerance = 0;\n\
 \n\
   this.beginPath();\n\
 }\n\
@@ -503,9 +504,15 @@ GCanvas.prototype = {\n\
       depth = Math.min(depth, this.top+this.depth);\n\
       // Set new target depth in motion\n\
       this.motion.targetDepth = depth;\n\
-      // Run the callback\n\
+      // Remove the material\n\
       fn.call(this);\n\
+      // We removed the material so\n\
+      // now we can retract to that depth\n\
+      this.motion.retractTo = depth;\n\
     }\n\
+\n\
+    // Restore to normal retraction\n\
+    this.motion.retractTo = null;\n\
   }\n\
 , fillText: function(text, x, y, params) {\n\
       var fontProps = parseFont(this.font);\n\
@@ -6471,7 +6478,9 @@ function Motion(ctx) {\n\
 \n\
 Motion.prototype = {\n\
   retract: function() {\n\
-    this.rapid({z: this.ctx.aboveTop});\n\
+    this.rapid({z:this.retractTo\n\
+               || this.ctx.aboveTop\n\
+               || this.ctx.top - this.ctx.surfaceTolerance});\n\
   }\n\
 , plunge: function() {\n\
     this.linear({z: this.targetDepth});\n\
@@ -6576,6 +6585,7 @@ Motion.prototype = {\n\
 \n\
     each[Path.actions.MOVE_TO] = function(x,y) {\n\
       // Optimize out 0 distances moves\n\
+      // This is useful for cyclic paths\n\
       if(utils.sameFloat(x, this.position.x) &&\n\
          utils.sameFloat(y, this.position.y)) {\n\
         return;\n\
