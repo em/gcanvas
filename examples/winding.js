@@ -1,9 +1,9 @@
 function main(ctx) {
   ctx.toolDiameter = 10;
-  ctx.workSetup = 'left side';
   ctx.arc(100, 100, 90, 0, Math.PI*2, true);
-  star(ctx, 100, 100, 90, 5, 0.5);
-  ctx.fill();
+  star(ctx, 100, 100, 40, 5, 0.5);
+  // ctx.arc(100, 130, 30, 0, Math.PI*2);
+  ctx.fill('nonzero');
 }
 
 function star(ctx, x, y, r, p, m)

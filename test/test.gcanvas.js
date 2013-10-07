@@ -185,8 +185,7 @@ describe('GCanvas', function() {
       hand.linear({x:10,y:10}); // lineTo
 
       // return to start
-      // note: optimizations should prevent retract
-      // hand.rapid({z:0}); // retract
+      hand.rapid({z:0}); // retract
       hand.rapid({x:0,y:0}); // moveTo
 
       // second layer

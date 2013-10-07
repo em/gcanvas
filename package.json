@@ -1,6 +1,6 @@
 {
   "name": "gcanvas",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "A Canvas API implementation that generates Gcode",
   "keywords": [
     "canvas",

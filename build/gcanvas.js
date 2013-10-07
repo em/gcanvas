@@ -208,7 +208,6 @@ var Path = require('./path')\n\
   , GcodeDriver = require('./drivers/gcode')\n\
   , Point = require('./math/point')\n\
   , Matrix = require('./math/matrix')\n\
-  , ClipperLib = require('./clipper')\n\
   , Font = require('./font')\n\
   , parseFont = require('./parsefont')\n\
   , utils = require('./utils');\n\
@@ -250,9 +249,9 @@ GCanvas.prototype = {\n\
     this.rotation = prev.rotation;\n\
   }\n\
 , beginPath: function() {\n\
-    this.prevSubPaths = this.subPaths;\n\
+    // this.prevSubPaths = this.subPaths;\n\
     this.path = new Path();\n\
-    this.subPaths = [this.path];\n\
+    // this.subPaths = [this.path];\n\
   }\n\
 , _restorePath: function() {\n\
     this.subPaths = this.prevSubPaths;\n\
@@ -284,15 +283,15 @@ GCanvas.prototype = {\n\
     }\n\
   }\n\
 , _ensurePath: function(x,y) {\n\
-    if(this.path.actions.length === 0) {\n\
+    if(this.path.subPaths.length === 0) {\n\
       this.path.moveTo(x,y);\n\
     }\n\
   }\n\
 , moveTo: function(x,y) {\n\
     this._transformPoint(arguments);\n\
-    this.path = new Path();\n\
+    // this.path = new Path();\n\
     this.path.moveTo(x,y);\n\
-    this.subPaths.push( this.path );\n\
+    // this.subPaths.push( this.path );\n\
   }\n\
 , lineTo: function(x,y) {\n\
     this._transformPoint(arguments);\n\
@@ -349,113 +348,10 @@ GCanvas.prototype = {\n\
     this.path.quadraticCurveTo.apply(this.path, arguments);\n\
   }\n\
 \n\
-, _offsetStroke: function(delta) {\n\
-    // Much much faster followPath if no offset\n\
-    if(delta === 0) {\n\
-      this.motion.followPath(this.subPaths);\n\
-      return;\n\
-    }\n\
-\n\
-    var cpr = new ClipperLib.Clipper();\n\
-    var polygons = [];\n\
-    this.subPaths.forEach(function(path) {\n\
-      if(path.actions.length !== 0)\n\
-        polygons.push( path.getPoints(40).map(function(p) {\n\
-          return {X: p.x, Y: p.y};\n\
-        }) );\n\
-    });\n\
-\n\
-    function path2poly(paths) {\n\
-      var poly = [];\n\
-      paths.forEach(function(path) {\n\
-        if(path.actions.length !== 0)\n\
-          poly.push( path.getPoints(40).map(function(p) {\n\
-            return {X: p.x, Y: p.y};\n\
-          }) );\n\
-      }); \n\
-      return poly;\n\
-    }\n\
-\n\
-    polygons = ClipperLib.Clean(polygons, cleandelta * scale);\n\
-    polygons = cpr.SimplifyPolygons(polygons, ClipperLib.PolyFillType.pftNonZero);\n\
-    cpr.AddPolygons(polygons, ClipperLib.PolyType.ptSubject);\n\
-\n\
-    if(this.clipRegion) {\n\
-      var cpr = new ClipperLib.Clipper();\n\
-      var subject_fillType = 1;\n\
-      var clip_fillType = 1;\n\
-      var clip_polygons = path2poly(this.clipRegion);\n\
-      var clipType = 0;\n\
-      cpr.AddPolygons(polygons, ClipperLib.PolyType.ptSubject);\n\
-      cpr.AddPolygons(clip_polygons, ClipperLib.PolyType.ptClip);\n\
-      var result = [];\n\
-      var succeeded = cpr.Execute(clipType, result, subject_fillType, clip_fillType);\n\
-      polygons = result;\n\
-    }\n\
-\n\
-    scaleup(polygons, 1000);\n\
-\n\
-    delta *= 1000;\n\
-\n\
-    var scale = 1;\n\
-    var cleandelta = 0.1; // 0.1 should be the appropriate delta in different cases\n\
-\n\
-    // var joinType = ClipperLib.JoinType.jtSquare;\n\
-    var joinType = 2;\n\
-    var miterLimit = 10;\n\
-    var AutoFix = true;\n\
-\n\
-    var offsetted_polygon = cpr.OffsetPolygons(polygons, delta, joinType, miterLimit, AutoFix);\n\
-\n\
-    scaleup(offsetted_polygon, 1/1000);\n\
-\n\
-    function scaleup(poly, scale) {\n\
-      var i, j;\n\
-      if (!scale) scale = 1;\n\
-      for(i = 0; i < poly.length; i++) {\n\
-        for(j = 0; j < poly[i].length; j++) {\n\
-          poly[i][j].X *= scale;\n\
-          poly[i][j].Y *= scale;\n\
-        }\n\
-      }\n\
-      return poly;\n\
-    }\n\
-\n\
-    // converts polygons to SVG path string\n\
-    function polys2path (poly, scale) {\n\
-      var path = new Path(), i, j;\n\
-      if (!scale) scale = 1;\n\
-      for(i = 0; i < poly.length; i++) {\n\
-        path.moveTo(poly[i][0].X, poly[i][0].Y);\n\
-\n\
-        for(j = 1; j < poly[i].length; j++){\n\
-          path.lineTo(poly[i][j].X, poly[i][j].Y);\n\
-        }\n\
-\n\
-        path.lineTo(poly[i][0].X, poly[i][0].Y);\n\
-      }\n\
-      // console.log(path);\n\
-      return path;\n\
-    }\n\
-\n\
-    // console.log(offsetted_polygon);\n\
-\n\
-    if(offsetted_polygon.length === 0\n\
-      || offsetted_polygon[0].length === 0) return true;\n\
-\n\
-    this.motion.followPath(polys2path(offsetted_polygon));\n\
-  }\n\
 , clip: function() {\n\
-    this.clipRegion = this.subPaths.slice(0,-1);\n\
-    this.clipRegion.push(this.path.clone());\n\
-  }\n\
-, fill: function() {\n\
-    this._layer(function() {\n\
-      for(var i = - this.toolDiameter/2; i > -1000; i -= this.toolDiameter*0.75) {\n\
-        var done = this._offsetStroke(i);\n\
-        if(done) return;\n\
-      }\n\
-    });\n\
+    this.clipRegion = this.path;\n\
+    // this.clipRegion = this.subPaths.slice(0,-1);\n\
+    // this.clipRegion.push(this.path.clone());\n\
   }\n\
 , rect: function(x,y,w,h) {\n\
     this.moveTo(x,y);\n\
@@ -481,12 +377,45 @@ GCanvas.prototype = {\n\
       offset = -this.toolDiameter;\n\
     }\n\
 \n\
+    var path = this.path.offset(offset);\n\
     this._layer(function() {\n\
-      // _offsetStroke optimizes 0 offset for us\n\
-      this._offsetStroke(offset);\n\
+      this.motion.followPath(path);\n\
     });\n\
   }\n\
-  \n\
+, fill: function(windingRule) {\n\
+    var path = this.path;\n\
+    path = path.simplify(windingRule);\n\
+    path = path.clip(this.clipRegion);\n\
+\n\
+    this._layer(function(depth) {\n\
+      for(var i = -this.toolDiameter/2;\n\
+          i > -1000;\n\
+          i -= this.toolDiameter*0.75) {\n\
+        var opath = path.offset(i);\n\
+\n\
+        // Stop when the path can't get smaller\n\
+        if(!opath) {\n\
+          break;\n\
+        };\n\
+\n\
+        this.motion.followPath(opath);\n\
+\n\
+        // Don't need to retract when moving inward \n\
+        this.motion.disableRetract = true;\n\
+      }\n\
+\n\
+      // Start retracting again for the next layer.\n\
+      // The path from end of layer to beginning of layer\n\
+      // can intersect with a solid.\n\
+      // Furthermore, surface tolerances / vibration will\n\
+      // do some damage to the surface finish regardless.\n\
+      // So even in the best case scenario, we would still need\n\
+      // an abrubt stop to move back the Z by surfaceTolerance.\n\
+      // So... optimizing this further gets us almost nothing. :(\n\
+      this.motion.disableRetract = false;\n\
+    });\n\
+\n\
+  }\n\
 , _layer: function(fn) {\n\
     var depthOfCut = this.depthOfCut || this.depth;\n\
     var start = this.top + depthOfCut;\n\
@@ -504,15 +433,12 @@ GCanvas.prototype = {\n\
       depth = Math.min(depth, this.top+this.depth);\n\
       // Set new target depth in motion\n\
       this.motion.targetDepth = depth;\n\
-      // Remove the material\n\
-      fn.call(this);\n\
-      // We removed the material so\n\
-      // now we can retract to that depth\n\
-      this.motion.retractTo = depth;\n\
+      // Remove the material at this depth\n\
+      fn.call(this, depth);\n\
     }\n\
 \n\
     // Restore to normal retraction\n\
-    this.motion.retractTo = null;\n\
+    this.motion.disableRetract = true;\n\
   }\n\
 , fillText: function(text, x, y, params) {\n\
       var fontProps = parseFont(this.font);\n\
@@ -523,7 +449,6 @@ GCanvas.prototype = {\n\
       this.translate(x, y);\n\
       font.drawText(this, text);\n\
       this.fill();\n\
-\n\
       this.restore();\n\
   }\n\
 \n\
@@ -538,7 +463,6 @@ GCanvas.prototype = {\n\
       font.drawText(this, text);\n\
       this.stroke();\n\
       this.restore();\n\
-      this._restorePath();\n\
     });\n\
   }\n\
 };\n\
@@ -977,17 +901,151 @@ Matrix.VERTICAL_FLIP = new Matrix(1, 0, 0, -1);\n\
 //@ sourceURL=gcanvas/lib/math/matrix.js"
 ));
 require.register("gcanvas/lib/path.js", Function("exports, require, module",
+"module.exports = Path;\n\
+\n\
+var SubPath = require('./subpath')\n\
+  , ClipperLib = require('./clipper')\n\
+\n\
+function Path() {\n\
+  this.subPaths = [];\n\
+}\n\
+\n\
+Path.actions = SubPath.actions;\n\
+\n\
+Path.prototype = {\n\
+  moveTo: function(x,y) {\n\
+    var subPath = new SubPath();\n\
+    subPath.moveTo(x,y);\n\
+    this.subPaths.push(subPath);\n\
+    this.current = subPath;\n\
+  }\n\
+\n\
+/*\n\
+ * Pass all curves straight through\n\
+ * */\n\
+, lineTo: function() {\n\
+    this.current.lineTo.apply(this.current, arguments);\n\
+  }\n\
+, arc: function() {\n\
+    this.current.arc.apply(this.current, arguments);\n\
+  }\n\
+, ellipse: function() {\n\
+    this.current.ellipse.apply(this.current, arguments);\n\
+  }\n\
+, quadraticCurveTo: function() {\n\
+    this.current.quadraticCurveTo.apply(this.current, arguments);\n\
+  }\n\
+, bezierCurveTo: function() {\n\
+    this.current.bezierCurveTo.apply(this.current, arguments);\n\
+  }\n\
+, toPolys: function(scale) {\n\
+    if(!scale) throw 'NO SCALE!';\n\
+\n\
+    return this.subPaths.map(function(subPath) {\n\
+      return subPath.toPoly(scale);\n\
+    });\n\
+  }\n\
+, fromPolys: function(polygons, scale) {\n\
+    if(!scale) throw 'NO SCALE!';\n\
+\n\
+    for(var i=0,l=polygons.length; i < l; ++i) {\n\
+      var subPath = new SubPath();\n\
+      subPath.fromPoly(polygons[i], scale);\n\
+      this.subPaths.push(subPath);\n\
+      this.current = subPath;\n\
+    }\n\
+\n\
+    return this;\n\
+  }\n\
+, clip: function(clipRegion) {\n\
+    if(!clipRegion) return this;\n\
+\n\
+    var scale = 1000;\n\
+    var subjPolys = this.toPolys(scale);\n\
+    var clipPolys = clipRegion.toPolys(scale);\n\
+\n\
+    var subject_fillType = 1;\n\
+    var clip_fillType = 1;\n\
+    var clipType = 0;\n\
+\n\
+    var cpr = new ClipperLib.Clipper();\n\
+    cpr.AddPolygons(subjPolys, ClipperLib.PolyType.ptSubject);\n\
+    cpr.AddPolygons(clipPolys, ClipperLib.PolyType.ptClip);\n\
+\n\
+    var result = [];\n\
+    var succeeded = cpr.Execute(clipType, result, subject_fillType, clip_fillType);\n\
+    var polygons = result;\n\
+\n\
+    var path = new Path();\n\
+    path.fromPolys(polygons, 1000);\n\
+    return path;\n\
+  }\n\
+\n\
+, simplify: function(windingRule) {\n\
+    var scale = 1000;\n\
+    var cleandelta = 0.1;\n\
+    var polygons = this.toPolys(scale); \n\
+\n\
+    // Convert to ClipperLib's IDs\n\
+    if(windingRule === 'evenodd')\n\
+      windingRule = EVEN_ODD;\n\
+    else\n\
+      windingRule = NON_ZERO;\n\
+\n\
+    var cpr = new ClipperLib.Clipper();\n\
+    polygons = ClipperLib.Clean(polygons, cleandelta * scale);\n\
+    polygons = cpr.SimplifyPolygons(polygons,\n\
+                                 windingRule);\n\
+\n\
+    var path = new Path();\n\
+    path.fromPolys(polygons, scale);\n\
+    return path;\n\
+  }\n\
+\n\
+, offset: function(delta) {\n\
+    if(delta === 0) {\n\
+      return this;\n\
+    }\n\
+\n\
+    var scale = 1000;\n\
+    var cleandelta = 0.1;\n\
+\n\
+    var cpr = new ClipperLib.Clipper();\n\
+    var polygons = this.toPolys(scale);\n\
+\n\
+    // offset\n\
+    var joinType = 2;\n\
+    var miterLimit = scale;\n\
+    var AutoFix = true;\n\
+    polygons = cpr.OffsetPolygons(polygons, delta*scale, joinType, miterLimit, AutoFix);\n\
+\n\
+    if(polygons.length === 0\n\
+      || polygons[0].length === 0) return false;\n\
+\n\
+    var result = new Path();\n\
+    result.fromPolys(polygons, scale);\n\
+    return result;\n\
+  }\n\
+\n\
+}\n\
+\n\
+var NON_ZERO = ClipperLib.PolyFillType.pftNonZero;\n\
+var EVEN_ODD = ClipperLib.PolyFillType.pftEvenOdd;\n\
+//@ sourceURL=gcanvas/lib/path.js"
+));
+require.register("gcanvas/lib/subpath.js", Function("exports, require, module",
 "/**\n\
  * Derived from code originally written by zz85 for three.js\n\
  * http://www.lab4games.net/zz85/blog\n\
  * Thanks zz85!\n\
  **/\n\
 \n\
-module.exports = Path;\n\
+module.exports = SubPath;\n\
 \n\
-var Point = require('./math/point');\n\
+var Point = require('./math/point')\n\
+  , ClipperLib = require('./clipper')\n\
 \n\
-function Path( points ) {\n\
+function SubPath( points ) {\n\
 \tthis.actions = [];\n\
 \n\
 \tif ( points ) {\n\
@@ -995,7 +1053,7 @@ function Path( points ) {\n\
 \t}\n\
 };\n\
 \n\
-Path.actions = {\n\
+SubPath.actions = {\n\
 \tMOVE_TO: 'moveTo',\n\
 \tLINE_TO: 'lineTo',\n\
 \tQUADRATIC_CURVE_TO: 'quadraticCurveTo',\n\
@@ -1003,9 +1061,9 @@ Path.actions = {\n\
 \tELLIPSE: 'ellipse'\n\
 };\n\
 \n\
-Path.prototype = {\n\
+SubPath.prototype = {\n\
   clone: function() {\n\
-    var path = new Path();\n\
+    var path = new SubPath();\n\
     path.actions = this.actions.slice(0);\n\
     return path;\n\
   }\n\
@@ -1018,22 +1076,41 @@ Path.prototype = {\n\
     };\n\
   }\n\
 \n\
+, getLength: function() {\n\
+    var args, x1=0, y1=0, x2=0, y2=0, xo=0, yo=0, len=0;\n\
+\n\
+    for ( i = 0, il = this.actions.length; i < il; i ++ ) {\n\
+      args = this.actions[i].args;\n\
+      x1 = x2;\n\
+      y1 = y2;\n\
+      x2 = args[args.length-2];\n\
+      y2 = args[args.length-1];\n\
+      xo = x2-x1;\n\
+      yo = y2-y1;\n\
+\n\
+      if(i !== 0) // Don't include the moveTo\n\
+        len += Math.sqrt(xo*xo + yo*yo);\n\
+    }\n\
+\n\
+    return len;\n\
+  }\n\
+\n\
 , moveTo: function ( x, y ) {\n\
-    this.actions.push( { action: Path.actions.MOVE_TO, args: arguments } );\n\
+    this.actions.push( { action: SubPath.actions.MOVE_TO, args: arguments } );\n\
   }\n\
 \n\
 , lineTo: function ( x, y ) {\n\
-    this.actions.push( { action: Path.actions.LINE_TO, args: arguments } );\n\
+    this.actions.push( { action: SubPath.actions.LINE_TO, args: arguments } );\n\
   }\n\
 \n\
 , quadraticCurveTo: function( aCPx, aCPy, aX, aY ) {\n\
-    this.actions.push( { action: Path.actions.QUADRATIC_CURVE_TO, args: arguments } );\n\
+    this.actions.push( { action: SubPath.actions.QUADRATIC_CURVE_TO, args: arguments } );\n\
   }\n\
 \n\
 , bezierCurveTo: function( aCP1x, aCP1y,\n\
                            aCP2x, aCP2y,\n\
                            aX, aY ) {\n\
-    this.actions.push( { action: Path.actions.BEZIER_CURVE_TO, args: arguments } );\n\
+    this.actions.push( { action: SubPath.actions.BEZIER_CURVE_TO, args: arguments } );\n\
   }\n\
 \n\
 , arc: function ( aX, aY, aRadius, aStartAngle, aEndAngle, aClockwise ) {\n\
@@ -1041,10 +1118,10 @@ Path.prototype = {\n\
   }\n\
 \n\
 , ellipse: function ( aX, aY, xRadius, yRadius, aStartAngle, aEndAngle, aClockwise ) {\n\
-    this.actions.push( { action: Path.actions.ELLIPSE, args: arguments } );\n\
+    this.actions.push( { action: SubPath.actions.ELLIPSE, args: arguments } );\n\
   }\n\
 \n\
-, getPoints: function( divisions, closedPath ) {\n\
+, getPoints: function( divisions, closedSubPath ) {\n\
     divisions = divisions || 12;\n\
 \n\
     var points = [];\n\
@@ -1063,19 +1140,19 @@ Path.prototype = {\n\
 \n\
       switch( action ) {\n\
 \n\
-      case Path.actions.MOVE_TO:\n\
+      case SubPath.actions.MOVE_TO:\n\
 \n\
         points.push( new Point( args[ 0 ], args[ 1 ] ) );\n\
 \n\
         break;\n\
 \n\
-      case Path.actions.LINE_TO:\n\
+      case SubPath.actions.LINE_TO:\n\
 \n\
         points.push( new Point( args[ 0 ], args[ 1 ] ) );\n\
 \n\
         break;\n\
 \n\
-      case Path.actions.QUADRATIC_CURVE_TO:\n\
+      case SubPath.actions.QUADRATIC_CURVE_TO:\n\
 \n\
         cpx  = args[ 2 ];\n\
         cpy  = args[ 3 ];\n\
@@ -1112,7 +1189,7 @@ Path.prototype = {\n\
 \n\
         break;\n\
 \n\
-      case Path.actions.BEZIER_CURVE_TO:\n\
+      case SubPath.actions.BEZIER_CURVE_TO:\n\
 \n\
         cpx  = args[ 4 ];\n\
         cpy  = args[ 5 ];\n\
@@ -1152,7 +1229,7 @@ Path.prototype = {\n\
 \n\
         break;\n\
 \n\
-      case Path.actions.ELLIPSE:\n\
+      case SubPath.actions.ELLIPSE:\n\
 \n\
         var aX = args[ 0 ], aY = args[ 1 ],\n\
           xRadius = args[ 2 ],\n\
@@ -1209,14 +1286,30 @@ Path.prototype = {\n\
 \t// if ( Math.abs(lastPoint.x - points[ 0 ].x) < EPSILON &&\n\
 \t// \t\t Math.abs(lastPoint.y - points[ 0 ].y) < EPSILON)\n\
 \t// \tpoints.splice( points.length - 1, 1);\n\
-\t// if ( closedPath ) {\n\
+\t// if ( closedSubPath ) {\n\
 \n\
 \t// \tpoints.push( points[ 0 ] );\n\
 \n\
 \t// }\n\
 \n\
-\treturn points;\n\
+    return points;\n\
+  }\n\
+, toPoly: function(scale) {\n\
+    return this.getPoints(40).map(function(p) {\n\
+      return {X: p.x*scale, Y: p.y*scale};\n\
+    });\n\
+  }\n\
+, fromPoly: function(poly, scale) {\n\
+    scale = 1/scale;\n\
 \n\
+    this.moveTo(poly[0].X*scale, poly[0].Y*scale);\n\
+\n\
+    for(var i=1,l=poly.length; i < l; ++i) {\n\
+      this.lineTo(poly[i].X*scale, poly[i].Y*scale);\n\
+    }\n\
+    // todo: close properly (closePath())\n\
+    this.lineTo(poly[0].X*scale, poly[0].Y*scale);\n\
+    return this;\n\
   }\n\
 };\n\
 \n\
@@ -1265,7 +1358,7 @@ function b3p3 ( t, p ) {\n\
 function b3 ( t, p0, p1, p2, p3 ) {\n\
   return b3p0( t, p0 ) + b3p1( t, p1 ) + b3p2( t, p2 ) +  b3p3( t, p3 );\n\
 }\n\
-//@ sourceURL=gcanvas/lib/path.js"
+//@ sourceURL=gcanvas/lib/subpath.js"
 ));
 require.register("gcanvas/lib/font.js", Function("exports, require, module",
 "/**\n\
@@ -6464,6 +6557,7 @@ require.register("gcanvas/lib/motion.js", Function("exports, require, module",
 \n\
 var Point = require('./math/point')\n\
   , Path = require('./path')\n\
+  , SubPath = require('./subpath')\n\
   , utils = require('./utils');\n\
 \n\
 /**\n\
@@ -6478,8 +6572,9 @@ function Motion(ctx) {\n\
 \n\
 Motion.prototype = {\n\
   retract: function() {\n\
-    this.rapid({z:this.retractTo\n\
-               || this.ctx.aboveTop\n\
+    if(this.disableRetract) return;\n\
+\n\
+    this.rapid({z:this.ctx.aboveTop\n\
                || this.ctx.top - this.ctx.surfaceTolerance});\n\
   }\n\
 , plunge: function() {\n\
@@ -6578,6 +6673,12 @@ Motion.prototype = {\n\
       return;\n\
     }\n\
 \n\
+    if(path.subPaths) {\n\
+      path.subPaths.forEach(this.followPath, this);\n\
+      return;\n\
+    }\n\
+\n\
+\n\
     var each = {};\n\
     var motion = this;\n\
     var driver = this.ctx.driver;\n\
@@ -6595,15 +6696,11 @@ Motion.prototype = {\n\
     };\n\
 \n\
     each[Path.actions.LINE_TO] = function(x,y) {\n\
-      motion.plunge();\n\
       motion.linear({x:x,y:y});\n\
     };\n\
 \n\
     each[Path.actions.ELLIPSE] = function(x, y, rx, ry,\n\
 \t\t\t\t\t\t\t\t\t  aStart, aEnd, aClockwise , mx, my) {\n\
-\n\
-      motion.plunge();\n\
-\n\
       // Detect plain arc\n\
       if(utils.sameFloat(rx,ry) &&\n\
         (driver.arcCW && !aClockwise) ||\n\
@@ -6638,12 +6735,18 @@ Motion.prototype = {\n\
 \n\
     for(var i = 0, l = path.actions.length; i < l; ++i) {\n\
       item = path.actions[i]\n\
+\n\
+      // Every action should be plunged except for move\n\
+      if(item.action !== Path.actions.MOVE_TO) {\n\
+        motion.plunge();\n\
+      }\n\
+\n\
       each[item.action].apply(this, item.args);\n\
     }\n\
   }\n\
 \n\
 , _interpolate: function(name, args) {\n\
-    var path = new Path();\n\
+    var path = new SubPath();\n\
     path.moveTo(this.position.x, this.position.y);\n\
     path[name].apply(path, args);\n\
 \n\
