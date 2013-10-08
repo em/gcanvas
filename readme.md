@@ -14,8 +14,6 @@ ctx.strokeText("Robots are cool", "20pt");
 ### TODO (Current Limitations)
 The project is still very new and some things are missing:
 
-* Stroke alignment. Only `center` now, just like standard canvas.
-
 * Read system ttf fonts. Right now, any fonts defaults to a single built-in Helvetiker font.
 
 * lineWidth, endCap, and miterLimit
@@ -28,7 +26,7 @@ The project is still very new and some things are missing:
 ### Non-standard extensions to Canvas 
 
 Additional context properties are added for milling
-and to support stroke-alignment (not yet implemented) which the canvas spec doesn't have yet (but really needs).
+and to support stroke-alignment which the canvas spec doesn't have yet (but really needs).
 
 * `context.depth` Specifies the total Z depth to cut into the work relative to `context.top`. If not set the Z axis never changes. 
 
@@ -36,7 +34,11 @@ and to support stroke-alignment (not yet implemented) which the canvas spec does
 
 * `context.top` The Z position of the work surface. Use with depthOfCut otherwise you'll make make several passes before cutting anything. Defaults to 0.
  
+* `context.aboveTop` The Z position of a safe area above the surface of the work. This is where the tool retracts to before rapid moves. It should be top-(a reasonable surface tolerance). Defaults to 0.
+
 * `context.toolDiameter` This must be set for fill() to work properly because it has to calculate tool offsets.
+
+* `context.atc` Auto tool change. Sends `M06 T{context.atc}`. Make sure you update toolDiameter.
 
 * `context.feed` Sets the feedrate by sending a single F command.
 
@@ -44,7 +46,7 @@ and to support stroke-alignment (not yet implemented) which the canvas spec does
 
 * `context.coolant` Can be true, false, "mist" (M07) or "flood" (M08). True defaults to "flood".
 
-* `context.strokeAlign` (not yet implemented) can be 'inset', 'outset', or 'center' (default)
+* `context.strokeAlign` Can be 'inset', 'outset', or 'center' (default). Non-center alignment closes the path.
 
 In the future I plan to determine most of these automatically with two properties, `context.material` and `context.tool`. But they should always be overridable and it makes sense to get the basics right first.
 
@@ -78,6 +80,24 @@ function main(ctx) {
 ```
 ```
 $ gcanvas helloworld.js | serialportterm -baud 9600 /dev/tty.usbmodem1337
+```
+
+#### Setups and tool changes
+
+The CLI exposes a global function `setup(name, fn)` which prompts for user
+intervention and raises the Z axis to 0.
+
+If the part requires multiple work setups and tool changes, break them into setup blocks:
+
+```
+setup('1/2" endmill', function(ctx) { 
+  ctx.toolDiameter = 1/2*25.4;
+  // ...
+});
+
+setup('face down', function(ctx) { 
+  // ...
+});
 ```
 
 ### Why

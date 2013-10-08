@@ -34,6 +34,16 @@ describe('GCanvas', function() {
 
       expect(robot.result).eql(hand.result);
     });
+
+    it('optimizes out 0 distance moves', function() {
+      ctx.moveTo(10,10);
+      ctx.moveTo(10,10);
+      ctx.stroke();
+      hand.rapid({x:10,y:10});
+      expect(robot.result).eql(hand.result);
+    });
+
+
   });
 
   describe('#lineTo', function() {
@@ -101,6 +111,22 @@ describe('GCanvas', function() {
 
       expect(robot.result).eql(hand.result);
     });
+
+    it('does not retract if not necessary', function() {
+      ctx.depth = 2;
+      ctx.depthOfCut=1;
+      ctx.arc(10, 10, 10, 0, Math.PI*2);
+      ctx.stroke();
+
+      hand.rapid({x:20,y:10});
+      hand.linear({z:1});
+      hand.arcCW({x:20,y:10,i:-10,j:0});
+      hand.linear({z:2});
+      hand.arcCW({x:20,y:10,i:-10,j:0});
+
+
+      expect(robot.result).eql(hand.result);
+    });
   });
 
 
@@ -146,6 +172,30 @@ describe('GCanvas', function() {
     });
   });
 
+  describe('#_layer', function() {
+    it('increments in depthOfCut to depth', function() {
+      ctx.depth = 2;
+      ctx.depthOfCut = 1;
+      ctx.moveTo(0,0);
+      ctx.lineTo(10,10);
+      ctx.stroke();
+
+      // first layer
+      hand.linear({z:1}); // plunge
+      hand.linear({x:10,y:10}); // lineTo
+
+      // return to start
+      hand.rapid({z:0}); // retract
+      hand.rapid({x:0,y:0}); // moveTo
+
+      // second layer
+      hand.linear({z:2}); // plunge
+      hand.linear({x:10,y:10}); // lineTo
+
+
+      expect(robot.result).eql(hand.result);
+    });
+  });
 
   describe('#fill', function() {
   });

@@ -35,21 +35,56 @@ if(program.above) gctx.aboveTop = program.above;
 if(program.width) gctx.canvas.width = program.width;
 if(program.height) gctx.canvas.height = program.height;
 
+
+var queue = [];
+function setup(desc, fn) {
+
+  queue.push({desc: desc, fn: fn});
+}
+
+function processQueue() {
+  if(queue.length === 0) return;
+
+  var readline = require('readline'),
+      rl = readline.createInterface(process.stdin, process.stderr);
+  var currentStep;
+
+  function next() {
+    currentStep = queue.pop();
+    if(!currentStep) {
+      rl.close();
+      return;
+    }
+
+    gctx.motion.rapid({z:0});
+    rl.setPrompt('(setup '+currentStep.desc+')');
+    rl.prompt();
+  }
+
+  rl.on('line', function() {
+    currentStep.fn(gctx);
+    next();
+  }).on('close', function() {
+    process.exit(0);
+  });
+
+  next();
+}
+
 function run(file) {
   var util = require('util'),
       vm = require('vm'),
-      sandbox = {};
+      sandbox = {setup: setup};
 
   var code = fs.readFileSync(file);
   var script = vm.createScript(code, file);
   script.runInNewContext(sandbox);
 
-  if(!sandbox[program.entry]) {
-    console.error('No '+program.entry+'() function found. Define it or use -m to specify another entry point.');
-    process.exit();
+  if(sandbox[program.entry]) {
+    sandbox[program.entry](gctx);
   }
 
-  sandbox[program.entry](gctx);
+  processQueue();
 };
 
 if(program.args.length === 0) {
@@ -62,4 +97,4 @@ program.args.forEach(function(file) {
 
 // cleanup
 gctx.motion.retract();
-gctx.motion.rapid({x:0,y:0,z:0});
+// gctx.motion.rapid({x:0,y:0,z:0});

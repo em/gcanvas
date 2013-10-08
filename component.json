@@ -2,8 +2,10 @@
   "name": "gcanvas",
   "repo": "em/gcanvas",
   "description": "",
-  "version": "0.0.10",
+  "version": "0.0.14",
   "keywords": [],
+  "dependencies": {
+  },
   "development": {},
   "license": "MIT",
   "scripts": [
@@ -12,6 +14,7 @@
     "lib/math/point.js",
     "lib/math/matrix.js",
     "lib/path.js",
+    "lib/subpath.js",
     "lib/font.js",
     "lib/clipper.js",
     "lib/motion.js",
