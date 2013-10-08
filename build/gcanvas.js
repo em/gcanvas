@@ -257,6 +257,17 @@ GCanvas.prototype = {\n\
     this.subPaths = this.prevSubPaths;\n\
     this.path = this.subPaths[this.subPaths.length-1] || new Path();\n\
   }\n\
+, transform: function(a, b, c, d, e, f) {\n\
+    this.matrix = this.matrix.concat(\n\
+      new Matrix(a, b, c, d, e, f)\n\
+    );\n\
+  }\n\
+, setTransform: function(a, b, c, d, e, f) {\n\
+    this.matrix = new Matrix(a, b, c, d, e, f);\n\
+  }\n\
+, resetTransform: function() {\n\
+    this.matrix = new Matrix();\n\
+  }\n\
 , rotate: function(angle) {\n\
     this.matrix = this.matrix.rotate(angle);\n\
   }\n\
