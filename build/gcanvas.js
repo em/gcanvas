@@ -213,9 +213,13 @@ var Path = require('./path')\n\
   , utils = require('./utils');\n\
 \n\
 function GCanvas(driver, width, height) {\n\
+  var self = this;\n\
   this.canvas = {\n\
     width: width,\n\
-    height: height\n\
+    height: height,\n\
+    getContext: function() {\n\
+      return self;\n\
+    }\n\
   };\n\
 \n\
   this.font = \"7pt Helvetiker\";\n\
@@ -476,6 +480,8 @@ GCanvas.prototype = {\n\
       this.restore();\n\
     });\n\
   }\n\
+, clearRect: function() {}\n\
+, closePath: function() {}\n\
 };\n\
 \n\
 GCanvas.Filter = require('./drivers/filter');\n\
