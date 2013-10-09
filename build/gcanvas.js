@@ -229,7 +229,6 @@ function GCanvas(driver, width, height) {\n\
   this.depthOfCut = 0;\n\
   this.top = 0;\n\
   this.aboveTop = 0;\n\
-  this.toolDiameter = 5;\n\
   this.strokeAlign = 'center';\n\
   this.driver = driver || new GcodeDriver();\n\
   this.stack = [];\n\
@@ -398,6 +397,11 @@ GCanvas.prototype = {\n\
     });\n\
   }\n\
 , fill: function(windingRule) {\n\
+\n\
+    if(!this.toolDiameter) {\n\
+      throw 'You must set context.toolDiameter to use fill()'\n\
+    }\n\
+\n\
     var path = this.path;\n\
     path = path.simplify(windingRule);\n\
     path = path.clip(this.clipRegion);\n\
@@ -481,7 +485,9 @@ GCanvas.prototype = {\n\
     });\n\
   }\n\
 , clearRect: function() {}\n\
-, closePath: function() {}\n\
+, closePath: function() {\n\
+    this.path.close();\n\
+  }\n\
 };\n\
 \n\
 GCanvas.Filter = require('./drivers/filter');\n\
@@ -936,6 +942,13 @@ Path.prototype = {\n\
     this.subPaths.push(subPath);\n\
     this.current = subPath;\n\
   }\n\
+, close: function() {\n\
+    if(this.current) {\n\
+      this.current.closed = true;\n\
+      var curStart = this.current.actions[0].args;\n\
+      this.moveTo.apply(this, curStart);\n\
+    }\n\
+  }\n\
 \n\
 /*\n\
  * Pass all curves straight through\n\
@@ -1138,7 +1151,7 @@ SubPath.prototype = {\n\
     this.actions.push( { action: SubPath.actions.ELLIPSE, args: arguments } );\n\
   }\n\
 \n\
-, getPoints: function( divisions, closedSubPath ) {\n\
+, getPoints: function( divisions ) {\n\
     divisions = divisions || 12;\n\
 \n\
     var points = [];\n\
@@ -1294,20 +1307,11 @@ SubPath.prototype = {\n\
         break;\n\
 \n\
       } // end switch\n\
-\n\
     }\n\
 \n\
-\t// Normalize to remove the closing point by default.\n\
-\t// var lastPoint = points[ points.length - 1];\n\
-\t// var EPSILON = 0.0000000001;\n\
-\t// if ( Math.abs(lastPoint.x - points[ 0 ].x) < EPSILON &&\n\
-\t// \t\t Math.abs(lastPoint.y - points[ 0 ].y) < EPSILON)\n\
-\t// \tpoints.splice( points.length - 1, 1);\n\
-\t// if ( closedSubPath ) {\n\
-\n\
-\t// \tpoints.push( points[ 0 ] );\n\
-\n\
-\t// }\n\
+    if(this.closed) {\n\
+      points.push( points[ 0 ] );\n\
+    }\n\
 \n\
     return points;\n\
   }\n\
