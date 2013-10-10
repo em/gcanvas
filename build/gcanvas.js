@@ -213,9 +213,13 @@ var Path = require('./path')\n\
   , utils = require('./utils');\n\
 \n\
 function GCanvas(driver, width, height) {\n\
+  var self = this;\n\
   this.canvas = {\n\
     width: width,\n\
-    height: height\n\
+    height: height,\n\
+    getContext: function() {\n\
+      return self;\n\
+    }\n\
   };\n\
 \n\
   this.font = \"7pt Helvetiker\";\n\
@@ -225,7 +229,6 @@ function GCanvas(driver, width, height) {\n\
   this.depthOfCut = 0;\n\
   this.top = 0;\n\
   this.aboveTop = 0;\n\
-  this.toolDiameter = 5;\n\
   this.strokeAlign = 'center';\n\
   this.driver = driver || new GcodeDriver();\n\
   this.stack = [];\n\
@@ -256,6 +259,17 @@ GCanvas.prototype = {\n\
 , _restorePath: function() {\n\
     this.subPaths = this.prevSubPaths;\n\
     this.path = this.subPaths[this.subPaths.length-1] || new Path();\n\
+  }\n\
+, transform: function(a, b, c, d, e, f) {\n\
+    this.matrix = this.matrix.concat(\n\
+      new Matrix(a, b, c, d, e, f)\n\
+    );\n\
+  }\n\
+, setTransform: function(a, b, c, d, e, f) {\n\
+    this.matrix = new Matrix(a, b, c, d, e, f);\n\
+  }\n\
+, resetTransform: function() {\n\
+    this.matrix = new Matrix();\n\
   }\n\
 , rotate: function(angle) {\n\
     this.matrix = this.matrix.rotate(angle);\n\
@@ -383,6 +397,11 @@ GCanvas.prototype = {\n\
     });\n\
   }\n\
 , fill: function(windingRule) {\n\
+\n\
+    if(!this.toolDiameter) {\n\
+      throw 'You must set context.toolDiameter to use fill()'\n\
+    }\n\
+\n\
     var path = this.path;\n\
     path = path.simplify(windingRule);\n\
     path = path.clip(this.clipRegion);\n\
@@ -464,6 +483,10 @@ GCanvas.prototype = {\n\
       this.stroke();\n\
       this.restore();\n\
     });\n\
+  }\n\
+, clearRect: function() {}\n\
+, closePath: function() {\n\
+    this.path.close();\n\
   }\n\
 };\n\
 \n\
@@ -919,6 +942,13 @@ Path.prototype = {\n\
     this.subPaths.push(subPath);\n\
     this.current = subPath;\n\
   }\n\
+, close: function() {\n\
+    if(this.current) {\n\
+      this.current.closed = true;\n\
+      var curStart = this.current.actions[0].args;\n\
+      this.moveTo.apply(this, curStart);\n\
+    }\n\
+  }\n\
 \n\
 /*\n\
  * Pass all curves straight through\n\
@@ -1121,7 +1151,7 @@ SubPath.prototype = {\n\
     this.actions.push( { action: SubPath.actions.ELLIPSE, args: arguments } );\n\
   }\n\
 \n\
-, getPoints: function( divisions, closedSubPath ) {\n\
+, getPoints: function( divisions ) {\n\
     divisions = divisions || 12;\n\
 \n\
     var points = [];\n\
@@ -1277,20 +1307,11 @@ SubPath.prototype = {\n\
         break;\n\
 \n\
       } // end switch\n\
-\n\
     }\n\
 \n\
-\t// Normalize to remove the closing point by default.\n\
-\t// var lastPoint = points[ points.length - 1];\n\
-\t// var EPSILON = 0.0000000001;\n\
-\t// if ( Math.abs(lastPoint.x - points[ 0 ].x) < EPSILON &&\n\
-\t// \t\t Math.abs(lastPoint.y - points[ 0 ].y) < EPSILON)\n\
-\t// \tpoints.splice( points.length - 1, 1);\n\
-\t// if ( closedSubPath ) {\n\
-\n\
-\t// \tpoints.push( points[ 0 ] );\n\
-\n\
-\t// }\n\
+    if(this.closed) {\n\
+      points.push( points[ 0 ] );\n\
+    }\n\
 \n\
     return points;\n\
   }\n\
@@ -7012,14 +7033,36 @@ require.register("gcanvas/lib/drivers/simulator.js", Function("exports, require,
 \n\
 function Simulator(ctx) {\n\
   this.ctx = ctx;\n\
+  this.n = 0;\n\
+  ctx.font = \"6pt helvetica\";\n\
+  this.prev = {x:0,y:0};\n\
 }\n\
 \n\
 Simulator.prototype = {\n\
   rapid: function(p) {\n\
-    this.ctx.moveTo(p.x, p.y);\n\
+    this.ctx.beginPath();\n\
+    this.ctx.setLineDash([2,2]);\n\
+    this.ctx.moveTo(this.prev.x, this.prev.y);\n\
+    this.ctx.strokeStyle = 'rgba(0,0,255,0.5)';\n\
+    this.ctx.lineTo(p.x, p.y);\n\
+    this.n++;\n\
+    this.ctx.stroke();\n\
+    this.ctx.setLineDash([0,0]);\n\
+\n\
+    this.ctx.fillStyle = 'rgba(0,0,0,1)';\n\
+    this.ctx.fillText(this.n, this.prev.x, this.prev.y+10);\n\
+\n\
+    this.prev = p;\n\
+\n\
   } \n\
 , linear: function(p) {\n\
+    this.ctx.beginPath();\n\
+    this.ctx.strokeStyle = 'rgba(0,0,0,1)';\n\
+    this.ctx.moveTo(this.prev.x, this.prev.y);\n\
     this.ctx.lineTo(p.x, p.y);\n\
+    this.ctx.stroke();\n\
+\n\
+    this.prev = p;\n\
   }\n\
 };\n\
 //@ sourceURL=gcanvas/lib/drivers/simulator.js"

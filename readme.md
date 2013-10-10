@@ -2,14 +2,25 @@ Gcanvas
 ========
 An HTML5 Canvas API implementation that generates Gcode for CNC milling. Runs in node and the browser. 
 
-http://emery.denucc.io/gcanvas/examples
+### Installation
+First make sure you have [nodejs](http://nodejs.org) installed.
+```
+npm install -g gcanvas
+```
 
+### Example
+test.js
 ```
-var ctx = new GCanvas();
-ctx.depth = 1;
-ctx.depthOfCut = 0.25; // 4 passes
-ctx.strokeText("Robots are cool", "20pt");
+function main(ctx) {
+  ctx.depth = 1;
+  ctx.depthOfCut = 0.25; // 4 passes
+  ctx.strokeText("Robots are cool", "20pt");
+}
 ```
+```
+$ gcanvas test.js
+```
+More examples: http://emery.denucc.io/gcanvas/examples
 
 ### TODO (Current Limitations)
 The project is still very new and some things are missing:
@@ -47,8 +58,6 @@ and to support stroke-alignment which the canvas spec doesn't have yet (but real
 * `context.coolant` Can be true, false, "mist" (M07) or "flood" (M08). True defaults to "flood".
 
 * `context.strokeAlign` Can be 'inset', 'outset', or 'center' (default). Non-center alignment closes the path.
-
-In the future I plan to determine most of these automatically with two properties, `context.material` and `context.tool`. But they should always be overridable and it makes sense to get the basics right first.
 
 ### Unit conversion
 GCanvas doesn't have any built-in understanding of units,
