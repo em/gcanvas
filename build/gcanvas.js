@@ -1066,7 +1066,7 @@ Path.prototype = {\n\
       result.addPath(offsetPath);\n\
     }\n\
 \n\
-    result = result.sort();\n\
+    result = result.sort().connectEnds(diameter);\n\
 \n\
     return result;\n\
   }\n\
@@ -1080,13 +1080,11 @@ Path.prototype = {\n\
       var p2 = sp2.firstPoint();\n\
       var d = Point.distance(p1,p2);\n\
 \n\
-      console.log(d);\n\
-\n\
-      if(d === diameter*0.75) {\n\
+      if(d < diameter*2) {\n\
         sp1.lineTo(p2.x, p2.y);\n\
         sp2.actions[0].action = Path.actions.LINE_TO;\n\
         sp1.actions = sp1.actions.concat( sp2.actions );\n\
-        this.subPaths.splice(i);\n\
+        this.subPaths.splice(i,1);\n\
       }\n\
     }\n\
 \n\
