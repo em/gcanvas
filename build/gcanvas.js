@@ -405,33 +405,10 @@ GCanvas.prototype = {\n\
     var path = this.path;\n\
     path = path.simplify(windingRule);\n\
     path = path.clip(this.clipRegion);\n\
+    path = path.fillPath(this.toolDiameter);\n\
 \n\
     this._layer(function(depth) {\n\
-      for(var i = -this.toolDiameter/2;\n\
-          i > -1000;\n\
-          i -= this.toolDiameter*0.75) {\n\
-        var opath = path.offset(i);\n\
-\n\
-        // Stop when the path can't get smaller\n\
-        if(!opath) {\n\
-          break;\n\
-        };\n\
-\n\
-        this.motion.followPath(opath);\n\
-\n\
-        // Don't need to retract when moving inward \n\
-        this.motion.disableRetract = true;\n\
-      }\n\
-\n\
-      // Start retracting again for the next layer.\n\
-      // The path from end of layer to beginning of layer\n\
-      // can intersect with a solid.\n\
-      // Furthermore, surface tolerances / vibration will\n\
-      // do some damage to the surface finish regardless.\n\
-      // So even in the best case scenario, we would still need\n\
-      // an abrubt stop to move back the Z by surfaceTolerance.\n\
-      // So... optimizing this further gets us almost nothing. :(\n\
-      this.motion.disableRetract = false;\n\
+      this.motion.followPath(path);\n\
     });\n\
 \n\
   }\n\
@@ -455,10 +432,18 @@ GCanvas.prototype = {\n\
       // Remove the material at this depth\n\
       fn.call(this, depth);\n\
     }\n\
-\n\
-    // Restore to normal retraction\n\
-    this.motion.disableRetract = true;\n\
   }\n\
+, text: function(text, x, y, params) {\n\
+      var fontProps = parseFont(this.font);\n\
+      var font = new Font(fontProps);\n\
+\n\
+      this.beginPath();\n\
+      this.save();\n\
+      this.translate(x, y);\n\
+      font.drawText(this, text);\n\
+      this.restore();\n\
+  }\n\
+\n\
 , fillText: function(text, x, y, params) {\n\
       var fontProps = parseFont(this.font);\n\
       var font = new Font(fontProps);\n\
@@ -928,6 +913,8 @@ require.register("gcanvas/lib/path.js", Function("exports, require, module",
 \n\
 var SubPath = require('./subpath')\n\
   , ClipperLib = require('./clipper')\n\
+  , utils = require('./utils')\n\
+  , Point = require('./math/point')\n\
 \n\
 function Path() {\n\
   this.subPaths = [];\n\
@@ -936,7 +923,12 @@ function Path() {\n\
 Path.actions = SubPath.actions;\n\
 \n\
 Path.prototype = {\n\
-  moveTo: function(x,y) {\n\
+  clone: function() {\n\
+    var copy = new Path();\n\
+    copy.subPaths = this.subPaths.slice(0);\n\
+    return copy;\n\
+  }\n\
+, moveTo: function(x,y) {\n\
     var subPath = new SubPath();\n\
     subPath.moveTo(x,y);\n\
     this.subPaths.push(subPath);\n\
@@ -1057,6 +1049,73 @@ Path.prototype = {\n\
     return result;\n\
   }\n\
 \n\
+, addPath: function(path2) {\n\
+    this.subPaths = this.subPaths.concat(path2.subPaths);\n\
+  }\n\
+\n\
+, fillPath: function(diameter) {\n\
+    var result = new Path();\n\
+    for(var i = -diameter/2; i > -1000; i -= diameter*0.75) {\n\
+      var offsetPath = this.offset(i);\n\
+\n\
+      if(!offsetPath) {\n\
+        break;\n\
+      };\n\
+\n\
+      result.addPath(offsetPath);\n\
+    }\n\
+\n\
+    result = result.sort();\n\
+\n\
+    return result;\n\
+  }\n\
+\n\
+, connectEnds: function(diameter) {\n\
+    for(var i=this.subPaths.length-1; i > 0; --i) {\n\
+      var sp1 = this.subPaths[i-1];\n\
+      var sp2 = this.subPaths[i];\n\
+\n\
+      var p1 = sp1.lastPoint();\n\
+      var p2 = sp2.firstPoint();\n\
+      var d = Point.distance(p1,p2);\n\
+\n\
+      console.log(d);\n\
+\n\
+      if(d === diameter*0.75) {\n\
+        sp1.lineTo(p2.x, p2.y);\n\
+        sp2.actions[0].action = Path.actions.LINE_TO;\n\
+        sp1.actions = sp1.actions.concat( sp2.actions );\n\
+        this.subPaths.splice(i);\n\
+      }\n\
+    }\n\
+\n\
+    return this;\n\
+  }\n\
+\n\
+, sort: function() { \n\
+    if(this.subPaths.length === 0) return this;\n\
+\n\
+    var copy = new Path();\n\
+\n\
+    var p0 = this.subPaths[0].firstPoint();\n\
+\n\
+    copy.subPaths = this.subPaths.sort(function(a, b) {\n\
+      var p1 = a.lastPoint();\n\
+      var p2 = b.firstPoint();\n\
+\n\
+      var d1 = Point.distance(p1,p0);\n\
+      var d2 = Point.distance(p2,p0);\n\
+\n\
+      // Moving target\n\
+      p0 = b.lastPoint();\n\
+\n\
+      if(utils.sameFloat(d1,d2)) return 0;\n\
+      if(d1 < d2) return -1;\n\
+      if(d1 > d2) return 1;\n\
+    });\n\
+\n\
+    return copy;\n\
+  }\n\
 }\n\
 \n\
 var NON_ZERO = ClipperLib.PolyFillType.pftNonZero;\n\
@@ -1096,6 +1155,23 @@ SubPath.prototype = {\n\
     var path = new SubPath();\n\
     path.actions = this.actions.slice(0);\n\
     return path;\n\
+  }\n\
+\n\
+, firstPoint: function() {\n\
+    var p = new Point(0,0);\n\
+    var args = this.actions[0].args;\n\
+    p.x = args[args.length-2];\n\
+    p.y = args[args.length-1];\n\
+    return p;\n\
+  }\n\
+\n\
+, lastPoint: function() {\n\
+    var p = new Point(0,0);\n\
+    var args = this.actions[this.\n\
+      actions.length-1].args;\n\
+    p.x = args[args.length-2];\n\
+    p.y = args[args.length-1];\n\
+    return p;\n\
   }\n\
 \n\
 , fromPoints: function ( points ) {\n\
@@ -6593,8 +6669,6 @@ function Motion(ctx) {\n\
 \n\
 Motion.prototype = {\n\
   retract: function() {\n\
-    if(this.disableRetract) return;\n\
-\n\
     this.rapid({z:this.ctx.aboveTop\n\
                || this.ctx.top - this.ctx.surfaceTolerance});\n\
   }\n\
@@ -6712,6 +6786,7 @@ Motion.prototype = {\n\
          utils.sameFloat(y, this.position.y)) {\n\
         return;\n\
       }\n\
+\n\
       motion.retract();\n\
       motion.rapid({x:x,y:y});\n\
     };\n\
@@ -7031,6 +7106,8 @@ function Filter(output, whitelist) {\n\
 require.register("gcanvas/lib/drivers/simulator.js", Function("exports, require, module",
 "module.exports = Simulator;\n\
 \n\
+var Point = require('../math/point');\n\
+\n\
 function Simulator(ctx) {\n\
   this.ctx = ctx;\n\
   this.n = 0;\n\
@@ -7049,6 +7126,9 @@ Simulator.prototype = {\n\
     this.ctx.stroke();\n\
     this.ctx.setLineDash([0,0]);\n\
 \n\
+\n\
+    arrow(this.ctx, this.prev.x, this.prev.y, p.x, p.y, 5);\n\
+\n\
     this.ctx.fillStyle = 'rgba(0,0,0,1)';\n\
     this.ctx.fillText(this.n, this.prev.x, this.prev.y+10);\n\
 \n\
@@ -7056,15 +7136,48 @@ Simulator.prototype = {\n\
 \n\
   } \n\
 , linear: function(p) {\n\
+\n\
+\n\
     this.ctx.beginPath();\n\
     this.ctx.strokeStyle = 'rgba(0,0,0,1)';\n\
     this.ctx.moveTo(this.prev.x, this.prev.y);\n\
     this.ctx.lineTo(p.x, p.y);\n\
     this.ctx.stroke();\n\
 \n\
+    arrow(this.ctx, this.prev.x, this.prev.y, p.x, p.y, 5);\n\
+\n\
     this.prev = p;\n\
   }\n\
 };\n\
+\n\
+\n\
+var d = 0;\n\
+function arrow(ctx, x1,y1,x2,y2,size) {\n\
+  size = 2;\n\
+  var p1 = new Point(x1, y1);\n\
+  var p2 = new Point(x2, y2);\n\
+  var center = p2.sub(p1); // delta\n\
+\n\
+  d += center.magnitude()\n\
+  if(d < 20) {\n\
+    return;\n\
+  }\n\
+  d = 0;\n\
+\n\
+  center = center.magnitude( center.magnitude() / 2 );\n\
+  center = center.add(p1); // move back relative to p1\n\
+  var dir = Point.direction(p1, p2);\n\
+\n\
+  ctx.save();\n\
+  ctx.translate(center.x, center.y);\n\
+  ctx.beginPath();\n\
+  ctx.rotate(dir+Math.PI*2);\n\
+  ctx.moveTo(-size,-size);\n\
+  ctx.lineTo(0, 0);\n\
+  ctx.lineTo(-size, size);\n\
+  ctx.stroke();\n\
+  ctx.restore();\n\
+}\n\
 //@ sourceURL=gcanvas/lib/drivers/simulator.js"
 ));
 require.register("gcanvas/lib/fonts/helvetiker_regular.typeface.js", Function("exports, require, module",
