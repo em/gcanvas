@@ -7033,14 +7033,36 @@ require.register("gcanvas/lib/drivers/simulator.js", Function("exports, require,
 \n\
 function Simulator(ctx) {\n\
   this.ctx = ctx;\n\
+  this.n = 0;\n\
+  ctx.font = \"6pt helvetica\";\n\
+  this.prev = {x:0,y:0};\n\
 }\n\
 \n\
 Simulator.prototype = {\n\
   rapid: function(p) {\n\
-    this.ctx.moveTo(p.x, p.y);\n\
+    this.ctx.beginPath();\n\
+    this.ctx.setLineDash([2,2]);\n\
+    this.ctx.moveTo(this.prev.x, this.prev.y);\n\
+    this.ctx.strokeStyle = 'rgba(0,0,255,0.5)';\n\
+    this.ctx.lineTo(p.x, p.y);\n\
+    this.n++;\n\
+    this.ctx.stroke();\n\
+    this.ctx.setLineDash([0,0]);\n\
+\n\
+    this.ctx.fillStyle = 'rgba(0,0,0,1)';\n\
+    this.ctx.fillText(this.n, this.prev.x, this.prev.y+10);\n\
+\n\
+    this.prev = p;\n\
+\n\
   } \n\
 , linear: function(p) {\n\
+    this.ctx.beginPath();\n\
+    this.ctx.strokeStyle = 'rgba(0,0,0,1)';\n\
+    this.ctx.moveTo(this.prev.x, this.prev.y);\n\
     this.ctx.lineTo(p.x, p.y);\n\
+    this.ctx.stroke();\n\
+\n\
+    this.prev = p;\n\
   }\n\
 };\n\
 //@ sourceURL=gcanvas/lib/drivers/simulator.js"
