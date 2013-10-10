@@ -1077,14 +1077,15 @@ Path.prototype = {\n\
       var sp2 = this.subPaths[i];\n\
 \n\
       var p1 = sp1.lastPoint();\n\
-      var p2 = sp2.firstPoint();\n\
-      var d = Point.distance(p1,p2);\n\
+      var nearest = sp2.nearestPoint(p1);\n\
+      var p2 = nearest.point;\n\
 \n\
-      if(d < diameter) {\n\
+      if(nearest.distance < diameter*2) {\n\
+        sp2 = sp2.shift(nearest.i);\n\
         sp1.lineTo(p2.x, p2.y);\n\
         sp2.actions[0].action = Path.actions.LINE_TO;\n\
         sp1.actions = sp1.actions.concat( sp2.actions );\n\
-        this.subPaths.splice(i);\n\
+        this.subPaths.splice(i,1);\n\
       }\n\
     }\n\
 \n\
@@ -1096,7 +1097,7 @@ Path.prototype = {\n\
 \n\
     var copy = new Path();\n\
 \n\
-    var p0 = this.subPaths[0].firstPoint();\n\
+    var p0 = this.subPaths[0].lastPoint();\n\
 \n\
     copy.subPaths = this.subPaths.sort(function(a, b) {\n\
       var p1 = a.lastPoint();\n\
@@ -1108,9 +1109,10 @@ Path.prototype = {\n\
       // Moving target\n\
       p0 = b.lastPoint();\n\
 \n\
-      if(utils.sameFloat(d1,d2)) return 0;\n\
       if(d1 < d2) return -1;\n\
       if(d1 > d2) return 1;\n\
+\n\
+      return 0;\n\
     });\n\
 \n\
     return copy;\n\
@@ -1198,6 +1200,60 @@ SubPath.prototype = {\n\
     }\n\
 \n\
     return len;\n\
+  }\n\
+\n\
+, nearestPoint: function(p1) {\n\
+    var p2 = new Point()\n\
+      , args\n\
+      , rn\n\
+      , rp\n\
+      , rd = Infinity;\n\
+\n\
+    this.actions.forEach(function(action,n) {\n\
+      args = action.args;\n\
+      p2.x = args[args.length-2];\n\
+      p2.y = args[args.length-1];\n\
+\n\
+      var d = Point.distance(p1,p2);\n\
+      if(d < rd) {\n\
+        rn = n;\n\
+        rp = p2.clone();\n\
+        rd = d;\n\
+      }\n\
+    });\n\
+\n\
+    return {\n\
+      i: rn\n\
+    , distance: rd\n\
+    , point: rp\n\
+    };\n\
+  }\n\
+\n\
+, pointAt: function(an) {\n\
+    var p = new Point();\n\
+    var args = this.actions[an].args;\n\
+    p.x = args[args.length-2];\n\
+    p.y = args[args.length-1];\n\
+    return p;\n\
+  }\n\
+\n\
+, shift: function(an) {\n\
+    if(an === 0) return this;\n\
+\n\
+    var result = new SubPath();\n\
+\n\
+\n\
+    result.actions = this.actions.slice(an).concat(\n\
+      this.actions.slice(0,an)\n\
+    );\n\
+\n\
+    result.actions.forEach(function(a) {\n\
+      a.action = SubPath.actions.LINE_TO;\n\
+    });\n\
+\n\
+    result.lineTo.apply(result, result.actions[0].args);\n\
+\n\
+    return result;\n\
   }\n\
 \n\
 , moveTo: function ( x, y ) {\n\
