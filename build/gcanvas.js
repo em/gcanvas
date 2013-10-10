@@ -231,6 +231,7 @@ function GCanvas(driver, width, height) {\n\
   this.aboveTop = 0;\n\
   this.strokeAlign = 'center';\n\
   this.driver = driver || new GcodeDriver();\n\
+  this.driver.src = this;\n\
   this.stack = [];\n\
   this.motion = new Motion(this);\n\
   this.surfaceTolerance = 0;\n\
@@ -7136,13 +7137,18 @@ Simulator.prototype = {\n\
 \n\
   } \n\
 , linear: function(p) {\n\
-\n\
-\n\
     this.ctx.beginPath();\n\
-    this.ctx.strokeStyle = 'rgba(0,0,0,1)';\n\
     this.ctx.moveTo(this.prev.x, this.prev.y);\n\
     this.ctx.lineTo(p.x, p.y);\n\
+\n\
+    this.ctx.strokeStyle = 'rgba(90,250,0,.1)';\n\
+    this.ctx.lineWidth = this.src.toolDiameter || 5;\n\
     this.ctx.stroke();\n\
+    this.ctx.lineCap = 'round';\n\
+    this.ctx.strokeStyle = 'rgba(0,0,0,1)';\n\
+    this.ctx.lineWidth = 1;\n\
+    this.ctx.stroke();\n\
+\n\
 \n\
     arrow(this.ctx, this.prev.x, this.prev.y, p.x, p.y, 5);\n\
 \n\
