@@ -18,6 +18,7 @@ program
   .option('-c, --depthofcut <number>', 'z offset of layered cuts', Number)
   .option('-t, --top <number>', 'z of top of work surface', Number)
   .option('-a, --above <number>', 'z of safe area above the work', Number)
+  .option('-D, --tooldiameter <number>', 'diameter of tool', Number)
   .option('-w, --width <number>', 'canvas width', Number)
   .option('-h, --height <number>', 'canvas height', Number)
   .option('-e, --entry <name>', 'name of entry function to call. defaults to main(ctx)', 'main')
@@ -34,6 +35,7 @@ if(program.top) gctx.top = program.top;
 if(program.above) gctx.aboveTop = program.above;
 if(program.width) gctx.canvas.width = program.width;
 if(program.height) gctx.canvas.height = program.height;
+if(program.tooldiameter) gctx.toolDiameter = program.tooldiameter;
 
 
 var queue = [];
