@@ -22,81 +22,101 @@ program
   .option('-w, --width <number>', 'canvas width', Number)
   .option('-h, --height <number>', 'canvas height', Number)
   .option('-e, --entry <name>', 'name of entry function to call. defaults to main(ctx)', 'main')
+  .option('--test', 'run simulation in a browser')
 
 program.parse(process.argv);
-
-var gctx = new GCanvas();
-
-if(program.speed) gctx.speed = program.speed;
-if(program.feed) gctx.feed = program.feed;
-if(program.depth) gctx.depth = program.depth;
-if(program.depthofcut) gctx.depthOfCut = program.depthofcut;
-if(program.top) gctx.top = program.top;
-if(program.above) gctx.aboveTop = program.above;
-if(program.width) gctx.canvas.width = program.width;
-if(program.height) gctx.canvas.height = program.height;
-if(program.tooldiameter) gctx.toolDiameter = program.tooldiameter;
+  
+if(program.test) {
+  var fs = require("fs");
+  var host = "127.0.0.1";
+  var port = 1337;
+  var express = require("express");
+  var socket = require("socket.io");
 
 
-var queue = [];
-function setup(desc, fn) {
+  var app = express();
+  app.use(app.router); //use both root and other routes below
+  app.use(express.static(__dirname + "/sim")); //use static files in ROOT/public folder
 
-  queue.push({desc: desc, fn: fn});
-}
-
-function processQueue() {
-  if(queue.length === 0) return;
-
-  var readline = require('readline'),
-      rl = readline.createInterface(process.stdin, process.stderr);
-  var currentStep;
-
-  function next() {
-    currentStep = queue.pop();
-    if(!currentStep) {
-      rl.close();
-      return;
-    }
-
-    gctx.motion.rapid({z:0});
-    rl.setPrompt('(setup '+currentStep.desc+')');
-    rl.prompt();
-  }
-
-  rl.on('line', function() {
-    currentStep.fn(gctx);
-    next();
-  }).on('close', function() {
-    process.exit(0);
+  app.get("/", function(req, res){ //root dir
+    res.render('index.html');
   });
 
-  next();
+  app.listen(port, host);
 }
+else {
 
-function run(file) {
-  var util = require('util'),
-      vm = require('vm'),
-      sandbox = {setup: setup};
+  var gctx = new GCanvas();
 
-  var code = fs.readFileSync(file);
-  var script = vm.createScript(code, file);
-  script.runInNewContext(sandbox);
+  if(program.speed) gctx.speed = program.speed;
+  if(program.feed) gctx.feed = program.feed;
+  if(program.depth) gctx.depth = program.depth;
+  if(program.depthofcut) gctx.depthOfCut = program.depthofcut;
+  if(program.top) gctx.top = program.top;
+  if(program.above) gctx.aboveTop = program.above;
+  if(program.width) gctx.canvas.width = program.width;
+  if(program.height) gctx.canvas.height = program.height;
+  if(program.tooldiameter) gctx.toolDiameter = program.tooldiameter;
 
-  if(sandbox[program.entry]) {
-    sandbox[program.entry](gctx);
+  var queue = [];
+  function setup(desc, fn) {
+    queue.push({desc: desc, fn: fn});
   }
 
-  processQueue();
-};
+  function processQueue() {
+    if(queue.length === 0) return;
 
-if(program.args.length === 0) {
-  program.outputHelp();
+    var readline = require('readline'),
+        rl = readline.createInterface(process.stdin, process.stderr);
+    var currentStep;
+
+    function next() {
+      currentStep = queue.pop();
+      if(!currentStep) {
+        rl.close();
+        return;
+      }
+
+      gctx.motion.rapid({z:0});
+      rl.setPrompt('(setup '+currentStep.desc+')');
+      rl.prompt();
+    }
+
+    rl.on('line', function() {
+      currentStep.fn(gctx);
+      next();
+    }).on('close', function() {
+      process.exit(0);
+    });
+
+    next();
+  }
+
+  function run(file) {
+    var util = require('util'),
+        vm = require('vm'),
+        sandbox = {setup: setup};
+
+    var code = fs.readFileSync(file);
+    var script = vm.createScript(code, file);
+    script.runInNewContext(sandbox);
+
+    if(sandbox[program.entry]) {
+      sandbox[program.entry](gctx);
+    }
+
+    processQueue();
+  };
+
+  if(program.args.length === 0) {
+    program.outputHelp();
+  }
+
+  program.args.forEach(function(file) {
+    run(file);
+  });
+
+  // cleanup
+  gctx.motion.retract();
+  // gctx.motion.rapid({x:0,y:0,z:0});
 }
-
-program.args.forEach(function(file) {
-  run(file);
-});
-
-// cleanup
-gctx.motion.retract();
-// gctx.motion.rapid({x:0,y:0,z:0});
