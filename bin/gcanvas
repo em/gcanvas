@@ -27,22 +27,15 @@ program
 program.parse(process.argv);
   
 if(program.test) {
-  var fs = require("fs");
-  var host = "127.0.0.1";
-  var port = 1337;
-  var express = require("express");
-  var socket = require("socket.io");
+  program.args.forEach(function(file) {
+    var path = require('path');
+    var exec = require('child_process').exec;
 
-
-  var app = express();
-  app.use(app.router); //use both root and other routes below
-  app.use(express.static(__dirname + "/sim")); //use static files in ROOT/public folder
-
-  app.get("/", function(req, res){ //root dir
-    res.render('index.html');
+    var url = 'file://localhost'+ __dirname + '/simulate.html?file://localhost' + path.resolve(file);
+    var cmd = __dirname + '/osxopenhack '+url;
+    console.log(cmd);
+    exec(cmd);
   });
-
-  app.listen(port, host);
 }
 else {
 

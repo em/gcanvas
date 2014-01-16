@@ -1,0 +1,111 @@
+<style>
+body {
+  background: #ccc;
+  font-family: "helvetica neue";
+  margin: 0px;
+}
+
+canvas {
+  padding: 20px;
+  margin: 20px;
+  background: white;
+  display: block;
+  border: 1px solid #bbb;
+  border-radius: 5px;
+}
+
+h1 {
+  margin: 20px;
+  font-weight: 300;
+}
+
+h2 {
+  margin: 20px;
+  font-weight: 300;
+}
+.example {
+  /* border-bottom: 1px solid gray; */
+  position: relative;
+  height: 300px;
+}
+
+.real {
+  background: white;
+  position: absolute;
+  left: 20px;
+  border: 1px solid #ddd;
+}
+
+.sim {
+  background: white;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+</style>
+
+<script src="../build/gcanvas.js"></script>
+
+<script>
+var setupQueue = [];
+var domLoaded = false;
+
+function setup(fn) {
+  setupQueue.push(fn);
+
+  if(domLoaded) {
+    procQueue();
+  }
+}
+
+function procQueue() {
+  var fn;
+  while(fn = setupQueue.pop()) {
+    var realcanvas = document.createElement('canvas');
+    realcanvas.width = 500;
+    realcanvas.height = 500;
+    document.body.appendChild(realcanvas);
+
+    var realctx = realcanvas.getContext('2d');
+    var simdriver = new GCanvas.Simulator(realctx);
+    var simctx = new GCanvas(simdriver, 200, 200);
+    var simcanvas = simctx.canvas;
+
+    fn(simctx);
+  }
+}
+
+function injectScript(uri, callback) {
+  // Actual script
+  var script = document.createElement('script');
+  script.src = uri;
+  document.body.appendChild(script);
+
+  // The callback datauri script
+  var uuid = 'callback' + Math.round(Math.random()*0xffffffff);
+  var src = 'data:application/javascript;charset=utf-8,' + 
+    encodeURIComponent(uuid+'();');
+  window[uuid] = callback;
+  var script = document.createElement('script');
+  script.src = src;
+  setTimeout(function() {
+    document.body.appendChild(script);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  procQueue();
+  domLoaded = true;
+
+  if(window.location.search) {
+    injectScript(window.location.search.slice(1), function() {
+      if(window.main) {
+        setup(window.main);
+      }
+    });
+  }
+});
+
+</script>
+

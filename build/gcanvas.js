@@ -230,6 +230,7 @@ function GCanvas(driver, width, height) {\n\
   this.top = 0;\n\
   this.aboveTop = 0;\n\
   this.strokeAlign = 'center';\n\
+  this.feed = 1000;\n\
   this.driver = driver || new GcodeDriver();\n\
   this.driver.src = this;\n\
   this.stack = [];\n\
@@ -7173,40 +7174,37 @@ function Simulator(ctx) {\n\
 Simulator.prototype = {\n\
   rapid: function(p) {\n\
     this.ctx.beginPath();\n\
-    this.ctx.setLineDash([2,2]);\n\
+    // this.ctx.setLineDash([2,2]);\n\
     this.ctx.moveTo(this.prev.x, this.prev.y);\n\
-    this.ctx.strokeStyle = 'rgba(0,0,255,0.5)';\n\
+    this.ctx.strokeStyle = 'rgba(0,0,255,0.1)';\n\
     this.ctx.lineTo(p.x, p.y);\n\
     this.n++;\n\
     this.ctx.stroke();\n\
-    this.ctx.setLineDash([0,0]);\n\
-\n\
 \n\
     arrow(this.ctx, this.prev.x, this.prev.y, p.x, p.y, 5);\n\
 \n\
     this.ctx.fillStyle = 'rgba(0,0,0,1)';\n\
-    this.ctx.fillText(this.n, this.prev.x, this.prev.y+10);\n\
+    this.ctx.fillText(this.n, this.prev.x+10, this.prev.y+10);\n\
 \n\
-    this.prev = p;\n\
-\n\
+    this.prev = this.src.motion.position;\n\
   } \n\
 , linear: function(p) {\n\
+    this.prev = this.src.motion.position;\n\
+\n\
     this.ctx.beginPath();\n\
     this.ctx.moveTo(this.prev.x, this.prev.y);\n\
     this.ctx.lineTo(p.x, p.y);\n\
 \n\
-    this.ctx.strokeStyle = 'rgba(90,250,0,.1)';\n\
-    this.ctx.lineWidth = this.src.toolDiameter || 5;\n\
-    this.ctx.stroke();\n\
-    this.ctx.lineCap = 'round';\n\
-    this.ctx.strokeStyle = 'rgba(0,0,0,1)';\n\
+    this.ctx.strokeStyle = 'rgba(255,0,0,.5)';\n\
+    // this.ctx.lineWidth = this.src.toolDiameter || 5;\n\
+    // this.ctx.stroke();\n\
+    // this.ctx.lineCap = 'round';\n\
+    // this.ctx.strokeStyle = 'rgba(0,0,0,1)';\n\
     this.ctx.lineWidth = 1;\n\
     this.ctx.stroke();\n\
 \n\
-\n\
     arrow(this.ctx, this.prev.x, this.prev.y, p.x, p.y, 5);\n\
 \n\
-    this.prev = p;\n\
   }\n\
 };\n\
 \n\
