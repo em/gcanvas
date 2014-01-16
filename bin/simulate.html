@@ -51,7 +51,7 @@ h2 {
 var setupQueue = [];
 var domLoaded = false;
 
-function setup(fn) {
+function setup(desc, fn) {
   setupQueue.push(fn);
 
   if(domLoaded) {
