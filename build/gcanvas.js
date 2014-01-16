@@ -7204,7 +7204,8 @@ Simulator.prototype = {\n\
     this.ctx.stroke();\n\
 \n\
     arrow(this.ctx, this.prev.x, this.prev.y, p.x, p.y, 5);\n\
-\n\
+  }\n\
+, send: function() {\n\
   }\n\
 };\n\
 \n\
