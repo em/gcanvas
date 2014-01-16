@@ -14,5 +14,4 @@ function main(ctx) {
   }
 }
 
-
 if(this.example) this.example('filling', main);

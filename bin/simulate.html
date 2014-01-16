@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if(window.location.search) {
     injectScript(window.location.search.slice(1), function() {
       if(window.main) {
-        setup(window.main);
+        setup('main', window.main);
       }
     });
   }

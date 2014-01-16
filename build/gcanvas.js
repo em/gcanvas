@@ -7173,6 +7173,8 @@ function Simulator(ctx) {\n\
 \n\
 Simulator.prototype = {\n\
   rapid: function(p) {\n\
+    this.prev = this.src.motion.position;\n\
+\n\
     this.ctx.beginPath();\n\
     // this.ctx.setLineDash([2,2]);\n\
     this.ctx.moveTo(this.prev.x, this.prev.y);\n\
@@ -7186,7 +7188,6 @@ Simulator.prototype = {\n\
     this.ctx.fillStyle = 'rgba(0,0,0,1)';\n\
     this.ctx.fillText(this.n, this.prev.x+10, this.prev.y+10);\n\
 \n\
-    this.prev = this.src.motion.position;\n\
   } \n\
 , linear: function(p) {\n\
     this.prev = this.src.motion.position;\n\
