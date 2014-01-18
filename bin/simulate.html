@@ -63,12 +63,42 @@ function procQueue() {
   var fn;
   while(fn = setupQueue.pop()) {
     var realcanvas = document.createElement('canvas');
-    realcanvas.width = 500;
-    realcanvas.height = 500;
+    realcanvas.width = 2000;
+    realcanvas.height = 1000;
     document.body.appendChild(realcanvas);
 
-    var realctx = realcanvas.getContext('2d');
-    var simdriver = new GCanvas.Simulator(realctx);
+    var ctx = realcanvas.getContext('2d');
+
+    ctx.translate(1000.5,500.5);
+    ctx.scale(2,2);
+    ctx.lineWidth = 0.5;
+
+    ctx.strokeStyle = 'rgba(0,0,0,.1)'
+    ctx.moveTo(0,-250);
+    ctx.lineTo(0,250);
+    ctx.moveTo(-400,0);
+    ctx.lineTo(400,0);
+    ctx.stroke();
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(0,0,0,.5)'
+    ctx.translate(0,-250);
+    ruler(ctx,30,500,-500);
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(0,0,0,.5)'
+    ctx.translate(-500,0);
+    ctx.rotate(-Math.PI/2);
+    ruler(ctx,30,500,-500);
+    ctx.restore();
+
+
+
+
+
+
+    var simdriver = new GCanvas.Simulator(ctx);
     var simctx = new GCanvas(simdriver, 200, 200);
     var simcanvas = simctx.canvas;
 
@@ -92,6 +122,77 @@ function injectScript(uri, callback) {
   setTimeout(function() {
     document.body.appendChild(script);
   });
+}
+
+function ruler(ctx, width, length, start) {
+  ctx.font="7px helvetica";
+
+  start = start || 1;
+
+  ctx.beginPath();
+
+  // metric
+  ctx.beginPath();
+  for(var x = start; x <= length; ++x) {
+
+    ctx.beginPath();
+
+    // market line
+    var ml = x % 10 ? 1 : 1000;
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, ml);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(x-5, 5);
+    ctx.rotate(Math.PI/2);
+
+    if(x && x % 10 === 0) {
+      ctx.fillText(x+'', 0, -2);
+      // ctx.strokeText(''+(x*25.4).toFixed(1), 2, -0.1);
+    }
+    ctx.restore();
+  }
+
+  // inches
+  // for(var i = Math.floor(start*8/25.4), x=0; x < length; i++) {
+
+  //   x = i*25.4/8;
+
+  //   ctx.beginPath();
+
+  //   // market line
+  //   var ml = i % 8 ? (i % 4 ? (i % 2 ? 1 : 2) : 3) : 4;
+  //   // ml = (ml/2)*ml;
+
+  //   ctx.moveTo(x, width-ml);
+  //   ctx.lineTo(x, width);
+
+  //   // if(ml == 1)  {
+  //   //   // bubble to align marker with text
+  //   //   ctx.arc(x, ml+0.5, 0.5, -Math.PI/2, 0);
+  //   //   ctx.arc(x, 10-ml, 0.5, 0, Math.PI/2);
+  //   //   ctx.arc(x, 10-ml, 0.5, Math.PI/2, Math.PI);
+  //   //   ctx.arc(x, ml+0.5, 0.5, Math.PI, Math.PI*1.5);
+  //   // }
+
+  //   // ctx.moveTo(x, 11);
+  //   // ctx.lineTo(x, 10.5-ml);
+
+  //   ctx.stroke();
+
+  //   ctx.save();
+  //   ctx.translate(x-1, width-ml-5);
+  //   ctx.rotate(Math.PI/2);
+  //   if(i && i % 8 === 0) {
+  //     ctx.fillText(i/8, 0, 0);
+  //   }
+  //   ctx.restore();
+  // }
 }
 
 document.addEventListener('DOMContentLoaded', function() {

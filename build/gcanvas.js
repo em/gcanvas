@@ -391,9 +391,13 @@ GCanvas.prototype = {\n\
     }\n\
     if(this.strokeAlign === 'inset') {\n\
       offset = -this.toolDiameter;\n\
+      console.log(offset);\n\
     }\n\
 \n\
-    var path = this.path.offset(offset);\n\
+    var path = this.path;\n\
+    path = path.offset(offset);\n\
+    // path = path.clip(this.clipRegion);\n\
+\n\
     this._layer(function() {\n\
       this.motion.followPath(path);\n\
     });\n\
@@ -7197,12 +7201,21 @@ Simulator.prototype = {\n\
     this.ctx.lineTo(p.x, p.y);\n\
 \n\
     this.ctx.strokeStyle = 'rgba(255,0,0,.5)';\n\
+    this.ctx.stroke();\n\
+\n\
+    this.ctx.save();\n\
+    this.ctx.strokeStyle = 'rgba(255,0,0,.01)';\n\
+    this.ctx.lineWidth = this.src.toolDiameter || 0.5;\n\
+    this.ctx.lineCap = 'round';\n\
+    this.ctx.stroke();\n\
+    this.ctx.restore();\n\
+\n\
+\n\
     // this.ctx.lineWidth = this.src.toolDiameter || 5;\n\
     // this.ctx.stroke();\n\
     // this.ctx.lineCap = 'round';\n\
     // this.ctx.strokeStyle = 'rgba(0,0,0,1)';\n\
-    this.ctx.lineWidth = 1;\n\
-    this.ctx.stroke();\n\
+    // this.ctx.lineWidth = 1;\n\
 \n\
     arrow(this.ctx, this.prev.x, this.prev.y, p.x, p.y, 5);\n\
   }\n\
