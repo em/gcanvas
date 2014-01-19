@@ -387,10 +387,10 @@ GCanvas.prototype = {\n\
 , stroke: function() {\n\
     var offset = 0;\n\
     if(this.strokeAlign === 'outset') {\n\
-      offset = this.toolDiameter;\n\
+      offset = this.toolDiameter/2;\n\
     }\n\
     if(this.strokeAlign === 'inset') {\n\
-      offset = -this.toolDiameter;\n\
+      offset = -this.toolDiameter/2;\n\
       console.log(offset);\n\
     }\n\
 \n\
