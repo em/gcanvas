@@ -254,12 +254,12 @@ GCanvas.prototype = {\n\
     this.rotation = prev.rotation;\n\
   }\n\
 , beginPath: function() {\n\
-    // this.prevSubPaths = this.subPaths;\n\
+    // this.prevsubPaths = this.subPaths;\n\
     this.path = new Path();\n\
     // this.subPaths = [this.path];\n\
   }\n\
 , _restorePath: function() {\n\
-    this.subPaths = this.prevSubPaths;\n\
+    this.subPaths = this.prevsubPaths;\n\
     this.path = this.subPaths[this.subPaths.length-1] || new Path();\n\
   }\n\
 , transform: function(a, b, c, d, e, f) {\n\
@@ -321,6 +321,10 @@ GCanvas.prototype = {\n\
     // In the conversion to points we lose the distinction\n\
     // between 0 and pi2 so we must optimize out 0 here \n\
     // or else they will be treated as full circles.\n\
+\n\
+    if(x === 0) x = 0.0000000001;\n\
+    if(y === 0) y = 0.0000000001;\n\
+\n\
     if(aStartAngle - aEndAngle === 0) {\n\
       return;\n\
     }\n\
@@ -391,16 +395,19 @@ GCanvas.prototype = {\n\
     }\n\
     if(this.strokeAlign === 'inset') {\n\
       offset = -this.toolDiameter/2;\n\
-      console.log(offset);\n\
     }\n\
 \n\
     var path = this.path;\n\
     path = path.offset(offset);\n\
     // path = path.clip(this.clipRegion);\n\
 \n\
-    this._layer(function() {\n\
-      this.motion.followPath(path);\n\
-    });\n\
+    if(path.subPaths)\n\
+    path.subPaths.forEach(function(subPath) {\n\
+      subPath = subPath.toPath();\n\
+      this._layer(function() {\n\
+        this.motion.followPath(subPath);\n\
+      });\n\
+    }, this);\n\
   }\n\
 , fill: function(windingRule) {\n\
 \n\
@@ -408,15 +415,302 @@ GCanvas.prototype = {\n\
       throw 'You must set context.toolDiameter to use fill()'\n\
     }\n\
 \n\
-    var path = this.path;\n\
+    path = this.path;\n\
     path = path.simplify(windingRule);\n\
     path = path.clip(this.clipRegion);\n\
     path = path.fillPath(this.toolDiameter);\n\
 \n\
-    this._layer(function(depth) {\n\
-      this.motion.followPath(path);\n\
-    });\n\
+    if(path.subPaths)\n\
+    path.subPaths.forEach(function(subPath) {\n\
+      subPath = subPath.toPath();\n\
+      this._layer(function() {\n\
+        this.motion.followPath(subPath);\n\
+      });\n\
+    }, this);\n\
+  }\n\
 \n\
+, arcTurn: function() {\n\
+    this.motion.filter = {\n\
+      linear: function(p) {\n\
+        this.arcCW(p);\n\
+      }\n\
+    };\n\
+\n\
+    this.turn();\n\
+    this.motion.filter = false;\n\
+  }\n\
+// \n\
+// , turn: function(pitch, vx, vy) {\n\
+//     return this.lathe(pitch, vx, vy, false);\n\
+//   }\n\
+// \n\
+, bore: function(pitch, vx, vy) {\n\
+    return this.turn(pitch, vx, vy, true);\n\
+  }\n\
+\n\
+, outerThread: function(dmin, dmaj, depth, pitch, ccw) {\n\
+    this.latheAlign = 'outer';\n\
+    this.beginPath();\n\
+    if(ccw) {\n\
+      this.moveTo(dmin/2,depth);\n\
+      this.lineTo(dmaj/2,depth);\n\
+      this.lineTo(dmaj/2,0);\n\
+    }\n\
+    else {\n\
+      this.moveTo(dmaj/2,0);\n\
+      this.lineTo(dmaj/2,depth);\n\
+      this.lineTo(dmin/2,depth);\n\
+    }\n\
+    this.turn(pitch, ccw);\n\
+  }\n\
+\n\
+, innerThread: function(dmin, dmaj, depth, pitch, ccw) {\n\
+    this.latheAlign = 'inner';\n\
+    this.beginPath();\n\
+    this.moveTo(dmin/2,depth);\n\
+    this.lineTo(dmaj/2,depth);\n\
+    this.lineTo(dmaj/2,0);\n\
+    this.turn(pitch);\n\
+  }\n\
+\n\
+, turn: function(pitch, vx, vy, bore) {\n\
+\n\
+    var virtual = !this.lathe;\n\
+    var inner = this.latheAlign == 'inner';\n\
+\n\
+    var path = this.path;\n\
+    pitch = pitch || this.toolDiameter || 1;\n\
+\n\
+    var bounds = path.getBounds();\n\
+\n\
+    if(inner) {\n\
+      bounds.right += (this.toolDiameter||0)/2;\n\
+    }\n\
+    else {\n\
+      bounds.right += (this.toolDiameter||0)/2;\n\
+    }\n\
+\n\
+    if(this.outerDiameter) bounds.right = this.outerDiameter/2;\n\
+\n\
+    var motion = this.motion;\n\
+    var driver = this.driver;\n\
+    var height = bounds.bottom-bounds.top;\n\
+    var width = bounds.right-bounds.left;\n\
+    var a = 0;\n\
+\n\
+    var range = bore ? height : width; \n\
+\n\
+    var depthOfCut = this.depthOfCut || range;\n\
+\n\
+    var offset = range;\n\
+    while(offset > 0) {\n\
+      offset -= depthOfCut;\n\
+      offset = Math.max(offset, 0);\n\
+\n\
+\n\
+      var spiralAngle = 0;\n\
+      var pts = path.getPoints();\n\
+      var p0 = new Point(0,0,0);\n\
+      var p0b = new Point(0,0,0);\n\
+\n\
+      var first = true;\n\
+\n\
+      if(this.lathe) {\n\
+        motion.rapid({y:0});\n\
+      }\n\
+      else {\n\
+        motion.rapid({z:0});\n\
+      }\n\
+\n\
+\n\
+      pts.forEach(function(p1,pi) {\n\
+        p1 = p1.clone();\n\
+        var p1c = p1.clone();\n\
+\n\
+        if(inner) {\n\
+          p1.x -= (this.toolDiameter||0)/2;\n\
+        }\n\
+        else {\n\
+          p1.x += (this.toolDiameter||0)/2;\n\
+        }\n\
+\n\
+        if(bore) {\n\
+          p1.y -= offset;\n\
+        }\n\
+        else {\n\
+          if(inner) {\n\
+            p1.x -= offset;\n\
+          }\n\
+          else {\n\
+            p1.x += offset;\n\
+          }\n\
+        }\n\
+\n\
+        // if(p0.y < bounds.top && p1.y < bounds.top)\n\
+        //   return;\n\
+\n\
+        if(p1.y < bounds.top) {\n\
+          var m = (p1.x - p0.x) / (p1.y - p0.y);\n\
+          p1.x += m * (bounds.top - p1.y);\n\
+          var d = p1.y-bounds.top;\n\
+          p1.y = bounds.top;\n\
+        }\n\
+\n\
+        // if(p1.x < bounds.left) {\n\
+        //   var m = (p1.y - p0.y) / (p1.x - p0.x);\n\
+        //   p1.y += m * (bounds.left - p1.x);\n\
+        //   var d = p1.x-bounds.left;\n\
+        //   p1.x = bounds.left;\n\
+        // }\n\
+\n\
+        if(p1.x > bounds.right) {\n\
+          var m = (p1.y - p0.y) / (p1.x - p0.x);\n\
+          p1.y += m * (bounds.right - p1.x);\n\
+          var d = p1.x-bounds.right;\n\
+          p1.x = bounds.right;\n\
+        }\n\
+\n\
+        if(virtual) {\n\
+          var r0 = p0.x;\n\
+          var z0 = p0.y;\n\
+          var r1 = p1.x;\n\
+          var z1 = p1.y;\n\
+\n\
+            if(false && pi == 0) {\n\
+              // motion.rapid({z:0});\n\
+              // motion.rapid({x:0,y:0});\n\
+            }\n\
+            else {\n\
+\n\
+              // var spiralPitch = (r1-r0)/(z1-z0)*pitch;\n\
+\n\
+              var xo = p1.x-p0.x;\n\
+              var yo = p1.y-p0.y;\n\
+              var dist = Math.sqrt(xo*xo + yo*yo);\n\
+              var loops = dist/pitch;\n\
+\n\
+              if(z0 <= bounds.top && z1 <= bounds.top) {\n\
+                // spiralAngle = conicSpiral(r0, r1, loops, spiralAngle, function(x,y,t) {\n\
+                //   motion.rapid({\n\
+                //     x: x,\n\
+                //     y: y\n\
+                //   });\n\
+                // }, true);\n\
+              }\n\
+              else {\n\
+                spiralAngle = conicSpiral(r0, r1, loops, spiralAngle, function(x,y,t) {\n\
+                  motion.linear({\n\
+                    x: x,\n\
+                    y: y,\n\
+                    z: z0+(z1-z0)*t \n\
+                  });\n\
+                });\n\
+              }\n\
+\n\
+              function conicSpiral(r0,r1,loops,start,callback,last) {\n\
+                if(loops == 0) return start;\n\
+\n\
+                var divisions = 40;\n\
+                var end = Math.abs(loops) * divisions * 2;\n\
+                var delta = r1-r0;\n\
+                var pitch = divisions/end*delta;\n\
+                var a = r0;\n\
+                var b = pitch/Math.PI;\n\
+                var stepAngle = Math.PI/divisions;\n\
+                start = start || 0;\n\
+                var x,y,t;\n\
+                var angle;\n\
+\n\
+                for(var i = 0; i < end; i++) {\n\
+                  if(last) i = end;\n\
+\n\
+                  angle = stepAngle * i;\n\
+                  x = (a + b * angle) * Math.cos(angle+start);\n\
+                  y = (a + b * angle) * Math.sin(angle+start);\n\
+                  t = i/end; \n\
+\n\
+                  var proceed = callback(x, y, t);\n\
+                  if(proceed === false) {\n\
+                    break;\n\
+                  }\n\
+                }\n\
+\n\
+                return angle+start+stepAngle;\n\
+              }\n\
+            }\n\
+        }\n\
+        else {\n\
+          a = p1.x/pitch*360;\n\
+          motion.linear({x: p1.x, y: p1.y, a: a});\n\
+        }\n\
+\n\
+        p0 = p1.clone();\n\
+        p0b = p1c.clone();\n\
+        first = false;\n\
+      }, this);\n\
+\n\
+      a = Math.round(a / 360) * 360;\n\
+\n\
+      if(virtual) {\n\
+        // motion.rapid({z:0});\n\
+        // motion.rapid({x:0,y:0});\n\
+      }\n\
+      else {\n\
+        motion.rapid({y: bounds.top});\n\
+        motion.rapid({x: bounds.left, a:a});\n\
+        driver.zero({a:0});\n\
+      }\n\
+    }\n\
+\n\
+    // motion.arcCW({\n\
+    //   x: 0,\n\
+    //   y: 0,\n\
+    //   i:-p1.x,\n\
+    //   j:-p1.y\n\
+    // });\n\
+\n\
+    motion.rapid({z:0});\n\
+    // motion.rapid({x:0,y:0});\n\
+  }\n\
+, peckDrill: function(depth, peck) {\n\
+    var prevZ = 0;\n\
+    peck = peck || ctx.toolDiameter;\n\
+\n\
+    var mtn = this.motion;\n\
+\n\
+    for(var z=peck; z < depth; z += peck) {\n\
+      z = Math.min(z, depth); // Cap to exact depth\n\
+      mtn.rapid({z:prevZ}); // Rapid to current depth\n\
+      mtn.linear({z:z}); // Drill a bit further\n\
+      mtn.rapid({z:0}); // Rapid all the way out \n\
+      prevZ = z;\n\
+    }\n\
+  }\n\
+, thread: function(cx,cy,dmaj,pitch,toolDiameter,depth) {\n\
+    toolDiameter = toolDiameter || this.toolDiameter;\n\
+    depth = depth || this.depth;\n\
+    this.beginPath();\n\
+    this.moveTo(dmaj/2,0);\n\
+    this.lineTo(dmaj/2,depth);\n\
+    this.turn(pitch,cx,cy);\n\
+  }\n\
+\n\
+, taper: function(cx,cy,dmin,dmaj,depth,pitch) {\n\
+    this.beginPath();\n\
+    this.moveTo(dmin/2,0);\n\
+    this.lineTo(dmaj/2,depth);\n\
+    this.turn(pitch,cx,cy);\n\
+  }\n\
+, bowl: function(cx,cy,r1,r2) {\n\
+    var mtn = this.motion;\n\
+  }\n\
+, hole: function(x,y,d,depth) {\n\
+    this.save();\n\
+    this.beginPath();\n\
+    this.depth = depth || this.depth;\n\
+    this.arc(x,y,d/2,0,Math.PI*2);\n\
+    this.fill();\n\
+    this.restore();\n\
   }\n\
 , _layer: function(fn) {\n\
     var depthOfCut = this.depthOfCut || this.depth;\n\
@@ -428,16 +722,23 @@ GCanvas.prototype = {\n\
       return;\n\
     }\n\
 \n\
-    for(var depth=start;\n\
-        depth <= this.top+this.depth;\n\
-        depth += depthOfCut) {\n\
+    var layers = Math.ceil((this.top+this.depth) / depthOfCut);\n\
+\n\
+    for(var i=1; i < layers+2; ++i) {\n\
+      var depth = this.top + depthOfCut * i;\n\
+    // for(var depth=start;\n\
+    //     depth <= this.top+this.depth;\n\
+    //     depth += depthOfCut) {\n\
       // Clip to actual depth\n\
       depth = Math.min(depth, this.top+this.depth);\n\
       // Set new target depth in motion\n\
+\n\
       this.motion.targetDepth = depth;\n\
       // Remove the material at this depth\n\
       fn.call(this, depth);\n\
     }\n\
+\n\
+\n\
   }\n\
 , text: function(text, x, y, params) {\n\
       var fontProps = parseFont(this.font);\n\
@@ -1055,6 +1356,9 @@ Path.prototype = {\n\
     return result;\n\
   }\n\
 \n\
+, ramp: function(depth) {\n\
+  }\n\
+\n\
 , addPath: function(path2) {\n\
     this.subPaths = this.subPaths.concat(path2.subPaths);\n\
   }\n\
@@ -1071,7 +1375,9 @@ Path.prototype = {\n\
       result.addPath(offsetPath);\n\
     }\n\
 \n\
-    result = result.sort().connectEnds(diameter);\n\
+    // result.addPath( this.offset( -diameter*0.5 ) );\n\
+\n\
+    result = result.sort();//.connectEnds(diameter);\n\
 \n\
     return result;\n\
   }\n\
@@ -1095,6 +1401,9 @@ Path.prototype = {\n\
     }\n\
 \n\
     return this;\n\
+  }\n\
+\n\
+, reverse: function() {\n\
   }\n\
 \n\
 , sort: function() { \n\
@@ -1122,6 +1431,42 @@ Path.prototype = {\n\
 \n\
     return copy;\n\
   }\n\
+\n\
+, firstPoint: function() {\n\
+    return this.subPaths[0].firstPoint();\n\
+  }\n\
+\n\
+, lastPoint: function() {\n\
+    return this.subPaths[this.subPaths.length-1].lastPoint();\n\
+  }\n\
+\n\
+, getPoints: function(divisions) {\n\
+    var pts = [];\n\
+    this.subPaths.forEach(function(sp) {\n\
+      pts.push.apply(pts, sp.getPoints());\n\
+    });\n\
+    return pts;\n\
+  }\n\
+\n\
+, getBounds: function() {\n\
+    var pts = this.getPoints();\n\
+    var p0 = this.firstPoint();\n\
+    var res = {\n\
+      left: p0.x,\n\
+      top: p0.y,\n\
+      right: p0.x,\n\
+      bottom: p0.y\n\
+    };\n\
+\n\
+    pts.forEach(function(p) {\n\
+      res.left = Math.min(res.left, p.x);\n\
+      res.top = Math.min(res.top, p.y);\n\
+      res.right = Math.max(res.right, p.x);\n\
+      res.bottom = Math.max(res.bottom, p.y);\n\
+    });\n\
+\n\
+    return res;\n\
+  }\n\
 }\n\
 \n\
 var NON_ZERO = ClipperLib.PolyFillType.pftNonZero;\n\
@@ -1139,9 +1484,11 @@ module.exports = SubPath;\n\
 \n\
 var Point = require('./math/point')\n\
   , ClipperLib = require('./clipper')\n\
+  , Path = require('./path');\n\
 \n\
 function SubPath( points ) {\n\
 \tthis.actions = [];\n\
+  this.pointsCache = [];\n\
 \n\
 \tif ( points ) {\n\
 \t\tthis.fromPoints( points );\n\
@@ -1163,12 +1510,24 @@ SubPath.prototype = {\n\
     return path;\n\
   }\n\
 \n\
+, toPath: function() {\n\
+   var clone = this.clone();\n\
+   var path = new Path();\n\
+   path.subPaths.push(clone);\n\
+   return path;\n\
+  }\n\
+\n\
 , firstPoint: function() {\n\
     var p = new Point(0,0);\n\
     var args = this.actions[0].args;\n\
     p.x = args[args.length-2];\n\
     p.y = args[args.length-1];\n\
     return p;\n\
+  }\n\
+\n\
+, addAction: function(action) {\n\
+    this.actions.push(action);\n\
+    this.pointsCache = [];\n\
   }\n\
 \n\
 , lastPoint: function() {\n\
@@ -1191,7 +1550,42 @@ SubPath.prototype = {\n\
 , getLength: function() {\n\
     var args, x1=0, y1=0, x2=0, y2=0, xo=0, yo=0, len=0;\n\
 \n\
-    for ( i = 0, il = this.actions.length; i < il; i ++ ) {\n\
+    var first = this.firstPoint();\n\
+    x2 = first.x;\n\
+    y2 = first.y;\n\
+\n\
+    var pts = this.getPoints();\n\
+    for(var i=0,l=pts.length; i < l; ++i) {\n\
+      var p=pts[i];\n\
+      x1 = x2;\n\
+      y1 = y2;\n\
+      x2 = p.x;\n\
+      y2 = p.y;\n\
+      xo = x2-x1;\n\
+      yo = y2-y1;\n\
+\n\
+      len += Math.sqrt(xo*xo + yo*yo);\n\
+    }\n\
+\n\
+    // for ( i = 1, il = this.actions.length; i < il; i ++ ) {\n\
+    //   args = this.actions[i].args;\n\
+    //   x1 = x2;\n\
+    //   y1 = y2;\n\
+    //   x2 = args[args.length-2];\n\
+    //   y2 = args[args.length-1];\n\
+    //   xo = x2-x1;\n\
+    //   yo = y2-y1;\n\
+\n\
+    //   len += Math.sqrt(xo*xo + yo*yo);\n\
+    // }\n\
+\n\
+    return len;\n\
+  }\n\
+\n\
+, getLength2: function() {\n\
+    var args, x1=0, y1=0, x2=0, y2=0, xo=0, yo=0, len=0;\n\
+\n\
+    for ( i = 1, il = this.actions.length; i < il; i ++ ) {\n\
       args = this.actions[i].args;\n\
       x1 = x2;\n\
       y1 = y2;\n\
@@ -1200,8 +1594,7 @@ SubPath.prototype = {\n\
       xo = x2-x1;\n\
       yo = y2-y1;\n\
 \n\
-      if(i !== 0) // Don't include the moveTo\n\
-        len += Math.sqrt(xo*xo + yo*yo);\n\
+      len += Math.sqrt(xo*xo + yo*yo);\n\
     }\n\
 \n\
     return len;\n\
@@ -1262,21 +1655,21 @@ SubPath.prototype = {\n\
   }\n\
 \n\
 , moveTo: function ( x, y ) {\n\
-    this.actions.push( { action: SubPath.actions.MOVE_TO, args: arguments } );\n\
+    this.addAction( { action: SubPath.actions.MOVE_TO, args: arguments } );\n\
   }\n\
 \n\
 , lineTo: function ( x, y ) {\n\
-    this.actions.push( { action: SubPath.actions.LINE_TO, args: arguments } );\n\
+    this.addAction( { action: SubPath.actions.LINE_TO, args: arguments } );\n\
   }\n\
 \n\
 , quadraticCurveTo: function( aCPx, aCPy, aX, aY ) {\n\
-    this.actions.push( { action: SubPath.actions.QUADRATIC_CURVE_TO, args: arguments } );\n\
+    this.addAction( { action: SubPath.actions.QUADRATIC_CURVE_TO, args: arguments } );\n\
   }\n\
 \n\
 , bezierCurveTo: function( aCP1x, aCP1y,\n\
                            aCP2x, aCP2y,\n\
                            aX, aY ) {\n\
-    this.actions.push( { action: SubPath.actions.BEZIER_CURVE_TO, args: arguments } );\n\
+    this.addAction( { action: SubPath.actions.BEZIER_CURVE_TO, args: arguments } );\n\
   }\n\
 \n\
 , arc: function ( aX, aY, aRadius, aStartAngle, aEndAngle, aClockwise ) {\n\
@@ -1284,11 +1677,17 @@ SubPath.prototype = {\n\
   }\n\
 \n\
 , ellipse: function ( aX, aY, xRadius, yRadius, aStartAngle, aEndAngle, aClockwise ) {\n\
-    this.actions.push( { action: SubPath.actions.ELLIPSE, args: arguments } );\n\
+    this.addAction( { action: SubPath.actions.ELLIPSE, args: arguments } );\n\
   }\n\
 \n\
 , getPoints: function( divisions ) {\n\
-    divisions = divisions || 12;\n\
+\n\
+    divisions = divisions || 40;\n\
+\n\
+    if(this.pointsCache[divisions]) {\n\
+      return this.pointsCache[divisions];\n\
+    }\n\
+\n\
 \n\
     var points = [];\n\
 \n\
@@ -1449,6 +1848,7 @@ SubPath.prototype = {\n\
       points.push( points[ 0 ] );\n\
     }\n\
 \n\
+    this.pointsCache[divisions] = points;\n\
     return points;\n\
   }\n\
 , toPoly: function(scale) {\n\
@@ -6751,6 +7151,7 @@ Motion.prototype = {\n\
   }\n\
 , arcCW: function(params) {\n\
     var newPosition = this.postProcess(params);\n\
+\n\
     // Can be cyclic so we don't\n\
     // ignore it if the position is the same\n\
 \n\
@@ -6761,6 +7162,9 @@ Motion.prototype = {\n\
     }\n\
   }\n\
 , arcCCW: function(params) {\n\
+    if(this.applyFilter('arcCCW', params) === false)\n\
+      return;\n\
+\n\
     var newPosition = this.postProcess(params);\n\
 \n\
     this.ctx.driver.arcCCW.call(this.ctx.driver, params);\n\
@@ -6818,21 +7222,55 @@ Motion.prototype = {\n\
       return false;\n\
     }\n\
 \n\
+    // TODO: test\n\
+    if(this.relative) {\n\
+      params.x -= this.position.x;\n\
+      params.y -= this.position.y;\n\
+      params.z -= this.position.z;\n\
+    }\n\
+\n\
     return v1;\n\
   }\n\
 \n\
-, followPath: function(path) {\n\
+, applyFilter: function(method, args) {\n\
+    if(!this.filter || !this.filter[method]) return;\n\
+    return this.filter[method].apply(this, args);\n\
+  }\n\
 \n\
-    if(path.forEach) {\n\
-      path.forEach(this.followPath, this);\n\
-      return;\n\
-    }\n\
+, followPath: function(path, filter) {\n\
+\n\
+    // if(path.forEach) {\n\
+    //   path.forEach(this.followPath, this);\n\
+    //   return;\n\
+    // }\n\
 \n\
     if(path.subPaths) {\n\
-      path.subPaths.forEach(this.followPath, this);\n\
+      path.subPaths.forEach(function(subPath) {\n\
+        this.followPath(subPath, filter);\n\
+      }, this);\n\
       return;\n\
     }\n\
 \n\
+    var totalLen = path.getLength();\n\
+    var curLen = 0;\n\
+    var endDepth = this.targetDepth;\n\
+    var zStart = this.position.z;\n\
+\n\
+    function helix() {\n\
+      var fullDelta = endDepth - zStart;\n\
+      var curDelta = fullDelta * (curLen / totalLen);\n\
+      return zStart + curDelta;\n\
+    }\n\
+\n\
+    function applyFilter(obj) {\n\
+      if(!filter) {\n\
+        return obj;\n\
+      }\n\
+\n\
+      filter.call(obj, motion.position, curLen, totalLen);\n\
+\n\
+      return obj;\n\
+    }\n\
 \n\
     var each = {};\n\
     var motion = this;\n\
@@ -6848,17 +7286,28 @@ Motion.prototype = {\n\
       }\n\
 \n\
       motion.retract();\n\
-      motion.rapid({x:x,y:y});\n\
+      motion.rapid(\n\
+        applyFilter({x:x,y:y})\n\
+      );\n\
+\n\
+      zStart = motion.position.z;\n\
     };\n\
 \n\
     each[Path.actions.LINE_TO] = function(x,y) {\n\
-      motion.linear({x:x,y:y});\n\
+\n\
+      var xo = x - this.position.x;\n\
+      var yo = y - this.position.y;\n\
+      curLen += Math.sqrt(xo*xo + yo*yo);\n\
+\n\
+      motion.linear(\n\
+        applyFilter({x:x,y:y,z:helix()})\n\
+      );\n\
     };\n\
 \n\
     each[Path.actions.ELLIPSE] = function(x, y, rx, ry,\n\
 \t\t\t\t\t\t\t\t\t  aStart, aEnd, aClockwise , mx, my) {\n\
       // Detect plain arc\n\
-      if(utils.sameFloat(rx,ry) &&\n\
+      if(false && utils.sameFloat(rx,ry) &&\n\
         (driver.arcCW && !aClockwise) ||\n\
         (driver.arcCCW && aClockwise) ) {\n\
           var center = new Point(x, y);\n\
@@ -6870,6 +7319,8 @@ Motion.prototype = {\n\
             x: points.end.x, y: points.end.y,\n\
             i: x-points.start.x, j: y-points.start.y\n\
           };\n\
+\n\
+          params = applyFilter(params);\n\
 \n\
           if(aClockwise)\n\
             motion.arcCCW(params);\n\
@@ -6894,7 +7345,7 @@ Motion.prototype = {\n\
 \n\
       // Every action should be plunged except for move\n\
       if(item.action !== Path.actions.MOVE_TO) {\n\
-        motion.plunge();\n\
+        // motion.plunge();\n\
       }\n\
 \n\
       each[item.action].apply(this, item.args);\n\
@@ -7122,6 +7573,9 @@ GCodeDriver.prototype = {\n\
       this.send('M09');\n\
     }\n\
   }\n\
+, zero: function(params) {\n\
+    this.send('G28.3', params);\n\
+  }\n\
 , atc: function(id) {\n\
     this.send('M6', {T: id});\n\
   }\n\
@@ -7171,37 +7625,46 @@ var Point = require('../math/point');\n\
 function Simulator(ctx) {\n\
   this.ctx = ctx;\n\
   this.n = 0;\n\
-  ctx.font = \"6pt helvetica\";\n\
-  this.prev = {x:0,y:0};\n\
+  ctx.font = \"3pt helvetica\";\n\
+  cur = {x:0,y:0};\n\
 }\n\
 \n\
 Simulator.prototype = {\n\
   rapid: function(p) {\n\
-    this.prev = this.src.motion.position;\n\
+    cur = this.src.motion.position;\n\
 \n\
     this.ctx.beginPath();\n\
     // this.ctx.setLineDash([2,2]);\n\
-    this.ctx.moveTo(this.prev.x, this.prev.y);\n\
-    this.ctx.strokeStyle = 'rgba(0,0,255,0.1)';\n\
+    this.ctx.moveTo(cur.x, cur.y);\n\
+    this.ctx.strokeStyle = 'rgba(0,0,255,0.5)';\n\
     this.ctx.lineTo(p.x, p.y);\n\
     this.n++;\n\
     this.ctx.stroke();\n\
 \n\
-    arrow(this.ctx, this.prev.x, this.prev.y, p.x, p.y, 5);\n\
+    arrow(this.ctx, cur.x, cur.y, p.x, p.y, 5);\n\
 \n\
-    this.ctx.fillStyle = 'rgba(0,0,0,1)';\n\
-    this.ctx.fillText(this.n, this.prev.x+10, this.prev.y+10);\n\
+    // this.ctx.fillStyle = 'rgba(0,0,0,1)';\n\
+    this.ctx.fillText(this.n, cur.x+10, cur.y+10);\n\
 \n\
   } \n\
 , linear: function(p) {\n\
-    this.prev = this.src.motion.position;\n\
+    var cur = this.src.motion.position;\n\
 \n\
     this.ctx.beginPath();\n\
-    this.ctx.moveTo(this.prev.x, this.prev.y);\n\
+    this.ctx.moveTo(cur.x, cur.y);\n\
     this.ctx.lineTo(p.x, p.y);\n\
 \n\
-    this.ctx.strokeStyle = 'rgba(255,0,0,.5)';\n\
+    // var za = p.z/1000;\n\
+\n\
+    // this.ctx.lineWidth = p.z/20;\n\
+\n\
+    this.ctx.strokeStyle = 'rgba(255,0,0,0.5)';\n\
+    if(cur.z <= 0) {\n\
+      this.ctx.strokeStyle = 'rgba(10,200,10,1)';\n\
+    }\n\
     this.ctx.stroke();\n\
+\n\
+    // this.ctx.lineWidth = 0.5;\n\
 \n\
     this.ctx.save();\n\
     this.ctx.strokeStyle = 'rgba(255,0,0,.01)';\n\
@@ -7217,9 +7680,13 @@ Simulator.prototype = {\n\
     // this.ctx.strokeStyle = 'rgba(0,0,0,1)';\n\
     // this.ctx.lineWidth = 1;\n\
 \n\
-    arrow(this.ctx, this.prev.x, this.prev.y, p.x, p.y, 5);\n\
+    arrow(this.ctx, cur.x, cur.y, p.x, p.y, 5);\n\
   }\n\
 , send: function() {\n\
+  }\n\
+, zero: function() {\n\
+  }\n\
+, draw: function() {\n\
   }\n\
 };\n\
 \n\
