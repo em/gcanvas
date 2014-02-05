@@ -399,7 +399,6 @@ GCanvas.prototype = {\n\
 \n\
     var path = this.path;\n\
     path = path.offset(offset);\n\
-    // path = path.clip(this.clipRegion);\n\
 \n\
     if(path.subPaths)\n\
     path.subPaths.forEach(function(subPath) {\n\
@@ -439,13 +438,9 @@ GCanvas.prototype = {\n\
     this.turn();\n\
     this.motion.filter = false;\n\
   }\n\
-// \n\
-// , turn: function(pitch, vx, vy) {\n\
-//     return this.lathe(pitch, vx, vy, false);\n\
-//   }\n\
-// \n\
-, bore: function(pitch, vx, vy) {\n\
-    return this.turn(pitch, vx, vy, true);\n\
+\n\
+, bore: function(pitch) {\n\
+    return this.turn(pitch, true);\n\
   }\n\
 \n\
 , outerThread: function(dmin, dmaj, depth, pitch, ccw) {\n\
@@ -473,7 +468,7 @@ GCanvas.prototype = {\n\
     this.turn(pitch);\n\
   }\n\
 \n\
-, turn: function(pitch, vx, vy, bore) {\n\
+, turn: function(pitch, diameter, bore) {\n\
 \n\
     var virtual = !this.lathe;\n\
     var inner = this.latheAlign == 'inner';\n\
@@ -490,7 +485,8 @@ GCanvas.prototype = {\n\
       bounds.right += (this.toolDiameter||0)/2;\n\
     }\n\
 \n\
-    if(this.outerDiameter) bounds.right = this.outerDiameter/2;\n\
+    if(diameter)\n\
+      bounds.right = diameter/2;\n\
 \n\
     var motion = this.motion;\n\
     var driver = this.driver;\n\
@@ -570,6 +566,10 @@ GCanvas.prototype = {\n\
           p1.x = bounds.right;\n\
         }\n\
 \n\
+        var xo = p1.x-p0.x;\n\
+        var yo = p1.y-p0.y;\n\
+        var dist = Math.sqrt(xo*xo + yo*yo);\n\
+\n\
         if(virtual) {\n\
           var r0 = p0.x;\n\
           var z0 = p0.y;\n\
@@ -584,9 +584,6 @@ GCanvas.prototype = {\n\
 \n\
               // var spiralPitch = (r1-r0)/(z1-z0)*pitch;\n\
 \n\
-              var xo = p1.x-p0.x;\n\
-              var yo = p1.y-p0.y;\n\
-              var dist = Math.sqrt(xo*xo + yo*yo);\n\
               var loops = dist/pitch;\n\
 \n\
               if(z0 <= bounds.top && z1 <= bounds.top) {\n\
@@ -640,7 +637,7 @@ GCanvas.prototype = {\n\
             }\n\
         }\n\
         else {\n\
-          a = p1.x/pitch*360;\n\
+          a = dist/pitch*360;\n\
           motion.linear({x: p1.x, y: p1.y, a: a});\n\
         }\n\
 \n\
@@ -662,6 +659,7 @@ GCanvas.prototype = {\n\
       }\n\
     }\n\
 \n\
+    // Always finish with an arc\n\
     // motion.arcCW({\n\
     //   x: 0,\n\
     //   y: 0,\n\
@@ -7222,13 +7220,6 @@ Motion.prototype = {\n\
       return false;\n\
     }\n\
 \n\
-    // TODO: test\n\
-    if(this.relative) {\n\
-      params.x -= this.position.x;\n\
-      params.y -= this.position.y;\n\
-      params.z -= this.position.z;\n\
-    }\n\
-\n\
     return v1;\n\
   }\n\
 \n\
@@ -7238,12 +7229,6 @@ Motion.prototype = {\n\
   }\n\
 \n\
 , followPath: function(path, filter) {\n\
-\n\
-    // if(path.forEach) {\n\
-    //   path.forEach(this.followPath, this);\n\
-    //   return;\n\
-    // }\n\
-\n\
     if(path.subPaths) {\n\
       path.subPaths.forEach(function(subPath) {\n\
         this.followPath(subPath, filter);\n\

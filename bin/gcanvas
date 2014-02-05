@@ -22,10 +22,11 @@ program
   .option('-w, --width <number>', 'canvas width', Number)
   .option('-h, --height <number>', 'canvas height', Number)
   .option('-e, --entry <name>', 'name of entry function to call. defaults to main(ctx)', 'main')
+  .option('--step <number>', 'skip to step n', Number)
   .option('--test', 'run simulation in a browser')
 
 program.parse(process.argv);
-  
+
 if(program.test) {
   program.args.forEach(function(file) {
     var path = require('path');
@@ -51,20 +52,31 @@ else {
   if(program.height) gctx.canvas.height = program.height;
   if(program.tooldiameter) gctx.toolDiameter = program.tooldiameter;
 
+  var setupNum = 0;
+  var setupOffset = program.step || 0;
+
   var queue = [];
   function setup(desc, fn) {
-    queue.push({desc: desc, fn: fn});
+    setupNum++;
+
+    if(arguments.length === 1) {
+      fn = desc;
+      desc = setupNum;
+    }
+
+    if(setupNum >= setupOffset) {
+      queue.push({desc: desc, fn: fn});
+    }
   }
 
   function processQueue() {
     if(queue.length === 0) return;
-
     var readline = require('readline'),
         rl = readline.createInterface(process.stdin, process.stderr);
     var currentStep;
 
     function next() {
-      currentStep = queue.pop();
+      currentStep = queue.shift();
       if(!currentStep) {
         rl.close();
         return;
