@@ -52,6 +52,9 @@ var setupQueue = [];
 var domLoaded = false;
 
 function setup(desc, fn) {
+  if(arguments.length == 1)
+    fn = desc;
+
   setupQueue.push(fn);
 
   if(domLoaded) {
