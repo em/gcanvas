@@ -23,6 +23,7 @@ program
   .option('-h, --height <number>', 'canvas height', Number)
   .option('-e, --entry <name>', 'name of entry function to call. defaults to main(ctx)', 'main')
   .option('--step <number>', 'skip to step n', Number)
+  .option('--only <number>', 'run step n and stop', Number)
   .option('--test', 'run simulation in a browser')
 
 program.parse(process.argv);
@@ -53,10 +54,13 @@ else {
   if(program.tooldiameter) gctx.toolDiameter = program.tooldiameter;
 
   var setupNum = 0;
-  var setupOffset = program.step || 0;
-
+  var setupOffset = program.only || program.step || 0;
   var queue = [];
+  var finished = false;
+
   function setup(desc, fn) {
+    if(finished) return;
+
     setupNum++;
 
     if(arguments.length === 1) {
@@ -65,7 +69,12 @@ else {
     }
 
     if(setupNum >= setupOffset) {
-      queue.push({desc: desc, fn: fn});
+      if(program.only) {
+        fn();
+      }
+      else {
+        queue.push({desc: desc, fn: fn});
+      }
     }
   }
 
