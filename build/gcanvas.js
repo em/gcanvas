@@ -229,13 +229,12 @@ function GCanvas(driver, width, height) {\n\
   this.depthOfCut = 0;\n\
   this.top = 0;\n\
   this.aboveTop = 0;\n\
-  this.strokeAlign = 'center';\n\
+  this.align = 'center';\n\
   this.feed = 1000;\n\
   this.driver = driver || new GcodeDriver();\n\
   this.driver.src = this;\n\
   this.stack = [];\n\
   this.motion = new Motion(this);\n\
-  this.surfaceTolerance = 0;\n\
 \n\
   this.beginPath();\n\
 }\n\
@@ -244,14 +243,23 @@ GCanvas.prototype = {\n\
   save: function() {\n\
     this.stack.push({\n\
       matrix: this.matrix.clone(),\n\
-      rotation: this.rotation\n\
+      font: this.font,\n\
+      speed: this.speed,\n\
+      feed: this.feed,\n\
+      depthOfCut: this.depthOfCut,\n\
+      toolDiameter: this.toolDiameter,\n\
+      align: this.align,\n\
+      top: this.top,\n\
+      aboveTop: this.aboveTop\n\
     });\n\
   }\n\
 , restore: function() {\n\
     var prev = this.stack.pop();\n\
-    if(!prev) return;\n\
-    this.matrix = prev.matrix;\n\
-    this.rotation = prev.rotation;\n\
+    for(var k in prev) {\n\
+      if(prev.hasOwnProperty(k)) {\n\
+        this[k] = prev[k];\n\
+      }\n\
+    }\n\
   }\n\
 , beginPath: function() {\n\
     // this.prevsubPaths = this.subPaths;\n\
@@ -350,6 +358,10 @@ GCanvas.prototype = {\n\
     this._ensurePath(points.start.x, points.start.y);\n\
     this.path.arc(center.x, center.y, res.radius, res.start, res.end, aClockwise);\n\
   }\n\
+, circle: function(x, y, diameter) {\n\
+    this.beginPath();\n\
+    this.arc(x, y, diameter/2, 0, Math.PI*2);\n\
+  }\n\
 , bezierCurveTo: function( aCP1x, aCP1y,\n\
                            aCP2x, aCP2y,\n\
                            aX, aY ) {\n\
@@ -360,18 +372,14 @@ GCanvas.prototype = {\n\
 \n\
     this.path.bezierCurveTo.apply(this.path, arguments);\n\
   }\n\
-\n\
 , quadraticCurveTo: function( aCPx, aCPy, aX, aY ) {\n\
     this._transformPoint(arguments, 0);\n\
     this._transformPoint(arguments, 2);\n\
 \n\
     this.path.quadraticCurveTo.apply(this.path, arguments);\n\
   }\n\
-\n\
 , clip: function() {\n\
     this.clipRegion = this.path;\n\
-    // this.clipRegion = this.subPaths.slice(0,-1);\n\
-    // this.clipRegion.push(this.path.clone());\n\
   }\n\
 , rect: function(x,y,w,h) {\n\
     this.moveTo(x,y);\n\
@@ -390,10 +398,10 @@ GCanvas.prototype = {\n\
   }\n\
 , stroke: function() {\n\
     var offset = 0;\n\
-    if(this.strokeAlign === 'outset') {\n\
+    if(this.align === 'outer') {\n\
       offset = this.toolDiameter/2;\n\
     }\n\
-    if(this.strokeAlign === 'inset') {\n\
+    if(this.align === 'inner') {\n\
       offset = -this.toolDiameter/2;\n\
     }\n\
 \n\
@@ -427,24 +435,11 @@ GCanvas.prototype = {\n\
       });\n\
     }, this);\n\
   }\n\
-\n\
-, arcTurn: function() {\n\
-    this.motion.filter = {\n\
-      linear: function(p) {\n\
-        this.arcCW(p);\n\
-      }\n\
-    };\n\
-\n\
-    this.turn();\n\
-    this.motion.filter = false;\n\
-  }\n\
-\n\
 , bore: function(pitch) {\n\
-    return this.turn(pitch, true);\n\
+    return this.spiral(pitch, true);\n\
   }\n\
-\n\
 , outerThread: function(dmin, dmaj, depth, pitch, ccw) {\n\
-    this.latheAlign = 'outer';\n\
+    this.align = 'inner';\n\
     this.beginPath();\n\
     if(ccw) {\n\
       this.moveTo(dmin/2,depth);\n\
@@ -456,19 +451,17 @@ GCanvas.prototype = {\n\
       this.lineTo(dmaj/2,depth);\n\
       this.lineTo(dmin/2,depth);\n\
     }\n\
-    this.turn(pitch, ccw);\n\
+    this.spiral(pitch, ccw);\n\
   }\n\
-\n\
 , innerThread: function(dmin, dmaj, depth, pitch, ccw) {\n\
-    this.latheAlign = 'inner';\n\
+    this.align = 'outer';\n\
     this.beginPath();\n\
     this.moveTo(dmin/2,depth);\n\
     this.lineTo(dmaj/2,depth);\n\
     this.lineTo(dmaj/2,0);\n\
-    this.turn(pitch);\n\
+    this.spiral(pitch);\n\
   }\n\
-\n\
-, turn: function(pitch, diameter, bore) {\n\
+, spiral: function(pitch, bore) {\n\
 \n\
     var virtual = !this.lathe;\n\
     var inner = this.latheAlign == 'inner';\n\
@@ -485,8 +478,8 @@ GCanvas.prototype = {\n\
       bounds.right += (this.toolDiameter||0)/2;\n\
     }\n\
 \n\
-    if(diameter)\n\
-      bounds.right = diameter/2;\n\
+    // if(diameter)\n\
+    //   bounds.right = diameter/2;\n\
 \n\
     var motion = this.motion;\n\
     var driver = this.driver;\n\
@@ -503,25 +496,28 @@ GCanvas.prototype = {\n\
       offset -= depthOfCut;\n\
       offset = Math.max(offset, 0);\n\
 \n\
-\n\
       var spiralAngle = 0;\n\
       var pts = path.getPoints();\n\
-      var p0 = new Point(0,0,0);\n\
-      var p0b = new Point(0,0,0);\n\
+      var p0u = new Point(0,0,0);\n\
+      var p0 = p0u.clone();\n\
 \n\
       var first = true;\n\
 \n\
-      if(this.lathe) {\n\
-        motion.rapid({y:0});\n\
-      }\n\
-      else {\n\
+      if(virtual) {\n\
         motion.rapid({z:0});\n\
       }\n\
+      else {\n\
+        motion.rapid({y:0});\n\
+        // motion.rapid({x:0});\n\
+      }\n\
 \n\
+      // p0 = pts[0].clone();\n\
+      // p0u = p0.clone();\n\
+\n\
+      motion.rapid({x: bounds.right, y: bounds.top});\n\
 \n\
       pts.forEach(function(p1,pi) {\n\
         p1 = p1.clone();\n\
-        var p1c = p1.clone();\n\
 \n\
         if(inner) {\n\
           p1.x -= (this.toolDiameter||0)/2;\n\
@@ -535,34 +531,37 @@ GCanvas.prototype = {\n\
         }\n\
         else {\n\
           if(inner) {\n\
-            p1.x -= offset;\n\
+            p1.x -= offset + (this.toolDiameter||0)/2;\n\
           }\n\
           else {\n\
-            p1.x += offset;\n\
+            p1.x += offset + (this.toolDiameter||0)/2;\n\
           }\n\
         }\n\
 \n\
-        // if(p0.y < bounds.top && p1.y < bounds.top)\n\
-        //   return;\n\
+        // point 1, unmodified, but includes offset\n\
+        p1u = p1.clone();\n\
+\n\
+        if(p0u.y < bounds.top) {\n\
+          var m = (p1.x - p0u.x) / (p1.y - p0u.y);\n\
+          var x = m * (bounds.top - p1.y);\n\
+          motion.rapid({x: p1.x+x});\n\
+        }\n\
 \n\
         if(p1.y < bounds.top) {\n\
           var m = (p1.x - p0.x) / (p1.y - p0.y);\n\
           p1.x += m * (bounds.top - p1.y);\n\
-          var d = p1.y-bounds.top;\n\
           p1.y = bounds.top;\n\
         }\n\
 \n\
-        // if(p1.x < bounds.left) {\n\
-        //   var m = (p1.y - p0.y) / (p1.x - p0.x);\n\
-        //   p1.y += m * (bounds.left - p1.x);\n\
-        //   var d = p1.x-bounds.left;\n\
-        //   p1.x = bounds.left;\n\
-        // }\n\
+        if(p0u.x > bounds.right) {\n\
+          var m = (p1.y - p0u.y) / (p1.x - p0u.x);\n\
+          var y = m * (bounds.right - p1.x);\n\
+          motion.rapid({y: p1.y+y});\n\
+        }\n\
 \n\
         if(p1.x > bounds.right) {\n\
           var m = (p1.y - p0.y) / (p1.x - p0.x);\n\
           p1.y += m * (bounds.right - p1.x);\n\
-          var d = p1.x-bounds.right;\n\
           p1.x = bounds.right;\n\
         }\n\
 \n\
@@ -642,20 +641,24 @@ GCanvas.prototype = {\n\
         }\n\
 \n\
         p0 = p1.clone();\n\
-        p0b = p1c.clone();\n\
+        p0u = p1u.clone();\n\
+\n\
         first = false;\n\
       }, this);\n\
 \n\
       a = Math.round(a / 360) * 360;\n\
+\n\
+      if(!virtual) {\n\
+         driver.zero({a:0});\n\
+      }\n\
 \n\
       if(virtual) {\n\
         // motion.rapid({z:0});\n\
         // motion.rapid({x:0,y:0});\n\
       }\n\
       else {\n\
-        motion.rapid({y: bounds.top});\n\
-        motion.rapid({x: bounds.left, a:a});\n\
-        driver.zero({a:0});\n\
+        // motion.rapid({x: bounds.left, a:a});\n\
+        // driver.zero({a:0});\n\
       }\n\
     }\n\
 \n\
@@ -690,25 +693,7 @@ GCanvas.prototype = {\n\
     this.beginPath();\n\
     this.moveTo(dmaj/2,0);\n\
     this.lineTo(dmaj/2,depth);\n\
-    this.turn(pitch,cx,cy);\n\
-  }\n\
-\n\
-, taper: function(cx,cy,dmin,dmaj,depth,pitch) {\n\
-    this.beginPath();\n\
-    this.moveTo(dmin/2,0);\n\
-    this.lineTo(dmaj/2,depth);\n\
-    this.turn(pitch,cx,cy);\n\
-  }\n\
-, bowl: function(cx,cy,r1,r2) {\n\
-    var mtn = this.motion;\n\
-  }\n\
-, hole: function(x,y,d,depth) {\n\
-    this.save();\n\
-    this.beginPath();\n\
-    this.depth = depth || this.depth;\n\
-    this.arc(x,y,d/2,0,Math.PI*2);\n\
-    this.fill();\n\
-    this.restore();\n\
+    this.spiral(pitch,cx,cy);\n\
   }\n\
 , _layer: function(fn) {\n\
     var depthOfCut = this.depthOfCut || this.depth;\n\
@@ -748,7 +733,6 @@ GCanvas.prototype = {\n\
       font.drawText(this, text);\n\
       this.restore();\n\
   }\n\
-\n\
 , fillText: function(text, x, y, params) {\n\
       var fontProps = parseFont(this.font);\n\
       var font = new Font(fontProps);\n\
@@ -760,7 +744,6 @@ GCanvas.prototype = {\n\
       this.fill();\n\
       this.restore();\n\
   }\n\
-\n\
 , strokeText: function(text, x, y, params) {\n\
     this._layer(function() {\n\
       var fontProps = parseFont(this.font);\n\

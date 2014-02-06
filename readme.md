@@ -57,7 +57,7 @@ and to support stroke-alignment which the canvas spec doesn't have yet (but real
 
 * `context.coolant` Can be true, false, "mist" (M07) or "flood" (M08). True defaults to "flood".
 
-* `context.strokeAlign` Can be 'inset', 'outset', or 'center' (default). Non-center alignment closes the path.
+* `context.align` Can be 'inner', 'outer', or 'center' (default). Non-center alignment closes the path.
 
 ### Unit conversion
 GCanvas doesn't have any built-in understanding of units,
