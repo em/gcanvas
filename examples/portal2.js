@@ -1,5 +1,8 @@
 function main(ctx) {
   ctx.scale(0.6,0.6);
+  ctx.depth = 100;
+  ctx.depthOfCut = 0.3;
+  ctx.toolDiameter = 1/4*25.4;
   portal2(ctx);
 
   // Good example of a bunch of different canvas features.

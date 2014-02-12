@@ -33,7 +33,7 @@ if(program.test) {
     var path = require('path');
     var exec = require('child_process').exec;
 
-    var url = 'file://localhost'+ __dirname + '/simulate.html?file://localhost' + path.resolve(file);
+    var url = 'file://localhost'+ __dirname + '/simulator/simulator.html?file://localhost' + path.resolve(file);
     var cmd = __dirname + '/osxopenhack '+url;
     console.log(cmd);
     exec(cmd);
@@ -68,13 +68,12 @@ else {
       desc = setupNum;
     }
 
-    if(setupNum >= setupOffset) {
-      if(program.only) {
-        fn();
-      }
-      else {
-        queue.push({desc: desc, fn: fn});
-      }
+    if(setupNum == program.only) {
+      fn();
+    }
+
+    if(!program.only && setupNum >= setupOffset) {
+       queue.push({desc: desc, fn: fn});
     }
   }
 
@@ -131,6 +130,5 @@ else {
   });
 
   // cleanup
-  gctx.motion.retract();
   // gctx.motion.rapid({x:0,y:0,z:0});
 }
