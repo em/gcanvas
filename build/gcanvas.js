@@ -397,9 +397,6 @@ GCanvas.prototype = {\n\
 , clip: function() {\n\
     this.clipRegion = this.path;\n\
   }\n\
-, mask: function() {\n\
-    this.maskRegion = this.path;\n\
-  }\n\
 , rect: function(x,y,w,h) {\n\
     this.moveTo(x,y);\n\
     this.lineTo(x+w,y);\n\
@@ -444,7 +441,6 @@ GCanvas.prototype = {\n\
     var path = this.path;\n\
     path = path.simplify(windingRule);\n\
     path = path.clip(this.clipRegion,0);\n\
-    path = path.clip(this.maskRegion,2);\n\
     path = path.fillPath(this.toolDiameter);\n\
     var motion = this.motion;\n\
 \n\
@@ -1410,31 +1406,18 @@ Path.prototype = {\n\
 , simplify: function(windingRule) {\n\
     var scale = 1000;\n\
     var polys = this.toPolys(scale); \n\
+    var type = ClipperLib.PolyFillType.pftNonZero;\n\
 \n\
-    var polys = ClipperLib.Clipper.SimplifyPolygons(polys, ClipperLib.PolyFillType.pftNonZero);\n\
+    if(windingRule === 'evenodd') {\n\
+      type = ClipperLib.PolyFillType.pftEvenOdd;\n\
+    }\n\
+\n\
+    var polys = ClipperLib.Clipper.SimplifyPolygons(polys, type);\n\
 \n\
     var result = new Path();\n\
     result.fromPolys(polys, scale);\n\
 \n\
     return result;\n\
-\n\
-\n\
-    return this;\n\
-\n\
-    // Convert to ClipperLib's IDs\n\
-    if(windingRule === 'evenodd')\n\
-      windingRule = EVEN_ODD;\n\
-    else\n\
-      windingRule = NON_ZERO;\n\
-\n\
-    var cpr = new ClipperLib.Clipper();\n\
-    polygons = ClipperLib.Clean(polygons, cleandelta * scale);\n\
-    polygons = cpr.SimplifyPolygons(polygons,\n\
-                                 windingRule);\n\
-\n\
-    var path = new Path();\n\
-    path.fromPolys(polygons, scale);\n\
-    return path;\n\
   }\n\
 \n\
 , waterline: function(depth) {\n\
