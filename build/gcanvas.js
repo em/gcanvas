@@ -236,6 +236,7 @@ function GCanvas(driver, width, height) {\n\
   this.driver.src = this;\n\
   this.stack = [];\n\
   this.motion = new Motion(this);\n\
+  this.filters = [];\n\
 \n\
   this.beginPath();\n\
 }\n\
@@ -252,7 +253,8 @@ GCanvas.prototype = {\n\
       align: this.align,\n\
       mode: this.mode,\n\
       top: this.top,\n\
-      aboveTop: this.aboveTop\n\
+      aboveTop: this.aboveTop,\n\
+      filters: this.filters.slice()\n\
     });\n\
   }\n\
 , restore: function() {\n\
@@ -262,6 +264,9 @@ GCanvas.prototype = {\n\
         this[k] = prev[k];\n\
       }\n\
     }\n\
+  }\n\
+, filter: function(fn) {\n\
+    this.filters.push(fn);\n\
   }\n\
 , beginPath: function() {\n\
     // this.prevsubPaths = this.subPaths;\n\
@@ -301,7 +306,7 @@ GCanvas.prototype = {\n\
       a[i] = v.x; \n\
       a[i+1] = v.y; \n\
     }\n\
-    else if(a.x) {\n\
+    else if(a.x !== undefined) {\n\
       var v = new Point(a.x, a.y);\n\
       v = this.matrix.transformPoint(v);\n\
       a.x = v.x; \n\
@@ -359,13 +364,15 @@ GCanvas.prototype = {\n\
 \n\
     this._ensurePath(points.start.x, points.start.y);\n\
 \n\
-    var tmp = new Path();\n\
-    tmp.moveTo(points.start.x, points.start.y);\n\
-    tmp.arc(center.x, center.y, res.radius, res.start, res.end, aClockwise);\n\
+    this.path.arc(center.x, center.y, res.radius, res.start, res.end, aClockwise);\n\
+    \n\
+    // var tmp = new Path();\n\
+    // tmp.moveTo(points.start.x, points.start.y);\n\
+    // tmp.arc(center.x, center.y, radius, res.start, res.end, aClockwise);\n\
 \n\
-    tmp.getPoints(40).forEach(function(p) {\n\
-      this.lineTo(p.x,p.y);\n\
-    },this);\n\
+    // tmp.getPoints(40).forEach(function(p) {\n\
+    //   this.lineTo(p.x,p.y);\n\
+    // },this);\n\
   }\n\
 , circle: function(x, y, diameter) {\n\
     this.beginPath();\n\
@@ -9321,6 +9328,14 @@ Motion.prototype = {\n\
     }\n\
   }\n\
 , postProcess: function(params) {\n\
+    this.ctx.filters.forEach(function(f) {\n\
+      var tmp = f.call(this.ctx, params);\n\
+\n\
+      if(tmp) {\n\
+        params = tmp;\n\
+      }\n\
+    });\n\
+\n\
     if(params.x)\n\
       params.x = Math.round(params.x * 1000000) / 1000000;\n\
     if(params.y)\n\
@@ -9370,11 +9385,6 @@ Motion.prototype = {\n\
     }\n\
 \n\
     return v1;\n\
-  }\n\
-\n\
-, applyFilter: function(method, args) {\n\
-    if(!this.filter || !this.filter[method]) return;\n\
-    return this.filter[method].apply(this, args);\n\
   }\n\
 \n\
 , followPath: function(path, zEnd) {\n\
@@ -9613,7 +9623,7 @@ module.exports = {\n\
 \n\
     var astart = Math.atan2(start.y - center.y, start.x - center.x),\n\
         aend = Math.atan2(end.y - center.y, end.x - center.x),\n\
-        radius = start.clone().sub(center).magnitude();\n\
+        radius = center.sub(start).magnitude();\n\
 \n\
     // Always assume a full circle\n\
     // if they are the same \n\
