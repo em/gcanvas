@@ -39,6 +39,13 @@ The project is still very new and some things are missing:
 Additional context properties are added for milling
 and to support stroke-alignment which the canvas spec doesn't have yet (but really needs).
 
+* `context.mask()` Behaves just like clip() except uses NOT composition instead of AND. You can draw a shape, mask it, then draw another shape and it will cover all of the area except what was masked. This is the best way to mill out the negative space and leave a raised shape. For instance, raised text:
+```
+ctx.text('Hello',0,0);
+ctx.mask();
+ctx.fillRect(-10,-10,100,20);
+```
+
 * `context.depth` Specifies the total Z depth to cut into the work relative to `context.top`. If not set the Z axis never changes. 
 
 * `context.depthOfCut` Specifies an incrementing depth of cut in layers up to `context.depth`.

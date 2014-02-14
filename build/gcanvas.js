@@ -397,6 +397,9 @@ GCanvas.prototype = {\n\
 , clip: function() {\n\
     this.clipRegion = this.path;\n\
   }\n\
+, mask: function() {\n\
+    this.maskRegion = this.path;\n\
+  }\n\
 , rect: function(x,y,w,h) {\n\
     this.moveTo(x,y);\n\
     this.lineTo(x+w,y);\n\
@@ -440,7 +443,8 @@ GCanvas.prototype = {\n\
 \n\
     var path = this.path;\n\
     path = path.simplify(windingRule);\n\
-    path = path.clip(this.clipRegion,2);\n\
+    path = path.clip(this.clipRegion,0);\n\
+    path = path.clip(this.maskRegion,2);\n\
     path = path.fillPath(this.toolDiameter);\n\
     var motion = this.motion;\n\
 \n\
