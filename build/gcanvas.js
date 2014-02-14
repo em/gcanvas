@@ -1420,9 +1420,6 @@ Path.prototype = {\n\
     return result;\n\
   }\n\
 \n\
-, waterline: function(depth) {\n\
-  }\n\
-\n\
 , offset: function(delta) {\n\
     if(delta === 0) {\n\
       return this;\n\

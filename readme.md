@@ -22,18 +22,6 @@ $ gcanvas test.js
 ```
 More examples: http://emery.denucc.io/gcanvas/examples
 
-### TODO (Current Limitations)
-The project is still very new and some things are missing:
-
-* Read system ttf fonts. Right now, any fonts defaults to a single built-in Helvetiker font.
-
-* lineWidth, endCap, and miterLimit
-   Currently stroke() does nothing but follow the path.
-   Eventually it will respect toolDiameter like fill() does
-   and produce the same results.
-
-* drawImage should eventually do something.
-
 ### Non-standard extensions to Canvas 
 
 Additional context properties are added for milling
