@@ -241,8 +241,10 @@
         // camera.position.z = -y;
 
         if(window.simdriver) {
-          var t = x / (window.innerWidth/2) + 0.5;
+          var t = x / (window.innerWidth/2) * 1.1 + 0.5;
           var i = Math.round(simdriver.all.length*t);
+          i = Math.min(i,simdriver.all.length-1);
+          i = Math.max(i,0);
           var p = simdriver.all[i];
           if(p) {
             sphere.position = p;

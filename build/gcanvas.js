@@ -230,7 +230,7 @@ function GCanvas(driver, width, height) {\n\
   this.top = 0;\n\
   this.aboveTop = 0;\n\
   this.align = 'center';\n\
-  this.feed = 1000;\n\
+  this.feed = 100;\n\
   this.mode = 'mill';\n\
   this.driver = driver || new GcodeDriver();\n\
   this.driver.src = this;\n\
@@ -337,9 +337,6 @@ GCanvas.prototype = {\n\
     // between 0 and pi2 so we must optimize out 0 here \n\
     // or else they will be treated as full circles.\n\
 \n\
-    if(x === 0) x = 0;\n\
-    if(y === 0) y = 0;\n\
-\n\
     if(aStartAngle - aEndAngle === 0) {\n\
       return;\n\
     }\n\
@@ -348,12 +345,12 @@ GCanvas.prototype = {\n\
     if(aEndAngle-aStartAngle === -Math.PI*2)\n\
       aEndAngle = Math.PI*2;\n\
 \n\
-    var center = new Point(x, y, 0);\n\
-    var points = utils.arcToPoints(center,\n\
+    var center = new Point(x, y);\n\
+    var points = utils.arcToPoints(x, y,\n\
                                    aStartAngle,\n\
                                    aEndAngle,\n\
                                    radius);\n\
-    // center.applyMatrix(this.matrix);\n\
+\n\
     this._transformPoint(center);\n\
     this._transformPoint(points.start);\n\
     this._transformPoint(points.end);\n\
@@ -362,7 +359,7 @@ GCanvas.prototype = {\n\
                                 points.start,\n\
                                 points.end);\n\
 \n\
-    this._ensurePath(points.start.x, points.start.y);\n\
+    // this._ensurePath(points.start.x, points.start.y);\n\
 \n\
     this.path.arc(center.x, center.y, res.radius, res.start, res.end, aClockwise);\n\
     \n\
@@ -374,9 +371,9 @@ GCanvas.prototype = {\n\
     //   this.lineTo(p.x,p.y);\n\
     // },this);\n\
   }\n\
-, circle: function(x, y, diameter) {\n\
+, circle: function(x, y, diameter, ccw) {\n\
     this.beginPath();\n\
-    this.arc(x, y, diameter/2, 0, Math.PI*2);\n\
+    this.arc(x, y, diameter/2, 0, Math.PI*2, ccw);\n\
   }\n\
 , bezierCurveTo: function( aCP1x, aCP1y,\n\
                            aCP2x, aCP2y,\n\
@@ -431,6 +428,8 @@ GCanvas.prototype = {\n\
         this.motion.followPath(subPath,z);\n\
       });\n\
     }, this);\n\
+\n\
+    this.motion.retract();\n\
   }\n\
 , fill: function(windingRule) {\n\
 \n\
@@ -450,6 +449,8 @@ GCanvas.prototype = {\n\
         this.motion.followPath(subPath, z);\n\
       });\n\
     }, this);\n\
+\n\
+    motion.retract();\n\
   }\n\
 \n\
 , outerThread: function(dmin, dmaj, depth, pitch, ccw) {\n\
@@ -469,14 +470,9 @@ GCanvas.prototype = {\n\
   }\n\
 , innerThread: function(dmin, dmaj, depth, pitch, ccw) {\n\
     this.save();\n\
-    this.align = 'inner';\n\
     this.beginPath();\n\
-    this.moveTo(dmin/2,0);\n\
-    this.lineTo(dmaj/2,0);\n\
-    this.lineTo(dmaj/2,depth);\n\
-    this.lineTo(dmin/2,depth);\n\
-    this.closePath();\n\
-    this.turn(pitch, !ccw);\n\
+    this.rect(0,0,dmin/2,depth);\n\
+    this.innerLathe(pitch, !ccw);\n\
     this.restore();\n\
   }\n\
 , bore: function(pitch, ccw) {\n\
@@ -485,181 +481,244 @@ GCanvas.prototype = {\n\
 , turn: function(pitch, ccw) {\n\
     return this.spiral(pitch, false, ccw);\n\
   }\n\
-, spiral: function(pitch, bore, ccw) {\n\
+, spiralIn: function(pitch, ccw) {\n\
+    return this.spiral(pitch, 'in', ccw);\n\
+  }\n\
+, spiralOut: function(pitch, ccw) {\n\
+    return this.spiral(pitch, 'out', ccw);\n\
+  }\n\
+, spiralDown: function(pitch, ccw) {\n\
+    return this.spiral(pitch, 'down', ccw);\n\
+  }\n\
+, spiral: function(pitch, attack, ccw) {\n\
+    var inPath = this.path.simplify();\n\
+    var toolR = this.toolDiameter/2 || 0;\n\
 \n\
-    // var basePath = this.path;\n\
-\n\
-    var align = this.align;\n\
-\n\
-    var inPath = this.path;\n\
-\n\
-    if(align == 'inner') { \n\
+    if(attack == 'out') { \n\
       inPath = inPath.translate(-this.toolDiameter/2,0);\n\
+    }\n\
+    if(attack == 'in') { \n\
+      inPath = inPath.translate(this.toolDiameter/2,0);\n\
     }\n\
 \n\
     var bounds = inPath.getBounds(); // Find bounds\n\
+    var height = bounds.bottom-bounds.top;\n\
+    var width = bounds.right-bounds.left;\n\
 \n\
-    var basePath = new Path();\n\
+    inPath = inPath.simplify();\n\
 \n\
-\n\
+    var path = new Path();\n\
     // bounds.right += (this.toolDiameter||0);\n\
 \n\
-    if(align == 'center') {\n\
-      var s = this.depthOfCut || bounds.bottom;\n\
-      for(var i=bounds.top; i < bounds.bottom; i += s) {\n\
-        clipPath.moveTo(bounds.left-1,i);\n\
-        clipPath.lineTo(bounds.right+1,i);\n\
-        clipPath.lineTo(bounds.right+1,i+s);\n\
-        clipPath.lineTo(bounds.left-1,i+s);\n\
-        clipPath.close();\n\
+    var s = this.depthOfCut || bounds.bottom;\n\
+\n\
+    if(attack === 'down') {\n\
+      for(var i=0; i < height; i += s) {\n\
+        var clip = new Path();\n\
+        clip.rect(0,i,width,s);\n\
+        var sub = clip.clip(inPath,0);\n\
+\n\
+        sub.subPaths = sub.subPaths.map(function(sp) {\n\
+          sp = sp.shiftToNearest(0,0);\n\
+          sp.actions.splice(-1,1);\n\
+          return sp;\n\
+        });\n\
+\n\
+        path.addPath(sub);\n\
       }\n\
     }\n\
-    else {\n\
-      var s = this.depthOfCut || bounds.right;\n\
-      for(var i=bounds.left; i < bounds.right; i += s) {\n\
-        var clipPath = new Path();\n\
-        clipPath.moveTo(i,bounds.top-1);\n\
-        clipPath.lineTo(i+s,bounds.top-1);\n\
-        clipPath.lineTo(i+s,bounds.bottom+1);\n\
-        clipPath.lineTo(i,bounds.bottom+1);\n\
-        clipPath.close();\n\
+    else if(attack === 'out') {\n\
+      for(var i=0; i < width; i += s) {\n\
+        var clip = new Path();\n\
+        clip.rect(i,0,s,height);\n\
+        var sub = clip.clip(inPath,0);\n\
 \n\
-        var tmp = inPath.clip(clipPath);\n\
-        basePath.addPath(tmp);\n\
+        sub.subPaths = sub.subPaths.map(function(sp) {\n\
+          sp = sp.shiftToNearest(0,0);\n\
+          sp.actions.splice(0,1);\n\
+          sp.actions.splice(-1,1);\n\
+          // sp.actions.splice(-2,2);\n\
+          return sp;\n\
+        });\n\
+\n\
+        path.addPath(sub);\n\
+      }\n\
+    }\n\
+    else if(attack === 'in') {\n\
+      for(var i=width; i > 0; i -= s) {\n\
+        var clip = new Path();\n\
+        clip.rect(i,0,s,height);\n\
+        var sub = clip.clip(inPath,0);\n\
+\n\
+        sub.subPaths = sub.subPaths.map(function(sp) {\n\
+          sp = sp.shiftToNearest(bounds.right,0);\n\
+          sp.actions.splice(0,1);\n\
+          sp.actions.splice(-2,2);\n\
+          // sp.actions.splice(-1,1);\n\
+          return sp;\n\
+        });\n\
+\n\
+        path.addPath(sub);\n\
       }\n\
     }\n\
 \n\
-\n\
-    // console.log(basePath,'');\n\
-\n\
-    // console.log(clipPath);\n\
-    // this.path = basePath;\n\
-    // this.align = 'center';\n\
-    // this.stroke();\n\
-    // return;\n\
 \n\
     var virtual = this.mode == 'mill';\n\
     var inner = this.align == 'inner';\n\
     pitch = pitch || this.toolDiameter || 1;\n\
 \n\
-    var fp = basePath.firstPoint();\n\
-    var lp = basePath.lastPoint();\n\
-\n\
-\n\
-    // if(!inner) {\n\
-      // bounds.left -= (this.toolDiameter||0)/2;\n\
-    // }\n\
-\n\
     var motion = this.motion;\n\
     var driver = this.driver;\n\
-    var height = bounds.bottom-bounds.top;\n\
-    var width = bounds.right-bounds.left;\n\
-    var range = bore ? height : width; \n\
+    var range = (attack == 'down') ? height : width; \n\
     var depthOfCut = this.depthOfCut || range;\n\
     var offset = range;\n\
     var a = 0;\n\
 \n\
-      var path = basePath;\n\
 \n\
-      // Remove the first 0 plane\n\
-      // path.subPaths[0]\n\
-      // .actions.splice(-1,1);\n\
+    // Remove the first 0 plane\n\
+    // path.subPaths[path.subPaths.length-1]\n\
+    // .actions.splice(-1,1);\n\
+    // path.subPaths[0]\n\
+    // .actions[0].action = 'moveTo';\n\
+    // path.subPaths.splice(-1,1);\n\
+    // path = path.simplify('evenodd');\n\
 \n\
-      // path.subPaths[0]\n\
-      // .actions[0].action = 'moveTo';\n\
+    // if(attack == 'in') {\n\
+    //   path.subPaths = path.subPaths.reverse();\n\
+    // }\n\
+// \n\
+    // this.path = path;\n\
+    // this.stroke();\n\
+    // return;\n\
+// \n\
+    // if(attack == 'out') {\n\
+    //   ccw = !ccw;\n\
+    // }\n\
 \n\
-\n\
-      var spiralAngle = 0;\n\
-      path.subPaths.forEach(function(subPath) {\n\
-        var pts = subPath.getPoints();\n\
-        pts = pts.slice(1);\n\
-\n\
-        if(!ccw) {\n\
-          pts = pts.reverse()\n\
-        }\n\
-\n\
-        var p0u = pts[0].clone();\n\
-        var p0 = p0u.clone();\n\
-\n\
-        var first = true;\n\
-        pts.forEach(function(p1,pi) {\n\
-          p1 = p1.clone();\n\
-          p1u = p1.clone();\n\
-\n\
-          var xo = p1.x-p0.x;\n\
-          var yo = p1.y-p0.y;\n\
-          var dist = Math.sqrt(xo*xo + yo*yo);\n\
-\n\
-          if(virtual) {\n\
-            var r0 = p0.x;\n\
-            var z0 = p0.y;\n\
-            var r1 = p1.x;\n\
-            var z1 = p1.y;\n\
-            var loops = dist/pitch;\n\
-\n\
-            spiralAngle = utils.spiral(40, r0, r1, loops,\n\
-                                       spiralAngle, ccw,\n\
-                                       function(x,y,t) {\n\
-              if(z0 <= 0.0001 && z1 <= 0.0001) return;\n\
-\n\
-              var z = z0+(z1-z0)*t; \n\
-              if(first) {\n\
-                // Todo: different for inner/outer?\n\
-                motion.rapid({z:z});\n\
-                motion.linear({\n\
-                  x: x,\n\
-                  y: y,\n\
-                });\n\
-                first = false;\n\
-              }\n\
-              else {\n\
-                motion.linear({\n\
-                  x: x,\n\
-                  y: y,\n\
-                  z: z \n\
-                });\n\
-              }\n\
-            });\n\
-          }\n\
-          else {\n\
-            a = dist/pitch*360;\n\
-            motion.linear({x: p1.x, y: p1.y, a: a});\n\
-          }\n\
-\n\
-          p0 = p1.clone();\n\
-          p0u = p1u.clone();\n\
-        }, this);\n\
-\n\
-        a = Math.round(a / 360) * 360;\n\
-\n\
-        if(!virtual) {\n\
-           driver.zero({a:0});\n\
-        }\n\
-\n\
-        // Return to start\n\
-        if(virtual) {\n\
-          if(bore) {\n\
-            // motion.rapid({z:0});\n\
-          }\n\
-          else if(inner) {\n\
+    var spiralAngle = 0;\n\
+    function reset() {\n\
+      // Return to start\n\
+      if(virtual) {\n\
+        switch(attack) {\n\
+          case 'out':\n\
             motion.rapid({x:0, y:0});\n\
             motion.rapid({z:0});\n\
-          }\n\
-          else {\n\
-            var safeX = (bounds.right+2) * Math.cos(spiralAngle);\n\
-            var safeY = (bounds.right+2) * Math.sin(spiralAngle);\n\
+            break;\n\
+          case 'in':\n\
+            var safeX = (bounds.right+toolR) * Math.cos(spiralAngle);\n\
+            var safeY = (bounds.right+toolR) * Math.sin(spiralAngle);\n\
 \n\
             motion.linear({x:safeX, y:safeY});\n\
             motion.rapid({z:0});\n\
-          }\n\
+            break;\n\
+          case 'down':\n\
+            motion.rapid({z:0});\n\
+            break;\n\
+        }\n\
+      }\n\
+      else {\n\
+        motion.rapid({x: bounds.left});\n\
+        motion.rapid({y: bounds.top, a:a});\n\
+        // driver.zero({a:0});\n\
+      }\n\
+      spiralAngle = 0;\n\
+    }\n\
+\n\
+    path.subPaths.forEach(function(subPath) {\n\
+      reset();\n\
+\n\
+      var pts = subPath.getPoints();\n\
+      // pts = pts.slice(0,-1);\n\
+\n\
+      var reverse = false;\n\
+\n\
+      // These cancel eachother out\n\
+      // and must be done in series\n\
+      if(ccw) {\n\
+        reverse = !reverse;\n\
+      }\n\
+\n\
+      if(attack == 'in' || attack == 'down') {\n\
+        reverse = !reverse;\n\
+      }\n\
+\n\
+      if(reverse) {\n\
+        pts = pts.reverse();\n\
+      }\n\
+\n\
+\n\
+      var p0u = pts[0].clone();\n\
+      var p0 = p0u.clone();\n\
+\n\
+      var first = true;\n\
+      pts.forEach(function(p1,pi) {\n\
+        p1 = p1.clone();\n\
+        p1u = p1.clone();\n\
+\n\
+        var xo = p1.x-p0.x;\n\
+        var yo = p1.y-p0.y;\n\
+        var dist = Math.sqrt(xo*xo + yo*yo);\n\
+\n\
+        if(virtual) {\n\
+          var r0 = p0.x;\n\
+          var z0 = p0.y;\n\
+          var r1 = p1.x;\n\
+          var z1 = p1.y;\n\
+          var loops = dist/pitch;\n\
+\n\
+          spiralAngle = utils.spiral(40, r0, r1, loops,\n\
+                                     spiralAngle, attack=='out',\n\
+                                     function(x,y,t) {\n\
+            // if(z0 <= 0 && z1 <= 0) return false;\n\
+            // if(z0 >= height && z1 >= height) return false;\n\
+\n\
+            var z = z0+(z1-z0)*t; \n\
+            if(first) {\n\
+              // if(reverse) {\n\
+              //   // Leave the hole first\n\
+                // motion.rapid({z:z});\n\
+              // }\n\
+\n\
+              motion.linear({\n\
+                x: x,\n\
+                y: y\n\
+              });\n\
+\n\
+              // if(!reverse) {\n\
+              //   // Leave the hole first\n\
+              //   motion.rapid({z:z});\n\
+              // }\n\
+\n\
+              first = false;\n\
+            }\n\
+            else {\n\
+              motion.linear({\n\
+                x: x,\n\
+                y: y,\n\
+                z: z \n\
+              });\n\
+            }\n\
+          });\n\
         }\n\
         else {\n\
-          // motion.rapid({x: bounds.right});\n\
-          // motion.rapid({y: bounds.top, a:a});\n\
-          // driver.zero({a:0});\n\
+          a = dist/pitch*360;\n\
+          motion.linear({x: p1.x, y: p1.y, a: a});\n\
         }\n\
+\n\
+        p0 = p1.clone();\n\
+        p0u = p1u.clone();\n\
+      }, this);\n\
+\n\
+      a = Math.round(a / 360) * 360;\n\
+\n\
+      if(!virtual) {\n\
+         driver.zero({a:0});\n\
+      }\n\
+\n\
+\n\
     });\n\
 \n\
+    reset();\n\
     // Always finish with an arc?\n\
     // motion.arcCW({\n\
     //   x: 0,\n\
@@ -672,6 +731,9 @@ GCanvas.prototype = {\n\
     // motion.rapid({x:0,y:0});\n\
   }\n\
 , peckDrill: function(x, y, depth, peck) {\n\
+\n\
+    this._transformPoint(arguments);\n\
+\n\
     if(arguments.length <= 2) {\n\
       depth = arguments[0];\n\
       peck = arguments[1];\n\
@@ -1232,6 +1294,11 @@ Path.prototype = {\n\
     this.subPaths.push(subPath);\n\
     this.current = subPath;\n\
   }\n\
+, _ensure: function(x,y) {\n\
+    if(this.subPaths.length === 0) {\n\
+      this.moveTo(x,y);\n\
+    }\n\
+  }\n\
 \n\
 , close: function() {\n\
     if(!this.current) return false;\n\
@@ -1244,10 +1311,19 @@ Path.prototype = {\n\
 , lineTo: function() {\n\
     this.current.lineTo.apply(this.current, arguments);\n\
   }\n\
-, arc: function() {\n\
-    this.current.arc.apply(this.current, arguments);\n\
+, arc: function(x, y, rad,\n\
+\t\t\t\t\t\t\t\t\t  astart, aend, ccw) {\n\
+    this.ellipse(x,y,rad,rad,astart,aend,ccw);\n\
   }\n\
-, ellipse: function() {\n\
+, ellipse: function(x, y, xrad, yrad,\n\
+\t\t\t\t\t\t\t\t\t  astart, aend, ccw) {\n\
+\n\
+    var points = utils.arcToPoints(x, y,\n\
+                                   astart,\n\
+                                   aend,\n\
+                                   xrad);\n\
+\n\
+    this._ensure(points.start.x, points.start.y);\n\
     this.current.ellipse.apply(this.current, arguments);\n\
   }\n\
 , quadraticCurveTo: function() {\n\
@@ -1256,6 +1332,14 @@ Path.prototype = {\n\
 , bezierCurveTo: function() {\n\
     this.current.bezierCurveTo.apply(this.current, arguments);\n\
   }\n\
+, rect: function(x,y,w,h) {\n\
+    this.moveTo(x,y);\n\
+    this.lineTo(x+w,y);\n\
+    this.lineTo(x+w,y+h);\n\
+    this.lineTo(x,y+h);\n\
+    this.lineTo(x,y);\n\
+  }\n\
+\n\
 , toPolys: function(scale) {\n\
     if(!scale) throw 'NO SCALE!';\n\
 \n\
@@ -1265,6 +1349,8 @@ Path.prototype = {\n\
   }\n\
 , fromPolys: function(polygons, scale) {\n\
     if(!scale) throw 'NO SCALE!';\n\
+\n\
+    this.subPaths = [];\n\
 \n\
     for(var i=0,l=polygons.length; i < l; ++i) {\n\
       var subPath = new SubPath();\n\
@@ -1282,32 +1368,29 @@ Path.prototype = {\n\
 \n\
     var scale = 1000;\n\
 \n\
-    this.close();\n\
-    clipRegion.close();\n\
+    // this.close();\n\
+    // clipRegion.close();\n\
 \n\
     var subjPolys = this.toPolys(scale);\n\
     var clipPolys = clipRegion.toPolys(scale);\n\
 \n\
     // Clean both\n\
-    var subjPolys = ClipperLib.Clipper.CleanPolygons(subjPolys, 1);\n\
-    var clipPolys = ClipperLib.Clipper.CleanPolygons(clipPolys, 1);\n\
+    // var subjPolys = ClipperLib.Clipper.CleanPolygons(subjPolys, 1);\n\
+    // var clipPolys = ClipperLib.Clipper.CleanPolygons(clipPolys, 1);\n\
 \n\
-    var subjPolys = ClipperLib.Clipper.SimplifyPolygons(subjPolys, ClipperLib.PolyFillType.pftNonZero);\n\
+    // var subjPolys = ClipperLib.Clipper.SimplifyPolygons(subjPolys, ClipperLib.PolyFillType.pftNonZero);\n\
 \n\
-    var clipPolys = ClipperLib.Clipper.SimplifyPolygons(clipPolys, ClipperLib.PolyFillType.pftNonZero);\n\
+    // var clipPolys = ClipperLib.Clipper.SimplifyPolygons(clipPolys, ClipperLib.PolyFillType.pftNonZero);\n\
 \n\
     var cpr = new ClipperLib.Clipper();\n\
-    cpr.PreserveCollinear = true;\n\
+    // cpr.PreserveCollinear = true;\n\
     cpr.ReverseSolution = true;\n\
 \n\
     cpr.AddPaths(subjPolys, ClipperLib.PolyType.ptSubject,true);\n\
     cpr.AddPaths(clipPolys, ClipperLib.PolyType.ptClip, true);\n\
 \n\
     var clipped = [];\n\
-    // var clipped = new ClipperLib.PolyTree();\n\
     cpr.Execute(clipType, clipped);\n\
-\n\
-    clipped = clipped.reverse();\n\
 \n\
     var tmp;\n\
 \n\
@@ -1425,6 +1508,30 @@ Path.prototype = {\n\
       return this;\n\
     }\n\
 \n\
+    // Special case for single ellipse\n\
+    // just change the radius.\n\
+    if(this.subPaths.length == 1\n\
+      && this.subPaths[0].actions.length == 2\n\
+      && this.subPaths[0].actions[1].action === 'ellipse') {\n\
+        var result = new Path();\n\
+        var args = this.subPaths[0].actions[1].args;\n\
+\n\
+        if(args[2] + delta < 0)\n\
+          return false;\n\
+\n\
+        result.ellipse(\n\
+          args[0],\n\
+          args[1],\n\
+          args[2] + delta,\n\
+          args[3] + delta,\n\
+          args[4],\n\
+          args[5],\n\
+          args[6]\n\
+        );\n\
+\n\
+        return result;\n\
+    }\n\
+\n\
     var scale = 1000;\n\
     var cleandelta = 0.1;\n\
 \n\
@@ -1533,10 +1640,12 @@ Path.prototype = {\n\
   }\n\
 \n\
 , firstPoint: function() {\n\
+    if(!this.current) return false;\n\
     return this.subPaths[0].firstPoint();\n\
   }\n\
 \n\
 , lastPoint: function() {\n\
+    if(!this.current) return false;\n\
     return this.subPaths[this.subPaths.length-1].lastPoint();\n\
   }\n\
 \n\
@@ -1637,10 +1746,9 @@ SubPath.prototype = {\n\
 \n\
     switch(action.action) {\n\
       case 'ellipse':\n\
-        p = utils.arcToPoints({\n\
-          x: args[0],\n\
-          y: args[1],\n\
-        }, args[4], args[5], args[2]).start\n\
+        p = utils.arcToPoints(\n\
+          args[0], args[1], args[4],\n\
+          args[5], args[2]).start\n\
         break;\n\
 \n\
       default:\n\
@@ -1660,10 +1768,9 @@ SubPath.prototype = {\n\
 \n\
     switch(action.action) {\n\
       case 'ellipse':\n\
-        p = utils.arcToPoints({\n\
-          x: args[0],\n\
-          y: args[1],\n\
-        }, args[4], args[5], args[2]).end\n\
+        p = utils.arcToPoints(\n\
+          args[0], args[1], args[4],\n\
+          args[5], args[2]).end\n\
         break;\n\
 \n\
       default:\n\
@@ -1683,6 +1790,25 @@ SubPath.prototype = {\n\
     };\n\
   }\n\
 \n\
+, getActionLength: function(x0,y0,i) {\n\
+    var action = this.actions[i],\n\
+        args = action.args;\n\
+\n\
+    if(action.action == 'ellipse') {\n\
+      var rad = args[3];\n\
+      var astart = args[4];\n\
+      var aend = args[5];\n\
+\n\
+      return (aend-astart)*rad;\n\
+    }\n\
+\n\
+    var x = args[args.length-2];\n\
+    var y = args[args.length-1];\n\
+    var xo = x - x0;\n\
+    var yo = y - y0;\n\
+    return Math.sqrt(xo*xo + yo*yo);\n\
+  }\n\
+\n\
 , getLength: function() {\n\
     var args, x1=0, y1=0, x2=0, y2=0, xo=0, yo=0, len=0;\n\
 \n\
@@ -1690,8 +1816,8 @@ SubPath.prototype = {\n\
     x2 = first.x;\n\
     y2 = first.y;\n\
 \n\
-    var pts = this.getPoints();\n\
-    for(var i=0,l=pts.length; i < l; ++i) {\n\
+    var pts = this.getPoints(10000);\n\
+    for(var i=1,l=pts.length; i < l; ++i) {\n\
       var p=pts[i];\n\
       x1 = x2;\n\
       y1 = y2;\n\
@@ -1702,37 +1828,6 @@ SubPath.prototype = {\n\
 \n\
       len += Math.sqrt(xo*xo + yo*yo);\n\
     }\n\
-\n\
-    // for ( i = 1, il = this.actions.length; i < il; i ++ ) {\n\
-    //   args = this.actions[i].args;\n\
-    //   x1 = x2;\n\
-    //   y1 = y2;\n\
-    //   x2 = args[args.length-2];\n\
-    //   y2 = args[args.length-1];\n\
-    //   xo = x2-x1;\n\
-    //   yo = y2-y1;\n\
-\n\
-    //   len += Math.sqrt(xo*xo + yo*yo);\n\
-    // }\n\
-\n\
-    return len;\n\
-  }\n\
-\n\
-, getLength2: function() {\n\
-    var args, x1=0, y1=0, x2=0, y2=0, xo=0, yo=0, len=0;\n\
-\n\
-    for ( i = 1, il = this.actions.length; i < il; i ++ ) {\n\
-      args = this.actions[i].args;\n\
-      x1 = x2;\n\
-      y1 = y2;\n\
-      x2 = args[args.length-2];\n\
-      y2 = args[args.length-1];\n\
-      xo = x2-x1;\n\
-      yo = y2-y1;\n\
-\n\
-      len += Math.sqrt(xo*xo + yo*yo);\n\
-    }\n\
-\n\
     return len;\n\
   }\n\
 \n\
@@ -1776,6 +1871,11 @@ SubPath.prototype = {\n\
     }\n\
 \n\
     return p;\n\
+  }\n\
+\n\
+, shiftToNearest: function(x, y) {\n\
+    var nearest = this.nearestPoint(new Point(x,y));\n\
+    return this.shift(nearest.i);\n\
   }\n\
 \n\
 , shift: function(an) {\n\
@@ -2001,6 +2101,8 @@ SubPath.prototype = {\n\
   }\n\
 , fromPoly: function(poly, scale) {\n\
     scale = 1/scale;\n\
+\n\
+    poly = poly.reverse();\n\
 \n\
     this.moveTo(poly[0].X*scale, poly[0].Y*scale);\n\
 \n\
@@ -9291,21 +9393,43 @@ Motion.prototype = {\n\
     this.position = newPosition;\n\
   }\n\
 , arcCW: function(params) {\n\
-    var newPosition = this.postProcess(params);\n\
-\n\
-    // Can be cyclic so we don't\n\
-    // ignore it if the position is the same\n\
-\n\
-    this.ctx.driver.arcCW.call(this.ctx.driver, params);\n\
-\n\
-    if(newPosition) {\n\
-      this.position = newPosition;\n\
-    }\n\
+    return this.arc(params,false);\n\
   }\n\
 , arcCCW: function(params) {\n\
+    return this.arc(params,true);\n\
+  }\n\
+, arc: function(params,ccw) {\n\
     var newPosition = this.postProcess(params);\n\
+    // Note: Can be cyclic so we don't\n\
+    // ignore it if the position is the same\n\
 \n\
-    this.ctx.driver.arcCCW.call(this.ctx.driver, params);\n\
+    if(!ccw && this.ctx.driver.arcCW) {\n\
+      this.ctx.driver.arcCW.call(this.ctx.driver, params);\n\
+    }\n\
+    else if(ccw && this.ctx.driver.arcCCW) {\n\
+      this.ctx.driver.arcCCW.call(this.ctx.driver, params);\n\
+    }\n\
+    else {\n\
+      var cx = this.position.x + params.i;\n\
+      var cy = this.position.y + params.j;\n\
+      var arc = utils.pointsToArc({\n\
+        x: cx,\n\
+        y: cy \n\
+      },\n\
+      this.position, {\n\
+        x: params.x,\n\
+        y: params.y\n\
+      });\n\
+\n\
+      this.interpolate('arc',[\n\
+                       cx,\n\
+                       cy,\n\
+                       arc.radius,\n\
+                       arc.start,\n\
+                       arc.end,\n\
+                       ccw],\n\
+                       params.z||0);\n\
+    }\n\
 \n\
     if(newPosition) {\n\
       this.position = newPosition;\n\
@@ -9371,6 +9495,33 @@ Motion.prototype = {\n\
     return v1;\n\
   }\n\
 \n\
+, interpolate: function(name, args, zEnd) {\n\
+    var path = new SubPath();\n\
+    path[name].apply(path, args);\n\
+\n\
+    var curLen = 0;\n\
+    var totalLen = path.getLength();\n\
+    var zStart = this.position.z;\n\
+\n\
+    function helix() {\n\
+      var fullDelta = zEnd - zStart;\n\
+      var ratio = (curLen / totalLen);\n\
+      var curDelta = fullDelta * ratio;\n\
+      return zStart + curDelta;\n\
+    }\n\
+\n\
+    var pts = path.getPoints(40);\n\
+    for(var i=0,l=pts.length; i < l; ++i) {\n\
+      var p=pts[i];\n\
+\n\
+      var xo = p.x - this.position.x;\n\
+      var yo = p.y - this.position.y;\n\
+      curLen += Math.sqrt(xo*xo + yo*yo);\n\
+\n\
+      this.linear({x:p.x, y:p.y, z:helix()});\n\
+    }\n\
+  }\n\
+\n\
 , followPath: function(path, zEnd) {\n\
     if(!path) return false;\n\
 \n\
@@ -9396,6 +9547,7 @@ Motion.prototype = {\n\
       var fullDelta = zEnd - zStart;\n\
       var ratio = (curLen / totalLen);\n\
       var curDelta = fullDelta * ratio;\n\
+\n\
       return zStart + curDelta;\n\
     }\n\
 \n\
@@ -9407,11 +9559,6 @@ Motion.prototype = {\n\
       var pts = path.getPoints(40);\n\
       for(var i=0,l=pts.length; i < l; ++i) {\n\
         var p=pts[i];\n\
-\n\
-        // Todo: generalize travel tracking\n\
-        var xo = p.x - motion.position.x;\n\
-        var yo = p.y - motion.position.y;\n\
-        curLen += Math.sqrt(xo*xo + yo*yo);\n\
 \n\
         motion.linear({x:p.x, y:p.y, z:helix()});\n\
       }\n\
@@ -9436,21 +9583,14 @@ Motion.prototype = {\n\
     };\n\
 \n\
     each[Path.actions.LINE_TO] = function(x,y) {\n\
-      var xo = x - this.position.x;\n\
-      var yo = y - this.position.y;\n\
-      curLen += Math.sqrt(xo*xo + yo*yo);\n\
-\n\
       motion.linear({x:x,y:y,z:helix()});\n\
     };\n\
 \n\
     each[Path.actions.ELLIPSE] = function(x, y, rx, ry,\n\
-\t\t\t\t\t\t\t\t\t  aStart, aEnd, aClockwise , mx, my) {\n\
+\t\t\t\t\t\t\t\t\t  aStart, aEnd, ccw) {\n\
       // Detect plain arc\n\
-      if(false && utils.sameFloat(rx,ry) &&\n\
-        (driver.arcCW && !aClockwise) ||\n\
-        (driver.arcCCW && aClockwise) ) {\n\
-          var center = new Point(x, y);\n\
-          var points = utils.arcToPoints(center,\n\
+      if(utils.sameFloat(rx,ry)) {\n\
+          var points = utils.arcToPoints(x, y,\n\
                                          aStart,\n\
                                          aEnd,\n\
                                          rx);\n\
@@ -9460,10 +9600,8 @@ Motion.prototype = {\n\
             z: helix()\n\
           };\n\
 \n\
-          if(aClockwise)\n\
-            motion.arcCCW(params);\n\
-          else\n\
-            motion.arcCW(params);\n\
+          motion.arc(params, ccw);\n\
+\n\
       }\n\
       else {\n\
         interpolate('ellipse', arguments, mx, my);\n\
@@ -9480,6 +9618,13 @@ Motion.prototype = {\n\
 \n\
     for(var i = 0, l = path.actions.length; i < l; ++i) {\n\
       item = path.actions[i]\n\
+\n\
+      if(i != 0) {\n\
+        var x0 = this.position.x;\n\
+        var y0 = this.position.y;\n\
+        curLen += path.getActionLength(x0, y0, i);\n\
+      }\n\
+\n\
 \n\
       // Every action should be plunged except for move\n\
       // if(item.action !== Path.actions.MOVE_TO) {\n\
@@ -9570,24 +9715,24 @@ var parseFont = module.exports = function(str){\n\
 require.register("gcanvas/lib/utils.js", Function("exports, require, module",
 "var Point = require('./math/point');\n\
 \n\
-var EPSILON = 0.0000000001;\n\
+var EPSILON = 0.000001;\n\
 \n\
 module.exports = {\n\
   /*\n\
    * Convert start+end angle arc to start/end points.\n\
    * */\n\
-  arcToPoints: function(center, astart, aend, radius) {\n\
-    // center = new Vector3(center.x, center.y, center.z);\n\
-    var x = center.x,\n\
-        y = center.y,\n\
-        a = new Point(), // start point\n\
+  arcToPoints: function(x, y, astart, aend, radius) {\n\
+    astart = astart % Math.PI;\n\
+    aend = aend % Math.PI;\n\
+\n\
+    var a = new Point(), // start point\n\
         b = new Point(); // end point\n\
 \n\
-      a.x = radius * Math.cos(astart) + center.x\n\
-      a.y = radius * Math.sin(astart) + center.y\n\
+    a.x = radius * Math.cos(astart) + x\n\
+    a.y = radius * Math.sin(astart) + y\n\
 \n\
-      b.x = radius * Math.cos(aend) + center.x\n\
-      b.y = radius * Math.sin(aend) + center.y\n\
+    b.x = radius * Math.cos(aend) + x\n\
+    b.y = radius * Math.sin(aend) + y\n\
 \n\
     return {\n\
       start: a,\n\
@@ -9635,6 +9780,10 @@ module.exports = {\n\
   }\n\
 \n\
 , sameFloat: function(a, b, epsilon) {\n\
+\n\
+    if(Math.abs(Math.abs(a)-Math.abs(b)) < EPSILON)\n\
+      return true;\n\
+\n\
 \t\tvar absA = Math.abs(a)\n\
       , absB = Math.abs(b)\n\
       , diff = Math.abs(a - b)\n\
@@ -9665,6 +9814,9 @@ module.exports = {\n\
       return start;\n\
     }\n\
 \n\
+    // if(loops < 1) return start;\n\
+    // loops = Math.round(loops);\n\
+\n\
     var divisions = 40;\n\
     var end = Math.abs(loops) * divisions * 2;\n\
     var delta = r1-r0;\n\
@@ -9676,9 +9828,8 @@ module.exports = {\n\
     var x,y,t;\n\
     var angle;\n\
 \n\
-\n\
-    for(var i = 0; i < end; i++) {\n\
-      angle = stepAngle * (i+1);\n\
+    for(var i = 0; i < end+1; i++) {\n\
+      angle = stepAngle * i;\n\
       if(ccw) {\n\
         x = (a + b * angle) * Math.sin(angle+start);\n\
         y = (a + b * angle) * Math.cos(angle+start);\n\
