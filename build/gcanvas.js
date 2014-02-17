@@ -402,10 +402,21 @@ GCanvas.prototype = {\n\
     this.lineTo(x,y+h);\n\
     this.lineTo(x,y);\n\
   }\n\
-, fillRect: function(x,y,w,h) { \n\
+, fillRect: function(x,y,w,h,depth) { \n\
+    this.save();\n\
     this.beginPath();\n\
-    this.rect.apply(this, arguments);\n\
+    this.depth = depth || this.depth;\n\
+    this.rect(x,y,w,h);\n\
     this.fill();\n\
+    this.restore();\n\
+  }\n\
+, fillCircle: function(x,y,rad,depth) { \n\
+    this.save();\n\
+    this.beginPath();\n\
+    this.depth = depth || this.depth;\n\
+    this.circle(x,y,rad);\n\
+    this.fill();\n\
+    this.restore();\n\
   }\n\
 , measureText: function(text) {\n\
     // Removed until I have cleaner way to do it\n\
@@ -1543,7 +1554,7 @@ Path.prototype = {\n\
 \n\
     var co = new ClipperLib.ClipperOffset();\n\
     co.PreserveCollinear = true;\n\
-    // co.ReverseSolution = true;\n\
+    co.ReverseSolution = true;\n\
 \n\
     co.AddPaths(polygons, \n\
              ClipperLib.JoinType.jtMiter,\n\
@@ -2101,8 +2112,6 @@ SubPath.prototype = {\n\
   }\n\
 , fromPoly: function(poly, scale) {\n\
     scale = 1/scale;\n\
-\n\
-    poly = poly.reverse();\n\
 \n\
     this.moveTo(poly[0].X*scale, poly[0].Y*scale);\n\
 \n\
