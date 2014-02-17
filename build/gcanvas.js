@@ -248,6 +248,7 @@ GCanvas.prototype = {\n\
       font: this.font,\n\
       speed: this.speed,\n\
       feed: this.feed,\n\
+      depth: this.depth,\n\
       depthOfCut: this.depthOfCut,\n\
       toolDiameter: this.toolDiameter,\n\
       align: this.align,\n\
@@ -1384,7 +1385,7 @@ Path.prototype = {\n\
 \n\
     var cpr = new ClipperLib.Clipper();\n\
     // cpr.PreserveCollinear = true;\n\
-    cpr.ReverseSolution = true;\n\
+    // cpr.ReverseSolution = true;\n\
 \n\
     cpr.AddPaths(subjPolys, ClipperLib.PolyType.ptSubject,true);\n\
     cpr.AddPaths(clipPolys, ClipperLib.PolyType.ptClip, true);\n\
@@ -1538,11 +1539,10 @@ Path.prototype = {\n\
     var polygons = this.toPolys(scale);\n\
 \n\
     // offset\n\
-    var joinType = 2;\n\
     var miterLimit = 1000*scale;\n\
 \n\
     var co = new ClipperLib.ClipperOffset();\n\
-    // co.PreserveCollinear = true;\n\
+    co.PreserveCollinear = true;\n\
     // co.ReverseSolution = true;\n\
 \n\
     co.AddPaths(polygons, \n\
