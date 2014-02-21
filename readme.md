@@ -45,23 +45,6 @@ and to support stroke-alignment which the canvas spec doesn't have yet (but real
 
 * `context.align` Can be 'inner', 'outer', or 'center' (default). Non-center alignment closes the path.
 
-### Unit conversion
-GCanvas doesn't have any built-in understanding of units,
-because `scale()` works perfectly for this, and is compatible
-with a normal canvas.
-
-I usually mill in mm's which means if I do a `lineTo(10,0)`,
-on my CNC machine that is 10mm on the X axis, but in a browser
-canvas that's 10px. That isn't always so bad but if I am working
-on something really detailed I usually `scale(10,10)` the preview only,
-independent of the actual drawing making 1mm = 10px.
-
-To work in inches I `scale(25.4, 25.4)` rather than bothering to issue a G20 to the driver.
-  
-### Defining stock material
-Draw it and use `clip()`! It works perfectly.
-
-
 ### Command line utility
 GCanvas comes with a command line utility that you can use to write
 machining tasks as simple standalone .js files. Just define a main(context) function in the script, and gcanvas will pass it a
