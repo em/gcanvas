@@ -80,9 +80,10 @@ setup('face down', function(ctx) {
 
 ### Why
 
-1. The most common machining tasks are 2.5D.
-2. Easily run drawing code against a real canvas for previewing.
-3. A good basis for implementing more specific Javascript milling tools. e.g. svg, pcbs
+1. The most common machining tasks are 2.5D and can be done much faster with a little code than with CAD.
+2. The Canvas API is well documented and prolific.
+3. Especially good for parametric parts.
+4. A lib for implementing more specific Javascript milling tools. e.g. svg, pcbs.
 
 ### License
 
