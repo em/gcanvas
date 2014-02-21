@@ -31,9 +31,7 @@ and to support stroke-alignment which the canvas spec doesn't have yet (but real
 
 * `context.depthOfCut` Specifies an incrementing depth of cut in layers up to `context.depth`.
 
-* `context.top` The Z position of the work surface. Use with depthOfCut otherwise you'll make make several passes before cutting anything. Defaults to 0.
- 
-* `context.aboveTop` The Z position of a safe area above the surface of the work. This is where the tool retracts to before rapid moves. It should be top-(a reasonable surface tolerance). Defaults to 0.
+* `context.top` The Z offset to the top of work surface. When this is set all cuts with plunge down to this depth before spiraling to their full depth. Use cautiously. If the actual work surface is closer this will break tools.
 
 * `context.toolDiameter` This must be set for fill() to work properly because it has to calculate tool offsets.
 

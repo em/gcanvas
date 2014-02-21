@@ -228,7 +228,6 @@ function GCanvas(driver, width, height) {\n\
   this.depth = 0;\n\
   this.depthOfCut = 0;\n\
   this.top = 0;\n\
-  this.aboveTop = 0;\n\
   this.align = 'center';\n\
   this.feed = 100;\n\
   this.mode = 'mill';\n\
@@ -254,7 +253,6 @@ GCanvas.prototype = {\n\
       align: this.align,\n\
       mode: this.mode,\n\
       top: this.top,\n\
-      aboveTop: this.aboveTop,\n\
       filters: this.filters.slice()\n\
     });\n\
   }\n\
@@ -268,6 +266,39 @@ GCanvas.prototype = {\n\
   }\n\
 , filter: function(fn) {\n\
     this.filters.push(fn);\n\
+  }\n\
+, map: function(from, to) {\n\
+    if(arguments.length == 1) {\n\
+      to = from;\n\
+      from = 'xyza';\n\
+    }\n\
+\n\
+    from = from.split('');\n\
+    to = to.split('');\n\
+\n\
+    this.filter(function(p) {\n\
+      var tmp = {};\n\
+      var negative = false;\n\
+      var i = 0;\n\
+\n\
+      to.forEach(function(d) {\n\
+        if(d == '-') {\n\
+          negative = true;\n\
+        }\n\
+        else {\n\
+          tmp[d] = p[ from[i] ];\n\
+\n\
+          if(negative) {\n\
+            tmp[d] = -tmp[d];\n\
+          }\n\
+\n\
+          negative = false;\n\
+          i++;\n\
+        }\n\
+      });\n\
+\n\
+      return tmp;\n\
+    });\n\
   }\n\
 , beginPath: function() {\n\
     // this.prevsubPaths = this.subPaths;\n\
@@ -372,9 +403,9 @@ GCanvas.prototype = {\n\
     //   this.lineTo(p.x,p.y);\n\
     // },this);\n\
   }\n\
-, circle: function(x, y, diameter, ccw) {\n\
+, circle: function(x, y, rad, ccw) {\n\
     this.beginPath();\n\
-    this.arc(x, y, diameter/2, 0, Math.PI*2, ccw);\n\
+    this.arc(x, y, rad, 0, Math.PI*2, ccw);\n\
   }\n\
 , bezierCurveTo: function( aCP1x, aCP1y,\n\
                            aCP2x, aCP2y,\n\
@@ -400,7 +431,7 @@ GCanvas.prototype = {\n\
     this.lineTo(x+w,y);\n\
     this.lineTo(x+w,y+h);\n\
     this.lineTo(x,y+h);\n\
-    this.lineTo(x,y);\n\
+    this.closePath();\n\
   }\n\
 , fillRect: function(x,y,w,h,depth) { \n\
     this.save();\n\
@@ -421,16 +452,22 @@ GCanvas.prototype = {\n\
 , measureText: function(text) {\n\
     // Removed until I have cleaner way to do it\n\
   }\n\
-, stroke: function() {\n\
+, stroke: function(align) {\n\
     var offset = 0;\n\
-    if(this.align === 'outer') {\n\
+\n\
+    align = align || this.align;\n\
+\n\
+    if(align === 'outer') {\n\
       offset = this.toolDiameter/2;\n\
     }\n\
-    if(this.align === 'inner') {\n\
+    if(align === 'inner') {\n\
       offset = -this.toolDiameter/2;\n\
     }\n\
 \n\
     var path = this.path;\n\
+    // path = path.simplify(windingRule);\n\
+    // path = path.clip(this.clipRegion,0);\n\
+\n\
 \n\
     if(path.subPaths)\n\
     path.subPaths.forEach(function(subPath) {\n\
@@ -462,55 +499,50 @@ GCanvas.prototype = {\n\
       });\n\
     }, this);\n\
 \n\
-    motion.retract();\n\
+    this.motion.retract();\n\
   }\n\
 \n\
-, outerThread: function(dmin, dmaj, depth, pitch, ccw) {\n\
-    this.align = 'outer';\n\
-    this.beginPath();\n\
-    if(ccw) {\n\
-      this.moveTo(dmin/2,depth);\n\
-      this.lineTo(dmaj/2,depth);\n\
-      this.lineTo(dmaj/2,0);\n\
-    }\n\
-    else {\n\
-      this.moveTo(dmaj/2,0);\n\
-      this.lineTo(dmaj/2,depth);\n\
-      this.lineTo(dmin/2,depth);\n\
-    }\n\
-    this.spiral(pitch, ccw);\n\
-  }\n\
-, innerThread: function(dmin, dmaj, depth, pitch, ccw) {\n\
+// , outerThread: function(dmin, dmaj, depth, pitch, ccw) {\n\
+//     this.align = 'outer';\n\
+//     this.beginPath();\n\
+//     if(ccw) {\n\
+//       this.moveTo(dmin/2,depth);\n\
+//       this.lineTo(dmaj/2,depth);\n\
+//       this.lineTo(dmaj/2,0);\n\
+//     }\n\
+//     else {\n\
+//       this.moveTo(dmaj/2,0);\n\
+//       this.lineTo(dmaj/2,depth);\n\
+//       this.lineTo(dmin/2,depth);\n\
+//     }\n\
+//     this.spiral(pitch, ccw);\n\
+//   }\n\
+, thread: function(attack, dmin, dmaj, pitch, start, length, ccw, virtual) {\n\
     this.save();\n\
     this.beginPath();\n\
-    this.rect(0,0,dmin/2,depth);\n\
-    this.innerLathe(pitch, !ccw);\n\
+    this.rect(dmin/2,start,dmaj/2-dmin/2,length);\n\
+    this.lathe(attack, pitch, ccw, virtual);\n\
     this.restore();\n\
   }\n\
-, bore: function(pitch, ccw) {\n\
-    return this.spiral(pitch, true, ccw);\n\
+, threadMill: function(attack, dmin, dmaj, pitch, start, length, ccw) {\n\
+    return this.thread(attack, dmin, dmaj, pitch, start, length, ccw, true);\n\
   }\n\
-, turn: function(pitch, ccw) {\n\
-    return this.spiral(pitch, false, ccw);\n\
+, latheMill: function(pitch, attack, ccw) {\n\
+    return this.lathe(pitch, attack, ccw, true);\n\
   }\n\
-, spiralIn: function(pitch, ccw) {\n\
-    return this.spiral(pitch, 'in', ccw);\n\
-  }\n\
-, spiralOut: function(pitch, ccw) {\n\
-    return this.spiral(pitch, 'out', ccw);\n\
-  }\n\
-, spiralDown: function(pitch, ccw) {\n\
-    return this.spiral(pitch, 'down', ccw);\n\
-  }\n\
-, spiral: function(pitch, attack, ccw) {\n\
-    var inPath = this.path.simplify();\n\
+, lathe: function(attack, pitch, ccw, virtual) {\n\
+    // var inPath = this.path.simplify();\n\
+    var inPath = this.path;\n\
     var toolR = this.toolDiameter/2 || 0;\n\
+    attack = attack || 'outer';\n\
 \n\
-    if(attack == 'out') { \n\
-      inPath = inPath.translate(-this.toolDiameter/2,0);\n\
-    }\n\
-    if(attack == 'in') { \n\
-      inPath = inPath.translate(this.toolDiameter/2,0);\n\
+    if(toolR) {\n\
+      if(attack == 'inner') { \n\
+        inPath = inPath.translate(-this.toolDiameter/2,0);\n\
+      }\n\
+      if(attack == 'outer') { \n\
+        inPath = inPath.translate(this.toolDiameter/2,0);\n\
+      }\n\
     }\n\
 \n\
     var bounds = inPath.getBounds(); // Find bounds\n\
@@ -522,7 +554,7 @@ GCanvas.prototype = {\n\
     var path = new Path();\n\
     // bounds.right += (this.toolDiameter||0);\n\
 \n\
-    var s = this.depthOfCut || bounds.bottom;\n\
+    var s = this.depthOfCut || 1000;\n\
 \n\
     if(attack === 'down') {\n\
       for(var i=0; i < height; i += s) {\n\
@@ -532,41 +564,35 @@ GCanvas.prototype = {\n\
 \n\
         sub.subPaths = sub.subPaths.map(function(sp) {\n\
           sp = sp.shiftToNearest(0,0);\n\
-          sp.actions.splice(-1,1);\n\
           return sp;\n\
         });\n\
 \n\
         path.addPath(sub);\n\
       }\n\
     }\n\
-    else if(attack === 'out') {\n\
-      for(var i=0; i < width; i += s) {\n\
+    else if(attack === 'outer') {\n\
+      for(var i=bounds.left; i < bounds.right; i += s) {\n\
         var clip = new Path();\n\
-        clip.rect(i,0,s,height);\n\
+        clip.rect(0,-10,i,height+10);\n\
         var sub = clip.clip(inPath,0);\n\
 \n\
         sub.subPaths = sub.subPaths.map(function(sp) {\n\
           sp = sp.shiftToNearest(0,0);\n\
-          sp.actions.splice(0,1);\n\
-          sp.actions.splice(-1,1);\n\
-          // sp.actions.splice(-2,2);\n\
           return sp;\n\
         });\n\
 \n\
         path.addPath(sub);\n\
       }\n\
     }\n\
-    else if(attack === 'in') {\n\
-      for(var i=width; i > 0; i -= s) {\n\
+    else if(attack === 'inner') {\n\
+      // var sub = inPath;\n\
+      for(var i=bounds.right+10; i >= bounds.left; i -= s) {\n\
         var clip = new Path();\n\
-        clip.rect(i,0,s,height);\n\
+        clip.rect(i,-10,bounds.right-i,height+10);\n\
         var sub = clip.clip(inPath,0);\n\
 \n\
         sub.subPaths = sub.subPaths.map(function(sp) {\n\
-          sp = sp.shiftToNearest(bounds.right,0);\n\
-          sp.actions.splice(0,1);\n\
-          sp.actions.splice(-2,2);\n\
-          // sp.actions.splice(-1,1);\n\
+          sp = sp.shiftToNearest(bounds.right+10,0);\n\
           return sp;\n\
         });\n\
 \n\
@@ -574,8 +600,9 @@ GCanvas.prototype = {\n\
       }\n\
     }\n\
 \n\
+    // path.addPath(inPath);\n\
 \n\
-    var virtual = this.mode == 'mill';\n\
+\n\
     var inner = this.align == 'inner';\n\
     pitch = pitch || this.toolDiameter || 1;\n\
 \n\
@@ -595,62 +622,40 @@ GCanvas.prototype = {\n\
     // path.subPaths.splice(-1,1);\n\
     // path = path.simplify('evenodd');\n\
 \n\
-    // if(attack == 'in') {\n\
+    // if(attack == 'outer') {\n\
     //   path.subPaths = path.subPaths.reverse();\n\
     // }\n\
 // \n\
+    // this.depth = 0;\n\
     // this.path = path;\n\
     // this.stroke();\n\
     // return;\n\
 // \n\
-    // if(attack == 'out') {\n\
+    // if(attack == 'inner') {\n\
     //   ccw = !ccw;\n\
     // }\n\
 \n\
     var spiralAngle = 0;\n\
-    function reset() {\n\
-      // Return to start\n\
-      if(virtual) {\n\
-        switch(attack) {\n\
-          case 'out':\n\
-            motion.rapid({x:0, y:0});\n\
-            motion.rapid({z:0});\n\
-            break;\n\
-          case 'in':\n\
-            var safeX = (bounds.right+toolR) * Math.cos(spiralAngle);\n\
-            var safeY = (bounds.right+toolR) * Math.sin(spiralAngle);\n\
 \n\
-            motion.linear({x:safeX, y:safeY});\n\
-            motion.rapid({z:0});\n\
-            break;\n\
-          case 'down':\n\
-            motion.rapid({z:0});\n\
-            break;\n\
-        }\n\
-      }\n\
-      else {\n\
-        motion.rapid({x: bounds.left});\n\
-        motion.rapid({y: bounds.top, a:a});\n\
-        // driver.zero({a:0});\n\
-      }\n\
-      spiralAngle = 0;\n\
-    }\n\
 \n\
     path.subPaths.forEach(function(subPath) {\n\
-      reset();\n\
+      // reset();\n\
+\n\
+      driver.zero({a:0});\n\
+      var a = 0;\n\
 \n\
       var pts = subPath.getPoints();\n\
       // pts = pts.slice(0,-1);\n\
 \n\
       var reverse = false;\n\
 \n\
-      // These cancel eachother out\n\
+      // These cancel eachother inner\n\
       // and must be done in series\n\
       if(ccw) {\n\
         reverse = !reverse;\n\
       }\n\
 \n\
-      if(attack == 'in' || attack == 'down') {\n\
+      if(attack == 'outer' || attack == 'down') {\n\
         reverse = !reverse;\n\
       }\n\
 \n\
@@ -661,14 +666,16 @@ GCanvas.prototype = {\n\
 \n\
       var p0u = pts[0].clone();\n\
       var p0 = p0u.clone();\n\
-\n\
       var first = true;\n\
       pts.forEach(function(p1,pi) {\n\
         p1 = p1.clone();\n\
         p1u = p1.clone();\n\
 \n\
-        var xo = p1.x-p0.x;\n\
-        var yo = p1.y-p0.y;\n\
+        p1.x = bounds.left+bounds.right-p1.x;\n\
+        // p1.x = -p1.x;\n\
+\n\
+        var xo = p1u.x-p0u.x;\n\
+        var yo = p1u.y-p0u.y;\n\
         var dist = Math.sqrt(xo*xo + yo*yo);\n\
 \n\
         if(virtual) {\n\
@@ -678,59 +685,64 @@ GCanvas.prototype = {\n\
           var z1 = p1.y;\n\
           var loops = dist/pitch;\n\
 \n\
+          if(attack == 'inner' && p1.x <= bounds.left) {\n\
+            var startX = (r1) * Math.sin(spiralAngle);\n\
+            var startY = (r1) * Math.cos(spiralAngle);\n\
+            motion.rapid({x: startX, y: startY});\n\
+            motion.rapid({z: z1});\n\
+          }\n\
+          else if(attack == 'outer' && p0u.x >= bounds.right && p1u.x >= bounds.right) {\n\
+            motion.rapid({x: r1});\n\
+            motion.rapid({z: z1});\n\
+          }\n\
+          else\n\
           spiralAngle = utils.spiral(40, r0, r1, loops,\n\
-                                     spiralAngle, attack=='out',\n\
+                                     spiralAngle, attack=='inner',\n\
                                      function(x,y,t) {\n\
             // if(z0 <= 0 && z1 <= 0) return false;\n\
             // if(z0 >= height && z1 >= height) return false;\n\
 \n\
             var z = z0+(z1-z0)*t; \n\
-            if(first) {\n\
-              // if(reverse) {\n\
-              //   // Leave the hole first\n\
-                // motion.rapid({z:z});\n\
-              // }\n\
 \n\
-              motion.linear({\n\
-                x: x,\n\
-                y: y\n\
-              });\n\
-\n\
-              // if(!reverse) {\n\
-              //   // Leave the hole first\n\
-              //   motion.rapid({z:z});\n\
-              // }\n\
-\n\
-              first = false;\n\
-            }\n\
-            else {\n\
-              motion.linear({\n\
-                x: x,\n\
-                y: y,\n\
-                z: z \n\
-              });\n\
-            }\n\
+            motion.linear({\n\
+              x: x,\n\
+              y: y,\n\
+              z: z \n\
+            });\n\
           });\n\
         }\n\
         else {\n\
-          a = dist/pitch*360;\n\
-          motion.linear({x: p1.x, y: p1.y, a: a});\n\
+\n\
+          if(attack == 'outer' && p1.x <= bounds.left) {\n\
+            motion.rapid({x: p1.x, y: p1.y});\n\
+          }\n\
+          else if(attack == 'inner' && p0u.x >= bounds.right && p1u.x >= bounds.right) {\n\
+            motion.rapid({x: p1.x, y: p1.y});\n\
+          }\n\
+          else if(attack == 'down' && p1.x >= bounds.right) {\n\
+            motion.rapid({x: p1.x, y: p1.y, a: a});\n\
+          }\n\
+          else {\n\
+            a += dist/pitch*360;\n\
+            motion.linear({x: p1.x, y: p1.y, a: a});\n\
+          }\n\
         }\n\
 \n\
         p0 = p1.clone();\n\
         p0u = p1u.clone();\n\
       }, this);\n\
 \n\
-      a = Math.round(a / 360) * 360;\n\
-\n\
-      if(!virtual) {\n\
-         driver.zero({a:0});\n\
-      }\n\
-\n\
+      // a = Math.round(a / 360) * 360;\n\
 \n\
     });\n\
 \n\
-    reset();\n\
+    // a = a % 360;\n\
+    // if(!virtual) {\n\
+    // }\n\
+\n\
+    driver.zero({a:0});\n\
+\n\
+    // reset();\n\
     // Always finish with an arc?\n\
     // motion.arcCW({\n\
     //   x: 0,\n\
@@ -775,14 +787,6 @@ GCanvas.prototype = {\n\
       prevZ = z;\n\
     }\n\
   }\n\
-, thread: function(cx,cy,dmaj,pitch,toolDiameter,depth) {\n\
-    toolDiameter = toolDiameter || this.toolDiameter;\n\
-    depth = depth || this.depth;\n\
-    this.beginPath();\n\
-    this.moveTo(dmaj/2,0);\n\
-    this.lineTo(dmaj/2,depth);\n\
-    this.spiral(pitch,cx,cy);\n\
-  }\n\
 , _layer: function(fn) {\n\
     var depthOfCut = this.depthOfCut || this.depth;\n\
     var start = this.top + depthOfCut;\n\
@@ -792,7 +796,7 @@ GCanvas.prototype = {\n\
       return;\n\
     }\n\
 \n\
-    var offset = 0;\n\
+    var offset = this.top;\n\
     while(offset < this.depth) {\n\
       offset += depthOfCut;\n\
 \n\
@@ -1553,8 +1557,8 @@ Path.prototype = {\n\
     var miterLimit = 1000*scale;\n\
 \n\
     var co = new ClipperLib.ClipperOffset();\n\
-    co.PreserveCollinear = true;\n\
-    co.ReverseSolution = true;\n\
+    // co.PreserveCollinear = true;\n\
+    // co.ReverseSolution = true;\n\
 \n\
     co.AddPaths(polygons, \n\
              ClipperLib.JoinType.jtMiter,\n\
@@ -9379,10 +9383,10 @@ function Motion(ctx) {\n\
 \n\
 Motion.prototype = {\n\
   retract: function() {\n\
-    this.rapid({z:this.ctx.aboveTop\n\
-               || this.ctx.top});\n\
+    this.rapid({z:0});\n\
   }\n\
 , plunge: function() {\n\
+    this.rapid({z:this.ctx.top});\n\
   }\n\
 , rapid: function(params) {\n\
     var newPosition = this.postProcess(params);\n\
@@ -9449,7 +9453,14 @@ Motion.prototype = {\n\
       var tmp = f.call(this.ctx, params);\n\
 \n\
       if(tmp) {\n\
-        params = tmp;\n\
+        for(var k in params) {\n\
+          delete params[k];\n\
+        }\n\
+\n\
+        for(var k in tmp) {\n\
+          params[k] = tmp[k];\n\
+        }\n\
+        // params = tmp;\n\
       }\n\
     });\n\
 \n\
@@ -9583,6 +9594,7 @@ Motion.prototype = {\n\
 \n\
       motion.retract();\n\
       motion.rapid({x:x,y:y});\n\
+      motion.plunge();\n\
 \n\
       if(!path.isClosed()) {\n\
          motion.linear({z:zStart});\n\
@@ -9790,7 +9802,7 @@ module.exports = {\n\
 \n\
 , sameFloat: function(a, b, epsilon) {\n\
 \n\
-    if(Math.abs(Math.abs(a)-Math.abs(b)) < EPSILON)\n\
+    if(Math.abs(a-b) < EPSILON)\n\
       return true;\n\
 \n\
 \t\tvar absA = Math.abs(a)\n\
@@ -9876,6 +9888,9 @@ GCodeDriver.prototype = {\n\
   send: function(code, params) {\n\
     var command = code;\n\
     for(var k in params) {\n\
+      if(params[k] === undefined || params[k] === null)\n\
+        continue;\n\
+\n\
       command += ' ' + k.toUpperCase() + params[k];\n\
     }\n\
     this.stream.write(command);\n\
