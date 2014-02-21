@@ -465,13 +465,20 @@ GCanvas.prototype = {\n\
     }\n\
 \n\
     var path = this.path;\n\
-    // path = path.simplify(windingRule);\n\
+    path = path.simplify();\n\
+\n\
+\n\
     // path = path.clip(this.clipRegion,0);\n\
 \n\
 \n\
     if(path.subPaths)\n\
     path.subPaths.forEach(function(subPath) {\n\
       subPath = subPath.toPath().offset(offset);\n\
+\n\
+      // Climb milling\n\
+      if(align == 'inner') {\n\
+        subPath = subPath.reverse();\n\
+      }\n\
 \n\
       this._layer(function(z) {\n\
         this.motion.followPath(subPath,z);\n\
@@ -1626,6 +1633,13 @@ Path.prototype = {\n\
   }\n\
 \n\
 , reverse: function() {\n\
+    var result = new Path();\n\
+\n\
+    result.subPaths = this.subPaths.map(function(sp) {\n\
+      return sp.reverse();\n\
+    }).reverse();\n\
+\n\
+    return result;\n\
   }\n\
 \n\
 , sort: function() { \n\
