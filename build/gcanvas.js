@@ -1592,21 +1592,45 @@ Path.prototype = {\n\
     this.subPaths = this.subPaths.concat(path2.subPaths);\n\
   }\n\
 \n\
-, fillPath: function(diameter) {\n\
-    var result = new Path();\n\
-    for(var i = -diameter/2; i > -1000; i -= diameter*0.75) {\n\
-      var offsetPath = this.offset(i);\n\
+, estimateMaxOffset: function() {\n\
+    var bounds = this.getBounds();\n\
+    var lt = Math.abs(bounds.right - bounds.left);\n\
+    var gt = 0;\n\
 \n\
-      if(!offsetPath) {\n\
-        break;\n\
-      };\n\
+    for(var i = 0; i < 10; ++i) {\n\
+      var test = gt+(lt-gt)/2;\n\
+      var offset = this.offset(-test);\n\
 \n\
-      result.addPath(offsetPath);\n\
+      if(offset) {\n\
+        gt = test\n\
+      }\n\
+      else {\n\
+        lt = test;\n\
+      }\n\
     }\n\
 \n\
-    // result.addPath( this.offset( -diameter*0.5 ) );\n\
+    return {lt: lt, gt: gt};\n\
+  }\n\
 \n\
-    // result = result.sort().connectEnds(diameter);\n\
+, fillPath: function(diameter) {\n\
+    var result = new Path();\n\
+    var overlap = Math.sin(Math.PI/4);\n\
+\n\
+    this.subPaths.forEach(function(sp) {\n\
+      var path = sp.toPath();\n\
+\n\
+      var max = path.estimateMaxOffset().lt;\n\
+      max -= diameter; \n\
+\n\
+      for(var i = -max; i < -diameter/2; i += diameter*overlap) {\n\
+        var offsetPath = path.offset(i).reverse();\n\
+        result.addPath(offsetPath);\n\
+      }\n\
+\n\
+      // Finishing pass\n\
+      result.addPath(\n\
+        path.offset( -diameter/2 ).reverse() );\n\
+    });\n\
 \n\
     return result;\n\
   }\n\
@@ -1760,6 +1784,7 @@ SubPath.prototype = {\n\
    var clone = this.clone();\n\
    var path = new Path();\n\
    path.subPaths.push(clone);\n\
+   path.current = path.subPaths[path.subPaths.length-1];\n\
    return path;\n\
   }\n\
 \n\
