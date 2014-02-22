@@ -818,38 +818,22 @@ GCanvas.prototype = {\n\
     fn.call(this, this.depth);\n\
   }\n\
 , text: function(text, x, y, params) {\n\
-      var fontProps = parseFont(this.font);\n\
-      var font = new Font(fontProps);\n\
+    var fontProps = parseFont(this.font);\n\
+    var font = new Font(fontProps);\n\
 \n\
-      this.beginPath();\n\
-      this.save();\n\
-      this.translate(x, y);\n\
-      font.drawText(this, text);\n\
-      this.restore();\n\
+    this.beginPath();\n\
+    this.save();\n\
+    this.translate(x, y);\n\
+    font.drawText(this, text);\n\
+    this.restore();\n\
   }\n\
 , fillText: function(text, x, y, params) {\n\
-      var fontProps = parseFont(this.font);\n\
-      var font = new Font(fontProps);\n\
-\n\
-      this.beginPath();\n\
-      this.save();\n\
-      this.translate(x, y);\n\
-      font.drawText(this, text);\n\
-      this.fill();\n\
-      this.restore();\n\
+    this.text(text, x, y, params);\n\
+    this.fill();\n\
   }\n\
 , strokeText: function(text, x, y, params) {\n\
-    this._layer(function() {\n\
-      var fontProps = parseFont(this.font);\n\
-      var font = new Font(fontProps);\n\
-\n\
-      this.beginPath();\n\
-      this.save();\n\
-      this.translate(x, y);\n\
-      font.drawText(this, text);\n\
-      this.stroke();\n\
-      this.restore();\n\
-    });\n\
+    this.text(text, x, y, params);\n\
+    this.stroke();\n\
   }\n\
 , clearRect: function() {}\n\
 , closePath: function() {\n\
@@ -1628,8 +1612,9 @@ Path.prototype = {\n\
       }\n\
 \n\
       // Finishing pass\n\
-      result.addPath(\n\
-        path.offset( -diameter/2 ).reverse() );\n\
+      var finish = path.offset( -diameter/2 );\n\
+      if(finish)\n\
+        result.addPath( finish.reverse() );\n\
     });\n\
 \n\
     return result;\n\
