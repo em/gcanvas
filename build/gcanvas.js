@@ -534,8 +534,8 @@ GCanvas.prototype = {\n\
 , threadMill: function(attack, dmin, dmaj, pitch, start, length, ccw) {\n\
     return this.thread(attack, dmin, dmaj, pitch, start, length, ccw, true);\n\
   }\n\
-, latheMill: function(pitch, attack, ccw) {\n\
-    return this.lathe(pitch, attack, ccw, true);\n\
+, latheMill: function(attack, pitch, ccw) {\n\
+    return this.lathe(attack, pitch, ccw, true);\n\
   }\n\
 , lathe: function(attack, pitch, ccw, virtual) {\n\
     // var inPath = this.path.simplify();\n\
