@@ -361,10 +361,66 @@ GCanvas.prototype = {\n\
     this._ensurePath(x,y);\n\
     this.path.lineTo(x,y);\n\
   }\n\
+, arcTo: function(x1, y1, x2, y2, radius) {\n\
+    this._ensurePath(x1,y1);\n\
+\n\
+    var p0 = this.path.lastPoint();\n\
+    var p1 = new Point(x1,y1);\n\
+    var p2 = new Point(x2,y2);\n\
+    var v01 = p0.sub(p1);\n\
+    var v21 = p2.sub(p1);\n\
+\n\
+    // sin(A - B) = sin(A) * cos(B) - sin(B) * cos(A)\n\
+    var cross = v01.x * v21.y - v01.y * v21.x;\n\
+\n\
+    if (Math.abs(cross) < 1E-10) {\n\
+        // on one line\n\
+        this.lineTo(x1,y1);\n\
+        return;\n\
+    }\n\
+\n\
+    var d01 = v01.magnitude();\n\
+    var d21 = v21.magnitude();\n\
+    var angle = (Math.PI - Math.abs(Math.asin(cross / (d01 * d21)))) / 2;\n\
+    var span = radius * Math.tan(angle);\n\
+    var rate = span / d01;\n\
+\n\
+    var startPoint = new Point(\n\
+      p1.x + v01.x * rate,\n\
+      p1.y + v01.y * rate\n\
+    );\n\
+\n\
+    rate = span / d21; \n\
+\n\
+    var endPoint = new Point(\n\
+      p1.x + v21.x * rate,\n\
+      p1.y + v21.y * rate\n\
+    );\n\
+\n\
+    var midPoint = new Point(\n\
+      (startPoint.x + endPoint.x) / 2,\n\
+      (startPoint.y + endPoint.y) / 2\n\
+    );\n\
+\n\
+    var vm1 = midPoint.sub(p1);\n\
+    var dm1 = vm1.magnitude();\n\
+    var d = Math.sqrt(radius*radius + span*span);\n\
+\n\
+    var centerPoint = new Point();\n\
+    rate = d / dm1;\n\
+    centerPoint.x = p1.x + vm1.x * rate;\n\
+    centerPoint.y = p1.y + vm1.y * rate;\n\
+\n\
+    var arc = utils.pointsToArc(centerPoint, startPoint, endPoint);\n\
+\n\
+    this.lineTo(startPoint.x, startPoint.y);\n\
+    this.arc(centerPoint.x, centerPoint.y, arc.radius, arc.start, arc.end, cross > 0);\n\
+  }\n\
 , arc: function (x, y, radius,\n\
 \t\t\t\t\t\t\t\t\t  aStartAngle,\n\
                     aEndAngle,\n\
                     aClockwise ) {\n\
+\n\
     // In the conversion to points we lose the distinction\n\
     // between 0 and pi2 so we must optimize out 0 here \n\
     // or else they will be treated as full circles.\n\
@@ -9767,8 +9823,8 @@ module.exports = {\n\
    * Convert start+end angle arc to start/end points.\n\
    * */\n\
   arcToPoints: function(x, y, astart, aend, radius) {\n\
-    astart = astart % Math.PI;\n\
-    aend = aend % Math.PI;\n\
+    // astart = astart % Math.PI;\n\
+    // aend = aend % Math.PI;\n\
 \n\
     var a = new Point(), // start point\n\
         b = new Point(); // end point\n\
