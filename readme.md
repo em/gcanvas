@@ -85,6 +85,13 @@ setup('face down', function(ctx) {
 3. Especially good for parametric parts.
 4. A lib for implementing more specific Javascript milling tools. e.g. svg, pcbs.
 
+
+### Additional Notes
+
+#### Center cutting and non-center cutting endmills.
+  The strategy for filling always tries to avoid center cutting
+  unless it is unavoidable. For instance, if you try to fill a 15mm circle with a 5mm endmill it will start by milling a 10mm circle and finish with a full 15mm circle, which can be done with a non-center cutting endmill. But, if you try to fill an 8mm circle with a 5mm endmill it will assume you have the right tool to do so, and proceed without caution. Just make sure that what you're telling Gcanvas to do is actually possible and you won't have any problems. It always tends to work out that we use the simplest tool for the job - mainly because they are cheaper. Knowing this, Gcanvas avoids a lot of annoying configuration by making the most conservative assumptions.
+  
 ### License
 
 MIT
