@@ -37,6 +37,7 @@ $ gcanvas example.js
 ```
 
 ![alt](examples/screeny.png)
+![alt](examples/example-irl.jpg)
 
 More examples: http://emery.denucc.io/gcanvas/examples
 
