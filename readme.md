@@ -96,6 +96,19 @@ setup('face down', function(ctx) {
 });
 ```
 
+### As a library
+```
+var Gcanvas = require('gcanvas');
+
+var driver = new Gcanvas.GcodeDriver({
+  write: function(cmd) {
+    console.log(cmd);
+  }
+});
+
+var ctx = new Gcanvas(driver);
+```
+
 ### Why
 
 1. The most common machining tasks are 2.5D and can be done much faster with a little code than with CAD.
