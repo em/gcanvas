@@ -524,11 +524,6 @@ GCanvas.prototype = {\n\
     }\n\
 \n\
     var path = this.path;\n\
-    path = path.simplify('evenodd');\n\
-\n\
-\n\
-    // path = path.clip(this.clipRegion,0);\n\
-\n\
 \n\
     if(path.subPaths)\n\
     path.subPaths.forEach(function(subPath) {\n\
