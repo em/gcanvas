@@ -9,17 +9,35 @@ npm install -g gcanvas
 ```
 
 ### Example
-test.js
+example.js
 ```
 function main(ctx) {
-  ctx.depth = 1;
-  ctx.depthOfCut = 0.25; // 4 passes
-  ctx.strokeText("Robots are cool", "20pt");
+  ctx.translate(-90,0);
+  ctx.toolDiameter = 1/8*25.4;
+  ctx.depth = 5;
+  ctx.font = '20pt Helvetiker';
+  roundRect(ctx, 0,0,180,60,5);
+  ctx.text('I  < 3  robots', 12, 40);
+  ctx.fill('evenodd');
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  if (w < 2 * r) r = w / 2;
+  if (h < 2 * r) r = h / 2;
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y,   x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x,   y+h, r);
+  ctx.arcTo(x,   y+h, x,   y,   r);
+  ctx.arcTo(x,   y,   x+w, y,   r);
+  ctx.closePath();
 }
 ```
 ```
-$ gcanvas test.js
+$ gcanvas example.js
 ```
+
+![alt](examples/screeny.png)
+
 More examples: http://emery.denucc.io/gcanvas/examples
 
 ### Non-standard extensions to Canvas 
