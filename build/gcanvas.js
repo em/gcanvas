@@ -236,6 +236,7 @@ function GCanvas(driver, width, height) {\n\
   this.stack = [];\n\
   this.motion = new Motion(this);\n\
   this.filters = [];\n\
+  this.precision = 10;\n\
 \n\
   this.beginPath();\n\
 }\n\
@@ -362,6 +363,8 @@ GCanvas.prototype = {\n\
     this.path.lineTo(x,y);\n\
   }\n\
 , arcTo: function(x1, y1, x2, y2, radius) {\n\
+    this._transformPoint(arguments,0);\n\
+    this._transformPoint(arguments,2);\n\
     this._ensurePath(x1,y1);\n\
 \n\
     var p0 = this.path.lastPoint();\n\
@@ -413,8 +416,8 @@ GCanvas.prototype = {\n\
 \n\
     var arc = utils.pointsToArc(centerPoint, startPoint, endPoint);\n\
 \n\
-    this.lineTo(startPoint.x, startPoint.y);\n\
-    this.arc(centerPoint.x, centerPoint.y, arc.radius, arc.start, arc.end, cross > 0);\n\
+    this.path.lineTo(startPoint.x, startPoint.y);\n\
+    this.path.arc(centerPoint.x, centerPoint.y, arc.radius, arc.start, arc.end, cross > 0);\n\
   }\n\
 , arc: function (x, y, radius,\n\
 \t\t\t\t\t\t\t\t\t  aStartAngle,\n\
@@ -521,7 +524,7 @@ GCanvas.prototype = {\n\
     }\n\
 \n\
     var path = this.path;\n\
-    path = path.simplify();\n\
+    path = path.simplify('evenodd');\n\
 \n\
 \n\
     // path = path.clip(this.clipRegion,0);\n\
@@ -550,9 +553,9 @@ GCanvas.prototype = {\n\
     }\n\
 \n\
     var path = this.path;\n\
-    path = path.simplify(windingRule);\n\
-    path = path.clip(this.clipRegion,0);\n\
-    path = path.fillPath(this.toolDiameter);\n\
+    path = path.simplify(windingRule, this.precision);\n\
+    path = path.clip(this.clipRegion, 0, this.precision);\n\
+    path = path.fillPath(this.toolDiameter, this.precision);\n\
     var motion = this.motion;\n\
 \n\
     if(path.subPaths)\n\
@@ -877,7 +880,7 @@ GCanvas.prototype = {\n\
     var fontProps = parseFont(this.font);\n\
     var font = new Font(fontProps);\n\
 \n\
-    this.beginPath();\n\
+    // this.beginPath();\n\
     this.save();\n\
     this.translate(x, y);\n\
     font.drawText(this, text);\n\
@@ -1403,11 +1406,11 @@ Path.prototype = {\n\
     this.lineTo(x,y);\n\
   }\n\
 \n\
-, toPolys: function(scale) {\n\
+, toPolys: function(scale,divisions) {\n\
     if(!scale) throw 'NO SCALE!';\n\
 \n\
     return this.subPaths.map(function(subPath) {\n\
-      return subPath.toPoly(scale);\n\
+      return subPath.toPoly(scale,divisions);\n\
     });\n\
   }\n\
 , fromPolys: function(polygons, scale) {\n\
@@ -1424,7 +1427,7 @@ Path.prototype = {\n\
 \n\
     return this;\n\
   }\n\
-, clip: function(clipRegion, clipType) {\n\
+, clip: function(clipRegion, clipType, divisions) {\n\
     if(!clipRegion) return this;\n\
 \n\
     clipType = clipType || 0;\n\
@@ -1434,7 +1437,7 @@ Path.prototype = {\n\
     // this.close();\n\
     // clipRegion.close();\n\
 \n\
-    var subjPolys = this.toPolys(scale);\n\
+    var subjPolys = this.toPolys(scale, divisions);\n\
     var clipPolys = clipRegion.toPolys(scale);\n\
 \n\
     // Clean both\n\
@@ -1465,7 +1468,7 @@ Path.prototype = {\n\
 , translate: function(x,y) {\n\
     var result = new Path();\n\
     this.subPaths.forEach(function(subPath) {\n\
-      var pts = subPath.getPoints(40);\n\
+      var pts = subPath.getPoints();\n\
       result.moveTo(pts[0].x+x, pts[0].y+y);\n\
       pts.slice(1).forEach(function(p) {\n\
         // p.x += x;\n\
@@ -1483,7 +1486,7 @@ Path.prototype = {\n\
     var p1u;\n\
 \n\
     this.subPaths.forEach(function(subPath) {\n\
-      var pts = subPath.getPoints(40);\n\
+      var pts = subPath.getPoints();\n\
 \n\
       pts.forEach(function(p1, i) {\n\
         p1 = p1.clone();\n\
@@ -1549,9 +1552,9 @@ Path.prototype = {\n\
     return result;\n\
   }\n\
 \n\
-, simplify: function(windingRule) {\n\
+, simplify: function(windingRule, divisions) {\n\
     var scale = 1000;\n\
-    var polys = this.toPolys(scale); \n\
+    var polys = this.toPolys(scale, divisions); \n\
     var type = ClipperLib.PolyFillType.pftNonZero;\n\
 \n\
     if(windingRule === 'evenodd') {\n\
@@ -1566,7 +1569,7 @@ Path.prototype = {\n\
     return result;\n\
   }\n\
 \n\
-, offset: function(delta) {\n\
+, offset: function(delta, divisions) {\n\
     if(delta === 0) {\n\
       return this;\n\
     }\n\
@@ -1598,7 +1601,7 @@ Path.prototype = {\n\
     var scale = 1000;\n\
     var cleandelta = 0.1;\n\
 \n\
-    var polygons = this.toPolys(scale);\n\
+    var polygons = this.toPolys(scale, divisions);\n\
 \n\
     // offset\n\
     var miterLimit = 1000*scale;\n\
@@ -1612,7 +1615,13 @@ Path.prototype = {\n\
              ClipperLib.EndType.etClosedPolygon);\n\
 \n\
     var solution = [];\n\
-    co.Execute(solution, delta*scale);\n\
+\n\
+    try {\n\
+      co.Execute(solution, delta*scale);\n\
+    }\n\
+    catch(err) {\n\
+      return false;\n\
+    }\n\
 \n\
 \n\
     if(!solution || solution.length === 0\n\
@@ -1632,14 +1641,17 @@ Path.prototype = {\n\
     this.subPaths = this.subPaths.concat(path2.subPaths);\n\
   }\n\
 \n\
-, estimateMaxOffset: function() {\n\
+, estimateMaxOffset: function(divisions) {\n\
     var bounds = this.getBounds();\n\
-    var lt = Math.abs(bounds.right - bounds.left);\n\
+    var width = Math.abs(bounds.right - bounds.left)\n\
+    var height = Math.abs(bounds.bottom - bounds.top)\n\
+    var lt = Math.min(width, height) / 2;\n\
+\n\
     var gt = 0;\n\
 \n\
-    for(var i = 0; i < 10; ++i) {\n\
+    for(var i = 0; i < 5; ++i) {\n\
       var test = gt+(lt-gt)/2;\n\
-      var offset = this.offset(-test);\n\
+      var offset = this.offset(-test,3);\n\
 \n\
       if(offset) {\n\
         gt = test\n\
@@ -1652,26 +1664,27 @@ Path.prototype = {\n\
     return {lt: lt, gt: gt};\n\
   }\n\
 \n\
-, fillPath: function(diameter) {\n\
+, fillPath: function(diameter, divisions) {\n\
     var result = new Path();\n\
     var overlap = Math.sin(Math.PI/4);\n\
 \n\
-    this.subPaths.forEach(function(sp) {\n\
-      var path = sp.toPath();\n\
+    // this.subPaths.forEach(function(sp) {\n\
+      // var path = sp.toPath();\n\
+      var path = this;\n\
 \n\
-      var max = path.estimateMaxOffset().lt;\n\
+      var max = path.estimateMaxOffset(5).lt;\n\
       max -= diameter; \n\
 \n\
       for(var i = -max; i < -diameter/2; i += diameter*overlap) {\n\
-        var offsetPath = path.offset(i).reverse();\n\
+        var offsetPath = path.offset(i, divisions).reverse();\n\
         result.addPath(offsetPath);\n\
       }\n\
 \n\
       // Finishing pass\n\
-      var finish = path.offset( -diameter/2 );\n\
+      var finish = path.offset( -diameter/2, divisions );\n\
       if(finish)\n\
         result.addPath( finish.reverse() );\n\
-    });\n\
+    // });\n\
 \n\
     return result;\n\
   }\n\
@@ -1746,7 +1759,7 @@ Path.prototype = {\n\
 , getPoints: function(divisions) {\n\
     var pts = [];\n\
     this.subPaths.forEach(function(sp) {\n\
-      pts.push.apply(pts, sp.getPoints());\n\
+      pts.push.apply(pts, sp.getPoints(divisions));\n\
     });\n\
     return pts;\n\
   }\n\
@@ -2189,8 +2202,8 @@ SubPath.prototype = {\n\
     this.pointsCache[divisions] = points;\n\
     return points;\n\
   }\n\
-, toPoly: function(scale) {\n\
-    return this.getPoints(40).map(function(p) {\n\
+, toPoly: function(scale, divisions) {\n\
+    return this.getPoints(divisions).map(function(p) {\n\
       return {X: p.x*scale, Y: p.y*scale};\n\
     });\n\
   }\n\
