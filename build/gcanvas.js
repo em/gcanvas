@@ -524,6 +524,7 @@ GCanvas.prototype = {\n\
     }\n\
 \n\
     var path = this.path;\n\
+    path = path.simplify();\n\
 \n\
     if(path.subPaths)\n\
     path.subPaths.forEach(function(subPath) {\n\
@@ -1668,7 +1669,7 @@ Path.prototype = {\n\
       var path = this;\n\
 \n\
       var max = path.estimateMaxOffset(5).lt;\n\
-      max -= diameter; \n\
+      max -= diameter/2; \n\
 \n\
       for(var i = -max; i < -diameter/2; i += diameter*overlap) {\n\
         var offsetPath = path.offset(i, divisions).reverse();\n\
