@@ -610,13 +610,11 @@ GCanvas.prototype = {\n\
     var bounds = inPath.getBounds(); // Find bounds\n\
     var height = bounds.bottom-bounds.top;\n\
     var width = bounds.right-bounds.left;\n\
-\n\
     inPath = inPath.simplify();\n\
 \n\
     var path = new Path();\n\
-    // bounds.right += (this.toolDiameter||0);\n\
-\n\
     var s = this.depthOfCut || 1000;\n\
+    var top = virtual ? this.top : 0;\n\
 \n\
     if(attack === 'down') {\n\
       for(var i=0; i < height; i += s) {\n\
@@ -635,7 +633,7 @@ GCanvas.prototype = {\n\
     else if(attack === 'outer') {\n\
       for(var i=bounds.left; i < bounds.right; i += s) {\n\
         var clip = new Path();\n\
-        clip.rect(0,-10,i,height+10);\n\
+        clip.rect(0,top,i,height-top);\n\
         var sub = clip.clip(inPath,0);\n\
 \n\
         sub.subPaths = sub.subPaths.map(function(sp) {\n\
@@ -650,7 +648,7 @@ GCanvas.prototype = {\n\
       // var sub = inPath;\n\
       for(var i=bounds.right+10; i >= bounds.left; i -= s) {\n\
         var clip = new Path();\n\
-        clip.rect(i,-10,bounds.right-i,height+10);\n\
+        clip.rect(i,top,bounds.right-i,height-top);\n\
         var sub = clip.clip(inPath,0);\n\
 \n\
         sub.subPaths = sub.subPaths.map(function(sp) {\n\
@@ -697,34 +695,22 @@ GCanvas.prototype = {\n\
     //   ccw = !ccw;\n\
     // }\n\
 \n\
-    var spiralAngle = 0;\n\
 \n\
 \n\
     path.subPaths.forEach(function(subPath) {\n\
       // reset();\n\
-\n\
+      var spiralAngle = 0;\n\
       driver.zero({a:0});\n\
       var a = 0;\n\
 \n\
       var pts = subPath.getPoints();\n\
-      // pts = pts.slice(0,-1);\n\
 \n\
-      var reverse = false;\n\
-\n\
-      // These cancel eachother inner\n\
-      // and must be done in series\n\
       if(ccw) {\n\
-        reverse = !reverse;\n\
-      }\n\
-\n\
-      if(attack == 'outer' || attack == 'down') {\n\
-        reverse = !reverse;\n\
-      }\n\
-\n\
-      if(reverse) {\n\
+        // Causes the path to be bottom-out\n\
+        // The physical rotation direction is determined \n\
+        // by inner or outer attack to force climb milling.\n\
         pts = pts.reverse();\n\
       }\n\
-\n\
 \n\
       var p0u = pts[0].clone();\n\
       var p0 = p0u.clone();\n\
@@ -747,14 +733,22 @@ GCanvas.prototype = {\n\
           var z1 = p1.y;\n\
           var loops = dist/pitch;\n\
 \n\
+          // Rapids are already a part of the path\n\
+          // running along the bounds as a consequence\n\
+          // of the waterline clipping.\n\
+          // We just have to detect them and\n\
+          // enact them safely.\n\
           if(attack == 'inner' && p1.x <= bounds.left) {\n\
+\n\
             var startX = (r1) * Math.sin(spiralAngle);\n\
             var startY = (r1) * Math.cos(spiralAngle);\n\
             motion.rapid({x: startX, y: startY});\n\
             motion.rapid({z: z1});\n\
           }\n\
-          else if(attack == 'outer' && p0u.x >= bounds.right && p1u.x >= bounds.right) {\n\
-            motion.rapid({x: r1});\n\
+          else if(attack == 'outer' && p1.x >= bounds.right) {\n\
+            var startX = (r1) * Math.cos(spiralAngle);\n\
+            var startY = (r1) * Math.sin(spiralAngle);\n\
+            motion.rapid({x: startX, y: startY});\n\
             motion.rapid({z: z1});\n\
           }\n\
           else\n\
@@ -796,6 +790,10 @@ GCanvas.prototype = {\n\
 \n\
       // a = Math.round(a / 360) * 360;\n\
 \n\
+      // This is important to be done after\n\
+      // every subpath, for ctx.top\n\
+      // Question: only for virtual?\n\
+      motion.rapid({z: 0});\n\
     });\n\
 \n\
     // a = a % 360;\n\
@@ -813,7 +811,7 @@ GCanvas.prototype = {\n\
     //   j:-p1.y\n\
     // });\n\
 \n\
-    motion.rapid({z:0});\n\
+    // motion.rapid({z:0});\n\
     // motion.rapid({x:0,y:0});\n\
   }\n\
 , peckDrill: function(x, y, depth, peck) {\n\
