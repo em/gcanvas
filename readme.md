@@ -53,7 +53,24 @@ More examples: http://emery.denucc.io/gcanvas/examples
 
 * `ctx.depthOfCut` Specifies an incrementing depth of cut in layers up to `ctx.depth`.
 
-* `ctx.top` The Z offset to the top of work surface. When this is set all cuts with plunge down to this depth before spiraling to their full depth. Use cautiously. If the actual work surface is closer this will break tools.
+* `ctx.top` The Z offset to the top of work surface. When this is set all cuts with plunge down to this depth before spiraling to their full depth. Use cautiously. If the actual work surface is closer this will break tools. I often use this in tandem with facing. First I align the tool to something within 1mm of the lowest part of my material surface, face it down to 1mm, then set ctx.top to 1mm. I then update ctx.top for every tool change.
+  ```
+  setup('face', function() {
+    ctx.depth = 1;
+    ctx.fillRect(-20,-20,40,40);
+  });
+
+  // Outside of a setup, applies to all steps after facing
+  // even if they are run independently.
+  ctx.top = 1;
+
+  setup('10mm hole', function() {
+    ctx.depth = 20; // 20mm deep
+    ctx.circle(0,0,10);
+    ctx.fill();
+  });
+
+  ```
 
 * `ctx.feed` Sets the feedrate by sending a single F command.
 
@@ -183,11 +200,11 @@ var ctx = new Gcanvas(driver);
 ```
 
 ### Why
-
-1. The most common machining tasks are 2.5D and can be done much faster with a little code than with CAD.
+1. Most real life machining is either simple 2.5D shapes,
+   or complex geometry. Both of which are easier to do this way than with traditional CAD/CAM software.
 2. The Canvas API is well documented and prolific.
 3. Especially good for parametric parts.
-4. A lib for implementing more specific Javascript milling tools. e.g. svg, pcbs.
+4. A good basis for implementing more specific Javascript milling tools. e.g. svg, pcbs.
 
 
 ### Additional Notes
