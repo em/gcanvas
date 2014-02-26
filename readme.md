@@ -142,7 +142,7 @@ Simply lathe() with a rectangular path.
 * `length`: Full length of threads.
 * `ccw`: Counter-clockwise rotation. (default: false) 
 
-##### `ctx.threadMill(x, y, attack, dmin, dmaj, pitch, start, length)`
+##### `ctx.threadMill(x, y, attack, dmin, dmaj, pitch, start, length, ccw)`
 Convenience method for milling threads.
 Simply latheMill() with a rectangular path.
 
@@ -172,7 +172,7 @@ $ gcanvas helloworld.js | serialportterm -baud 9600 /dev/tty.usbmodem1337
 
 #### Setups and tool changes
 
-The CLI exposes a global function `setup(name, fn)` which prompts for user
+The CLI exposes a global function `step(name, fn)` which prompts for user
 intervention and raises the Z axis to 0.
 
 If the part requires multiple work setups and tool changes, break them into setup blocks:
@@ -203,7 +203,7 @@ var ctx = new Gcanvas(driver);
 
 ### Why
 1. Most real life machining is either simple 2.5D shapes,
-   or complex geometry. Both of which are easier to do this way than with traditional CAD/CAM software.
+   or complex geometry. Both of which are easier to do this way than with traditional CAD/CAM software. It breaks down with moderately complex 3D geometry that is not based on mathematic formulas.
 2. The Canvas API is well documented and prolific.
 3. Especially good for parametric parts.
 4. A good basis for implementing more specific Javascript milling tools. e.g. svg, pcbs.
