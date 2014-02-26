@@ -236,7 +236,7 @@ function GCanvas(driver, width, height) {\n\
   this.stack = [];\n\
   this.motion = new Motion(this);\n\
   this.filters = [];\n\
-  this.precision = 40;\n\
+  this.precision = 10;\n\
 \n\
   this.beginPath();\n\
 }\n\
@@ -593,17 +593,15 @@ GCanvas.prototype = {\n\
     return this.lathe(attack, pitch, ccw, true);\n\
   }\n\
 , lathe: function(attack, pitch, ccw, virtual) {\n\
-    // var inPath = this.path.simplify();\n\
     var inPath = this.path;\n\
     var toolR = this.toolDiameter/2 || 0;\n\
-    attack = attack || 'outer';\n\
 \n\
-    if(toolR) {\n\
+    if(virtual && toolR) {\n\
       if(attack == 'inner') { \n\
-        inPath = inPath.translate(-this.toolDiameter/2,0);\n\
+        inPath = inPath.translate(-toolR,0);\n\
       }\n\
       if(attack == 'outer') { \n\
-        inPath = inPath.translate(this.toolDiameter/2,0);\n\
+        inPath = inPath.translate(toolR,0);\n\
       }\n\
     }\n\
 \n\
@@ -612,115 +610,98 @@ GCanvas.prototype = {\n\
     var width = bounds.right-bounds.left;\n\
     inPath = inPath.simplify();\n\
 \n\
+    var quad = new Path();\n\
+    quad.rect(0,0,bounds.right,bounds.bottom);\n\
+    inPath = inPath.clip(quad);\n\
+\n\
     var path = new Path();\n\
     var s = this.depthOfCut || 1000;\n\
     var top = virtual ? this.top : 0;\n\
 \n\
-    if(attack === 'down') {\n\
-      for(var i=0; i < height; i += s) {\n\
-        var clip = new Path();\n\
-        clip.rect(0,i,width,s);\n\
-        var sub = clip.clip(inPath,0);\n\
+    // console.log(bounds);\n\
 \n\
-        sub.subPaths = sub.subPaths.map(function(sp) {\n\
+    // Build waterline path\n\
+    // for given attack.\n\
+    // Each subpath is a layer.\n\
+    if(attack === 'face') {\n\
+      for(var i=s; i <= bounds.bottom; i += s) {\n\
+        var clip = new Path();\n\
+        clip.rect(0, top, width, i);\n\
+        var layer = inPath.clip(clip,0);\n\
+\n\
+        layer.subPaths = layer.subPaths.map(function(sp) {\n\
           sp = sp.shiftToNearest(0,0);\n\
           return sp;\n\
         });\n\
 \n\
-        path.addPath(sub);\n\
-      }\n\
-    }\n\
-    else if(attack === 'outer') {\n\
-      for(var i=bounds.left; i < bounds.right; i += s) {\n\
-        var clip = new Path();\n\
-        clip.rect(0,top,i,height-top);\n\
-        var sub = clip.clip(inPath,0);\n\
-\n\
-        sub.subPaths = sub.subPaths.map(function(sp) {\n\
-          sp = sp.shiftToNearest(0,0);\n\
-          return sp;\n\
-        });\n\
-\n\
-        path.addPath(sub);\n\
+        path.addPath(layer);\n\
       }\n\
     }\n\
     else if(attack === 'inner') {\n\
-      // var sub = inPath;\n\
-      for(var i=bounds.right+10; i >= bounds.left; i -= s) {\n\
+      for(var i=bounds.left; i <= bounds.right; i += s) {\n\
         var clip = new Path();\n\
-        clip.rect(i,top,bounds.right-i,height-top);\n\
-        var sub = clip.clip(inPath,0);\n\
+        clip.rect(0,top,i,height-top);\n\
+        var layer = inPath.clip(clip,0);\n\
 \n\
-        sub.subPaths = sub.subPaths.map(function(sp) {\n\
-          sp = sp.shiftToNearest(bounds.right+10,0);\n\
+        layer.subPaths = layer.subPaths.map(function(sp) {\n\
+          sp = sp.shiftToNearest(0,0);\n\
           return sp;\n\
         });\n\
 \n\
-        path.addPath(sub);\n\
+        path.addPath(layer);\n\
+      }\n\
+    }\n\
+    else if(attack === 'outer') {\n\
+      for(var i=bounds.right; i >= 0; i -= s) {\n\
+        i = Math.max(i, 0);\n\
+\n\
+        var clip = new Path();\n\
+        clip.rect(i,top,bounds.right+10,height-top);\n\
+        var layer = inPath.clip(clip,0);\n\
+\n\
+        layer.subPaths = layer.subPaths.map(function(sp) {\n\
+          sp = sp.shiftToNearest(bounds.right,0);\n\
+          return sp;\n\
+        });\n\
+\n\
+        path.addPath(layer);\n\
       }\n\
     }\n\
 \n\
     // path.addPath(inPath);\n\
-\n\
 \n\
     var inner = this.align == 'inner';\n\
     pitch = pitch || this.toolDiameter || 1;\n\
 \n\
     var motion = this.motion;\n\
     var driver = this.driver;\n\
-    var range = (attack == 'down') ? height : width; \n\
-    var depthOfCut = this.depthOfCut || range;\n\
-    var offset = range;\n\
+    // var range = (attack == 'face') ? height : width; \n\
+    // var depthOfCut = this.depthOfCut || range;\n\
+    // var offset = range;\n\
     var a = 0;\n\
 \n\
 \n\
-    // Remove the first 0 plane\n\
-    // path.subPaths[path.subPaths.length-1]\n\
-    // .actions.splice(-1,1);\n\
-    // path.subPaths[0]\n\
-    // .actions[0].action = 'moveTo';\n\
-    // path.subPaths.splice(-1,1);\n\
-    // path = path.simplify('evenodd');\n\
-\n\
-    // if(attack == 'outer') {\n\
-    //   path.subPaths = path.subPaths.reverse();\n\
-    // }\n\
-// \n\
-    // this.depth = 0;\n\
-    // this.path = path;\n\
-    // this.stroke();\n\
-    // return;\n\
-// \n\
-    // if(attack == 'inner') {\n\
-    //   ccw = !ccw;\n\
-    // }\n\
-\n\
-\n\
-\n\
     path.subPaths.forEach(function(subPath) {\n\
-      // reset();\n\
       var spiralAngle = 0;\n\
       driver.zero({a:0});\n\
       var a = 0;\n\
 \n\
       var pts = subPath.getPoints();\n\
 \n\
-      if(ccw) {\n\
-        // Causes the path to be bottom-out\n\
-        // The physical rotation direction is determined \n\
-        // by inner or outer attack to force climb milling.\n\
+      if(!ccw) {\n\
+        // CCW simply makes the path bottom-out.\n\
+        // The physical circular motion is\n\
+        // always determined by the attack\n\
+        // to ensure climb milling.\n\
         pts = pts.reverse();\n\
       }\n\
 \n\
-      var p0u = pts[0].clone();\n\
+      var p0u = motion.position;\n\
       var p0 = p0u.clone();\n\
-      var first = true;\n\
-      pts.forEach(function(p1,pi) {\n\
+\n\
+      pts.forEach(function(p1,i) {\n\
         p1 = p1.clone();\n\
         p1u = p1.clone();\n\
-\n\
-        p1.x = bounds.left+bounds.right-p1.x;\n\
-        // p1.x = -p1.x;\n\
 \n\
         var xo = p1u.x-p0u.x;\n\
         var yo = p1u.y-p0u.y;\n\
@@ -733,50 +714,80 @@ GCanvas.prototype = {\n\
           var z1 = p1.y;\n\
           var loops = dist/pitch;\n\
 \n\
-          // Rapids are already a part of the path\n\
-          // running along the bounds as a consequence\n\
+          // Entering and exiting are a part of the path\n\
+          // touching the bounds as a consequence\n\
           // of the waterline clipping.\n\
           // We just have to detect them and\n\
-          // enact them safely.\n\
-          if(attack == 'inner' && p1.x <= bounds.left) {\n\
+          // behave a little differently.\n\
+          if(attack == 'inner' && p0.x <= bounds.left) {\n\
+            // Inner Entering\n\
+            var x = (r1) * Math.sin(spiralAngle);\n\
+            var y = (r1) * Math.cos(spiralAngle);\n\
+            if(i === 0)\n\
+              motion.rapid({x: x, y: y});\n\
+            else\n\
+              motion.linear({x: x, y: y});\n\
 \n\
-            var startX = (r1) * Math.sin(spiralAngle);\n\
-            var startY = (r1) * Math.cos(spiralAngle);\n\
-            motion.rapid({x: startX, y: startY});\n\
             motion.rapid({z: z1});\n\
+          }\n\
+          else if(attack == 'inner' && p1.x <= bounds.left) {\n\
+            // Inner Exiting\n\
+            var x = (r1) * Math.sin(spiralAngle);\n\
+            var y = (r1) * Math.cos(spiralAngle);\n\
+            motion.rapid({x: x, y: y});\n\
+            motion.rapid({z: z1});\n\
+          }\n\
+          else if(attack == 'outer' && p0.x >= bounds.right) {\n\
+            // Outer Entering\n\
+            var x = (r1) * Math.cos(spiralAngle);\n\
+            var y = (r1) * Math.sin(spiralAngle);\n\
+            motion.linear({x: x, y: y});\n\
           }\n\
           else if(attack == 'outer' && p1.x >= bounds.right) {\n\
-            var startX = (r1) * Math.cos(spiralAngle);\n\
-            var startY = (r1) * Math.sin(spiralAngle);\n\
-            motion.rapid({x: startX, y: startY});\n\
+            // Outer Exiting\n\
+            var x = (r1) * Math.cos(spiralAngle);\n\
+            var y = (r1) * Math.sin(spiralAngle);\n\
+            motion.rapid({x: x, y: y});\n\
             motion.rapid({z: z1});\n\
           }\n\
-          else\n\
-          spiralAngle = utils.spiral(40, r0, r1, loops,\n\
-                                     spiralAngle, attack=='inner',\n\
-                                     function(x,y,t) {\n\
-            // if(z0 <= 0 && z1 <= 0) return false;\n\
-            // if(z0 >= height && z1 >= height) return false;\n\
+          else if(attack == 'face' && p0.y <= bounds.top) {\n\
+            // Face Entering\n\
+            var x = (r1) * Math.cos(spiralAngle);\n\
+            var y = (r1) * Math.sin(spiralAngle);\n\
+            motion.rapid({x: x, y: y});\n\
+            motion.linear({z: z1});\n\
+          }\n\
+          else if(attack == 'face' && p1.y <= bounds.top) {\n\
+            // Outer Exiting\n\
+            var x = (r1) * Math.cos(spiralAngle);\n\
+            var y = (r1) * Math.sin(spiralAngle);\n\
+            motion.rapid({z: z1});\n\
+            motion.rapid({x: x, y: y});\n\
+          }\n\
+          else {\n\
+            spiralAngle = utils.spiral(this.precision, r0, r1, loops,\n\
+                                       spiralAngle, attack=='inner',\n\
+                                       function(x,y,t) {\n\
+              var z = z0+(z1-z0)*t; \n\
 \n\
-            var z = z0+(z1-z0)*t; \n\
-\n\
-            motion.linear({\n\
-              x: x,\n\
-              y: y,\n\
-              z: z \n\
+              motion.linear({\n\
+                x: x,\n\
+                y: y,\n\
+                z: z \n\
+              });\n\
             });\n\
-          });\n\
+          }\n\
         }\n\
         else {\n\
 \n\
-          if(attack == 'outer' && p1.x <= bounds.left) {\n\
+          if(attack == 'inner' && p1u.x <= bounds.left) {\n\
             motion.rapid({x: p1.x, y: p1.y});\n\
           }\n\
-          else if(attack == 'inner' && p0u.x >= bounds.right && p1u.x >= bounds.right) {\n\
+          else if(attack == 'outer' && p1.x >= bounds.right) {\n\
             motion.rapid({x: p1.x, y: p1.y});\n\
           }\n\
-          else if(attack == 'down' && p1.x >= bounds.right) {\n\
-            motion.rapid({x: p1.x, y: p1.y, a: a});\n\
+          else if(attack == 'face' && p1.y <= bounds.top) {\n\
+            motion.rapid({x: p1.x, y: p1.y});\n\
           }\n\
           else {\n\
             a += dist/pitch*360;\n\
@@ -788,21 +799,15 @@ GCanvas.prototype = {\n\
         p0u = p1u.clone();\n\
       }, this);\n\
 \n\
-      // a = Math.round(a / 360) * 360;\n\
-\n\
       // This is important to be done after\n\
       // every subpath, for ctx.top\n\
-      // Question: only for virtual?\n\
-      motion.rapid({z: 0});\n\
-    });\n\
-\n\
-    // a = a % 360;\n\
-    // if(!virtual) {\n\
-    // }\n\
+      if(virtual) {\n\
+        motion.rapid({z: 0});\n\
+      }\n\
+    }, this);\n\
 \n\
     driver.zero({a:0});\n\
 \n\
-    // reset();\n\
     // Always finish with an arc?\n\
     // motion.arcCW({\n\
     //   x: 0,\n\
@@ -811,8 +816,6 @@ GCanvas.prototype = {\n\
     //   j:-p1.y\n\
     // });\n\
 \n\
-    // motion.rapid({z:0});\n\
-    // motion.rapid({x:0,y:0});\n\
   }\n\
 , peckDrill: function(x, y, depth, peck) {\n\
 \n\
@@ -9922,10 +9925,7 @@ module.exports = {\n\
       return start;\n\
     }\n\
 \n\
-    // if(loops < 1) return start;\n\
-    // loops = Math.round(loops);\n\
-\n\
-    var divisions = 40;\n\
+    // var divisions = 40;\n\
     var end = Math.abs(loops) * divisions * 2;\n\
     var delta = r1-r0;\n\
     var pitch = divisions/end*delta;\n\
@@ -9936,7 +9936,7 @@ module.exports = {\n\
     var x,y,t;\n\
     var angle;\n\
 \n\
-    for(var i = 0; i < end+1; i++) {\n\
+    for(var i = 1; i < end; i++) {\n\
       angle = stepAngle * i;\n\
       if(ccw) {\n\
         x = (a + b * angle) * Math.sin(angle+start);\n\
