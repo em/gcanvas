@@ -270,6 +270,7 @@
 <script>
 var setupQueue = [];
 var domLoaded = false;
+var step = setup; // Alias
 
 function setup(desc, fn) {
   if(arguments.length == 1)

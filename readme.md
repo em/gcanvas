@@ -55,16 +55,16 @@ More examples: http://emery.denucc.io/gcanvas/examples
 
 * `ctx.top` The Z offset to the top of work surface. When this is set all cuts with plunge down to this depth before spiraling to their full depth. Use cautiously. If the actual work surface is closer this will break tools. I often use this in tandem with facing. First I align the tool to something within 1mm of the lowest part of my material surface, face it down to 1mm, then set ctx.top to 1mm. I then update ctx.top for every tool change.
   ```
-  setup('face', function() {
+  step('face', function() {
     ctx.depth = 1;
     ctx.fillRect(-20,-20,40,40);
   });
 
-  // Outside of a setup, applies to all steps after facing
+  // Outside of a step, applies to all steps after facing
   // even if they are run independently.
   ctx.top = 1;
 
-  setup('10mm hole', function() {
+  step('10mm hole', function() {
     ctx.depth = 20; // 20mm deep
     ctx.circle(0,0,10);
     ctx.fill();
@@ -176,12 +176,12 @@ intervention and raises the Z axis to 0.
 If the part requires multiple work setups and tool changes, break them into setup blocks:
 
 ```
-setup('1/2" endmill', function(ctx) { 
+step('1/2" endmill', function(ctx) { 
   ctx.toolDiameter = 1/2*25.4;
   // ...
 });
 
-setup('face down', function(ctx) { 
+step('face down', function(ctx) { 
   // ...
 });
 ```

@@ -110,7 +110,7 @@ else {
   function run(file) {
     var util = require('util'),
         vm = require('vm'),
-        sandbox = {setup: setup};
+        sandbox = {setup: setup, step: setup};
 
     var code = fs.readFileSync(file);
     var script = vm.createScript(code, file);
