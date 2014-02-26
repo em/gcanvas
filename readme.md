@@ -55,20 +55,22 @@ More examples: http://emery.denucc.io/gcanvas/examples
 
 * `ctx.top` The Z offset to the top of work surface. When this is set all cuts with plunge down to this depth before spiraling to their full depth. Use cautiously. If the actual work surface is closer this will break tools. I often use this in tandem with facing. First I align the tool to something within 1mm of the lowest part of my material surface, face it down to 1mm, then set ctx.top to 1mm. I then update ctx.top for every tool change.
   ```
-  step('face', function() {
-    ctx.depth = 1;
-    ctx.fillRect(-20,-20,40,40);
-  });
+  function main(ctx) {
+    step('face', function() {
+      ctx.depth = 1;
+      ctx.fillRect(-20,-20,40,40);
+    });
 
-  // Outside of a step, applies to all steps after facing
-  // even if they are run independently.
-  ctx.top = 1;
+    // Outside of a step, applies to all steps after facing
+    // even if they are run independently.
+    ctx.top = 1;
 
-  step('10mm hole', function() {
-    ctx.depth = 20; // 20mm deep
-    ctx.circle(0,0,10);
-    ctx.fill();
-  });
+    step('10mm hole', function() {
+      ctx.depth = 20; // 20mm deep
+      ctx.circle(0,0,10);
+      ctx.fill();
+    });
+  }
 
   ```
 
@@ -95,9 +97,9 @@ you to change the parameters.
 ##### `ctx.map(axes)`
 Adds a filter that maps the standard coordinate system to another one.
 * `axes`: A string representing the new coordinate system.
-         ex: 'yzxa'
+         ex: 'yzx'.
          You can also use '-' before any axis to make it negative.
-         ex: 'z-xy'
+         ex: 'z-xy'.
 
 ##### `ctx.peckDrill(x, y, depth, peck)`
 Drills to depth using a peck drilling strategy.
