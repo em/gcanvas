@@ -236,7 +236,7 @@ function GCanvas(driver, width, height) {\n\
   this.stack = [];\n\
   this.motion = new Motion(this);\n\
   this.filters = [];\n\
-  this.precision = 10;\n\
+  this.precision = 20;\n\
 \n\
   this.beginPath();\n\
 }\n\

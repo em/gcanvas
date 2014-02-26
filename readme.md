@@ -1,6 +1,6 @@
 Gcanvas
 ========
-An HTML5 Canvas API implementation that generates Gcode for CNC milling. Runs in node and the browser. 
+An HTML5 Canvas API implementation that generates Gcode for mill and/or lathe CNC. Runs in node and the browser. 
 
 ### Installation
 First make sure you have [nodejs](http://nodejs.org) installed.
@@ -45,18 +45,15 @@ More examples: http://emery.denucc.io/gcanvas/examples
 
 ### Non-standard extensions to Canvas 
 
-Additional context properties are added for milling
-and to support stroke-alignment which the canvas spec doesn't have yet (but really needs).
+#### Properties
+
+* `context.toolDiameter` This must be set for fill() to work because it has to calculate tool offsets. stroke() only requires toolDiameter if align is not center.
 
 * `context.depth` Specifies the total Z depth to cut into the work relative to `context.top`. If not set the Z axis never changes. 
 
 * `context.depthOfCut` Specifies an incrementing depth of cut in layers up to `context.depth`.
 
 * `context.top` The Z offset to the top of work surface. When this is set all cuts with plunge down to this depth before spiraling to their full depth. Use cautiously. If the actual work surface is closer this will break tools.
-
-* `context.toolDiameter` This must be set for fill() to work properly because it has to calculate tool offsets.
-
-* `context.atc` Auto tool change. Sends `M06 T{context.atc}`. Make sure you update toolDiameter.
 
 * `context.feed` Sets the feedrate by sending a single F command.
 
@@ -65,6 +62,79 @@ and to support stroke-alignment which the canvas spec doesn't have yet (but real
 * `context.coolant` Can be true, false, "mist" (M07) or "flood" (M08). True defaults to "flood".
 
 * `context.align` Can be 'inner', 'outer', or 'center' (default). Non-center alignment closes the path.
+
+* `context.atc` Auto tool change. Sends `M06 T{context.atc}`. Make sure you update toolDiameter.
+
+#### Methods
+
+##### `ctx.filter(fn)`
+Adds a post-processing function before Gcode generation that allows
+you to change the parameters.
+* `fn`: function(params)
+        Params is an object containing the Gcode parameters
+        before they get serialized.
+        ex: {x:10,y:0}
+
+##### `ctx.map(axes)`
+Adds a filter that maps the standard coordinate system to another one.
+* `axes`: A string representing the new coordinate system.
+         ex: 'yzxa'
+         You can also use '-' before any axis to make it negative.
+         ex: 'z-xy'
+
+##### `ctx.peckDrill(x, y, depth, peck)`
+Drills to depth using a peck drilling strategy.
+* `depth`: Full depth to drill to.
+* `peck`: Length of each peck. (default: ctx.toolDiameter)
+
+##### `ctx.lathe(attack, pitch, ccw)`
+Turning, boring, and facing by controlling XYA to remove the current path as if it were the cross section of a cylinder centered about (0,0). The path is clipped to the bottom right quadrant.
+
+* `attack`: 'inner', 'outer', or 'face'
+            Use inner for boring, and outer for turning.
+            'inner' removes material from the center of a hole outward.
+            'outer' removes material from the perimeter of a cylinder inwards.
+            'face' removes material from the face of a cylinder through its length.
+* `pitch`: Distance to travel per a full rotation.
+* `ccw`: `true` for Counter-clockwise rotation. (default: false) 
+
+##### `ctx.latheMill(attack, pitch, ccw)`
+Like lathe but instead of a rotary axis it generates helixes in XYZ.
+
+* `attack`: 'inner', 'outer', or 'face'
+            Use inner for boring, and outer for turning.
+            'inner' removes material from the center of a hole outward.
+            'outer' removes material from the perimeter of a cylinder inwards.
+            'face' removes material top down.
+            ![alt](examples/lathe-mill-attacks.png)
+
+* `pitch`: Distance to travel per a full rotation.
+* `ccw`: `true` for Counter-clockwise rotation. (default: false) 
+
+##### `ctx.thread(attack, dmin, dmaj, pitch, start, length, ccw)`
+Convenience method for turning threads.
+Simply lathe() with a rectangular path.
+
+* `attack`: 'inner' or 'outer'
+* `dmin`: Minor diameter of threads.
+* `dmaj`: Major diameter of threads.
+* `pitch`: Distance between threads.
+* `start`: Length to beginning of threads.
+* `length`: Full length of threads.
+* `ccw`: true for counter-clockwise rotation. (default: false) 
+
+##### `ctx.threadMill(attack, dmin, dmaj, pitch, start, length)`
+Convenience method for milling threads.
+Simply latheMill() with a rectangular path.
+
+* `attack`: 'inner' or 'outer'
+* `dmin`: Minor diameter of threads.
+* `dmaj`: Major diameter of threads.
+* `pitch`: Distance between threads.
+* `start`: Length to beginning of threads.
+* `length`: Full length of threads.
+* `ccw`: true for counter-clockwise rotation. (default: false) 
+
 
 ### Command line utility
 GCanvas comes with a command line utility that you can use to write
