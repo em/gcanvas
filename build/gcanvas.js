@@ -839,7 +839,7 @@ GCanvas.prototype = {\n\
       y = 0;\n\
     }\n\
 \n\
-    var prevZ = 0;\n\
+    var prevZ = this.top;\n\
     var mtn = this.motion;\n\
     peck = peck || this.toolDiameter;\n\
 \n\
@@ -853,13 +853,16 @@ GCanvas.prototype = {\n\
 \n\
     mtn.rapid({x:x,y:y});\n\
 \n\
-    for(var z=peck; prevZ < depth; z += peck) {\n\
+    for(var z=this.top+peck; prevZ < depth; z += peck) {\n\
       z = Math.min(z, depth); // Cap to exact depth\n\
       mtn.rapid({z:prevZ-tad}); // Rapid to prev depth - tad\n\
       mtn.linear({z:z}); // Drill a bit further\n\
-      mtn.rapid({z:-tad}); // Rapid all the way out \n\
+      mtn.retract();\n\
+      // mtn.rapid({z:-tad}); // Rapid all the way out \n\
       prevZ = z;\n\
     }\n\
+\n\
+    mtn.retract();\n\
   }\n\
 , _layer: function(fn) {\n\
     var depthOfCut = this.depthOfCut || this.depth;\n\
