@@ -214,7 +214,15 @@ var ctx = new Gcanvas(driver);
 #### Center cutting and non-center cutting endmills.
   The strategy for filling always tries to avoid center cutting
   unless it is unavoidable. For instance, if you try to fill a 15mm circle with a 5mm endmill it will start by milling a 10mm circle and finish with a full 15mm circle, which can be done with a non-center cutting endmill. But, if you try to fill an 8mm circle with a 5mm endmill it will assume you have the right tool to do so, and proceed without caution. Just make sure that what you're telling Gcanvas to do is actually possible and you won't have any problems. It always tends to work out that we use the simplest tool for the job - mainly because they are cheaper. Knowing this, Gcanvas avoids a lot of annoying configuration by making the most conservative assumptions.
-  
+
+#### Climb milling
+  Gcanvas always tries to climb mill. Since it doesn't know the stock material, it sort of "guesses". But the guesses are pretty reliable.
+  It bases what the outside or inside of the material is on alignment. If you do an outer stroke() it will always normalize and follow the path clockwise, or counter-clockwise for inner stroke().  
+
+  In the case of lathe()/latheMill() 'inner' and 'outer' attack also
+  always determine clockwise or counter-clockwise rotational direction.
+  The physical thread direction is acheived by how the cutter traverses the length, one end to another.
+
 ### License
 
 MIT
