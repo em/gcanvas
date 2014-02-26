@@ -67,7 +67,9 @@ else {
     }
 
     if(setupNum == program.only) {
-      fn();
+      gctx.save();
+      fn(gctx);
+      gctx.restore();
     }
 
     if(!program.only && setupNum >= setupOffset) {
@@ -94,7 +96,9 @@ else {
     }
 
     rl.on('line', function() {
+      gctx.save();
       currentStep.fn(gctx);
+      gctx.restore();
       next();
     }).on('close', function() {
       process.exit(0);
