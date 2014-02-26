@@ -33,10 +33,12 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 ```
 ```
-$ gcanvas example.js
+$ gcanvas example.js --test
 ```
-
 ![alt](examples/screeny.png)
+```
+$ gcanvas example.js | mycnc
+```
 ![alt](examples/example-irl.jpg)
 
 More examples: http://emery.denucc.io/gcanvas/examples

@@ -229,7 +229,7 @@ function GCanvas(driver, width, height) {\n\
   this.depthOfCut = 0;\n\
   this.top = 0;\n\
   this.align = 'center';\n\
-  this.feed = 100;\n\
+  // this.feed = ;\n\
   this.mode = 'mill';\n\
   this.driver = driver || new GcodeDriver();\n\
   this.driver.src = this;\n\
