@@ -579,20 +579,30 @@ GCanvas.prototype = {\n\
 //     }\n\
 //     this.spiral(pitch, ccw);\n\
 //   }\n\
-, thread: function(attack, dmin, dmaj, pitch, start, length, ccw, virtual) {\n\
+, thread: function(x, y, attack, dmin, dmaj, pitch, start, length, ccw, virtual) {\n\
     this.save();\n\
     this.beginPath();\n\
     this.rect(dmin/2,start,dmaj/2-dmin/2,length);\n\
-    this.lathe(attack, pitch, ccw, virtual);\n\
+    this.lathe(x,y,attack, pitch, ccw, virtual);\n\
     this.restore();\n\
   }\n\
-, threadMill: function(attack, dmin, dmaj, pitch, start, length, ccw) {\n\
-    return this.thread(attack, dmin, dmaj, pitch, start, length, ccw, true);\n\
+, threadMill: function(x, y, attack, dmin, dmaj, pitch, start, length, ccw) {\n\
+    return this.thread(x, y, attack, dmin, dmaj, pitch, start, length, ccw, true);\n\
   }\n\
-, latheMill: function(attack, pitch, ccw) {\n\
-    return this.lathe(attack, pitch, ccw, true);\n\
+, latheMill: function(x, y, attack, pitch, ccw) {\n\
+    return this.lathe(x, y, attack, pitch, ccw, true);\n\
   }\n\
-, lathe: function(attack, pitch, ccw, virtual) {\n\
+, lathe: function(x, y, attack, pitch, ccw, virtual) {\n\
+\n\
+    this.save();\n\
+\n\
+    this.filter(function(p) {\n\
+      if(p.x != undefined)\n\
+        p.x += x;\n\
+      if(p.y != undefined)\n\
+        p.y += y;\n\
+    });\n\
+\n\
     var inPath = this.path;\n\
     var toolR = this.toolDiameter/2 || 0;\n\
 \n\
@@ -816,6 +826,7 @@ GCanvas.prototype = {\n\
     //   j:-p1.y\n\
     // });\n\
 \n\
+    this.restore();\n\
   }\n\
 , peckDrill: function(x, y, depth, peck) {\n\
 \n\
@@ -9539,6 +9550,7 @@ Motion.prototype = {\n\
     }\n\
   }\n\
 , postProcess: function(params) {\n\
+\n\
     this.ctx.filters.forEach(function(f) {\n\
       var tmp = f.call(this.ctx, params);\n\
 \n\

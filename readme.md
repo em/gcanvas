@@ -87,7 +87,7 @@ Drills to depth using a peck drilling strategy.
 * `depth`: Full depth to drill to.
 * `peck`: Length of each peck. (default: ctx.toolDiameter)
 
-##### `ctx.lathe(attack, pitch, ccw)`
+##### `ctx.lathe(x, y, attack, pitch, ccw)`
 Turning, boring, and facing by controlling XYA to remove the current path as if it were the cross section of a cylinder centered about (0,0). The path is clipped to the bottom right quadrant.
 
 * `attack`: 'inner', 'outer', or 'face'
@@ -98,7 +98,7 @@ Turning, boring, and facing by controlling XYA to remove the current path as if 
 * `pitch`: Distance to travel per a full rotation.
 * `ccw`: `true` for Counter-clockwise rotation. (default: false) 
 
-##### `ctx.latheMill(attack, pitch, ccw)`
+##### `ctx.latheMill(x, y, attack, pitch, ccw)`
 Like lathe but instead of a rotary axis it generates helixes in XYZ.
 
 * `attack`: 'inner', 'outer', or 'face'
@@ -111,7 +111,7 @@ Like lathe but instead of a rotary axis it generates helixes in XYZ.
 * `pitch`: Distance to travel per a full rotation.
 * `ccw`: `true` for Counter-clockwise rotation. (default: false) 
 
-##### `ctx.thread(attack, dmin, dmaj, pitch, start, length, ccw)`
+##### `ctx.thread(x, y, attack, dmin, dmaj, pitch, start, length, ccw)`
 Convenience method for turning threads.
 Simply lathe() with a rectangular path.
 
@@ -123,7 +123,7 @@ Simply lathe() with a rectangular path.
 * `length`: Full length of threads.
 * `ccw`: true for counter-clockwise rotation. (default: false) 
 
-##### `ctx.threadMill(attack, dmin, dmaj, pitch, start, length)`
+##### `ctx.threadMill(x, y, attack, dmin, dmaj, pitch, start, length)`
 Convenience method for milling threads.
 Simply latheMill() with a rectangular path.
 
