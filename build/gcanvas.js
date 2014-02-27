@@ -664,8 +664,8 @@ GCanvas.prototype = {\n\
       }\n\
     }\n\
     else if(attack === 'outer') {\n\
-      for(var i=bounds.right; i >= 0; i -= s) {\n\
-        i = Math.max(i, 0);\n\
+      for(var i=bounds.right;; i -= s) {\n\
+        i = Math.max(i, bounds.left);\n\
 \n\
         var clip = new Path();\n\
         clip.rect(i,top,bounds.right+10,height-top);\n\
@@ -677,6 +677,8 @@ GCanvas.prototype = {\n\
         });\n\
 \n\
         path.addPath(layer);\n\
+\n\
+        if(i == bounds.left) break;\n\
       }\n\
     }\n\
 \n\
@@ -691,7 +693,6 @@ GCanvas.prototype = {\n\
     // var depthOfCut = this.depthOfCut || range;\n\
     // var offset = range;\n\
     var a = 0;\n\
-\n\
 \n\
     path.subPaths.forEach(function(subPath) {\n\
       var spiralAngle = 0;\n\
