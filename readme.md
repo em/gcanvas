@@ -154,6 +154,33 @@ Simply latheMill() with a rectangular path.
 * `length`: Full length of threads.
 * `ccw`: Counter-clockwise rotation. (default: false) 
 
+Example: 
+```
+  // M8x1.25 inner threads 10mm deep
+
+  // Metric thread standard precise calculation
+  // http://en.wikipedia.org/wiki/ISO_metric_screw_thread
+  var dmin = 8-2*5/8*Math.sqrt(3)/2*1.25;
+
+  // Note: Most commerical metric screws I've measured aren't
+  // even close to the standard. Manufacturers seem to put huge
+  // tolerances in them so they fit almost anywhere.
+
+  step('base hole', function() {
+    ctx.toolDiameter = 1/4*25.4;
+    ctx.depth = 12;
+    ctx.fillCircle(0,0,dmin);
+  });
+
+  step('thread mill', function() {
+    // Single thread cutter.
+    ctx.toolDiameter = 1/4*25.4;
+    ctx.threadMill(0,0,'inner',dmin-0.1,8,1.25,0,10);
+    // Note: We subtract 0.1 just to afford us tolerance.
+    // since the true Dmin is determined by the base hole.
+  });
+```
+
 
 ### Command line utility
 GCanvas comes with a command line utility that you can use to write
