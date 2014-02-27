@@ -524,7 +524,9 @@ GCanvas.prototype = {\n\
     }\n\
 \n\
     var path = this.path;\n\
-    path = path.simplify();\n\
+    if(align != 'center') {\n\
+      path = path.simplify();\n\
+    }\n\
 \n\
     if(path.subPaths)\n\
     path.subPaths.forEach(function(subPath) {\n\
