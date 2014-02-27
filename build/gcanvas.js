@@ -9848,8 +9848,8 @@ module.exports = {\n\
    * Convert start+end angle arc to start/end points.\n\
    * */\n\
   arcToPoints: function(x, y, astart, aend, radius) {\n\
-    astart = astart % Math.PI;\n\
-    aend = aend % Math.PI;\n\
+    astart = astart % (Math.PI*2);\n\
+    aend = aend % (Math.PI*2);\n\
 \n\
     var a = new Point(), // start point\n\
         b = new Point(); // end point\n\
