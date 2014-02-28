@@ -131,7 +131,7 @@ else {
     run(file);
   });
 
-  // ctx.driver.send('M30');
+  gctx.driver.send('M30');
   // cleanup
   // gctx.motion.rapid({x:0,y:0,z:0});
 }
