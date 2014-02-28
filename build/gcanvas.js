@@ -511,7 +511,18 @@ GCanvas.prototype = {\n\
 , measureText: function(text) {\n\
     // Removed until I have cleaner way to do it\n\
   }\n\
-, stroke: function(align) {\n\
+, stroke: function(align, depth) {\n\
+    this.save();\n\
+\n\
+    if(typeof align === 'number') {\n\
+      depth = align;\n\
+      align = undefined;\n\
+    }\n\
+\n\
+    if(depth) {\n\
+      this.depth = depth;\n\
+    }\n\
+\n\
     var offset = 0;\n\
 \n\
     align = align || this.align;\n\
@@ -543,8 +554,19 @@ GCanvas.prototype = {\n\
     }, this);\n\
 \n\
     this.motion.retract();\n\
+    this.restore();\n\
   }\n\
-, fill: function(windingRule) {\n\
+, fill: function(windingRule, depth) {\n\
+    this.save();\n\
+\n\
+    if(typeof windingRule === 'number') {\n\
+      depth = windingRule;\n\
+      windingRule = 'nonzero';\n\
+    }\n\
+\n\
+    if(depth) {\n\
+      this.depth = depth;\n\
+    }\n\
 \n\
     if(!this.toolDiameter) {\n\
       throw 'You must set context.toolDiameter to use fill()'\n\
@@ -564,6 +586,7 @@ GCanvas.prototype = {\n\
     }, this);\n\
 \n\
     this.motion.retract();\n\
+    this.restore();\n\
   }\n\
 \n\
 // , outerThread: function(dmin, dmaj, depth, pitch, ccw) {\n\

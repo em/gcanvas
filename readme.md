@@ -86,6 +86,20 @@ More examples: http://emery.denucc.io/gcanvas/examples
 
 #### Methods
 
+##### `ctx.fill(windingRule,depth)`
+##### `ctx.fill(depth)`
+Standard canvas fill(), but extended to allow a number for depth.
+
+* `windingRule`: 'nonzero' or 'evenodd'. (default: 'nonzero') 
+* `depth`: Full depth to mill the current path to. (default: ctx.depth)
+
+##### `ctx.stroke(align, depth)`
+##### `ctx.stroke(depth)`
+Standard canvas stroke(), but can also take alignment and/or depth.
+
+* `align`: 'inner', 'outer', or 'center'. (default: ctx.align or 'center')
+* `depth`: Full depth to mill the current path to. (default: ctx.depth)
+
 ##### `ctx.filter(fn)`
 Adds a post-processing function before Gcode generation that allows
 you to change the parameters.
