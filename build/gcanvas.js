@@ -238,6 +238,9 @@ function GCanvas(driver, width, height) {\n\
   this.filters = [];\n\
   this.precision = 20;\n\
 \n\
+  if(this.driver.init)\n\
+    this.driver.init();\n\
+\n\
   this.beginPath();\n\
 }\n\
 \n\
@@ -9555,6 +9558,7 @@ var Point = require('./math/point')\n\
 function Motion(ctx) {\n\
   this.ctx = ctx;\n\
   this.position = new Point(0,0,0);\n\
+  this.position.a = 0;\n\
 }\n\
 \n\
 Motion.prototype = {\n\
@@ -9626,20 +9630,6 @@ Motion.prototype = {\n\
   }\n\
 , postProcess: function(params) {\n\
 \n\
-    this.ctx.filters.forEach(function(f) {\n\
-      var tmp = f.call(this.ctx, params);\n\
-\n\
-      if(tmp) {\n\
-        for(var k in params) {\n\
-          delete params[k];\n\
-        }\n\
-\n\
-        for(var k in tmp) {\n\
-          params[k] = tmp[k];\n\
-        }\n\
-        // params = tmp;\n\
-      }\n\
-    });\n\
 \n\
     if(params.x)\n\
       params.x = Math.round(params.x * 1000000) / 1000000;\n\
@@ -9667,11 +9657,11 @@ Motion.prototype = {\n\
     }\n\
 \n\
     // Set new feedrate changed\n\
-    if(this.ctx.driver.feed\n\
-       && this.ctx.feed != this.currentFeed) {\n\
-      this.ctx.driver.feed(this.ctx.feed);\n\
-      this.currentFeed = this.ctx.feed;\n\
-    }\n\
+    // if(this.ctx.driver.feed\n\
+    //    && this.ctx.feed != this.currentFeed) {\n\
+    //   this.ctx.driver.feed(this.ctx.feed);\n\
+    //   this.currentFeed = this.ctx.feed;\n\
+    // }\n\
 \n\
     // Set coolant if changed\n\
     if(this.ctx.driver.coolant\n\
@@ -9683,11 +9673,30 @@ Motion.prototype = {\n\
     var v1 = new Point(\n\
           params.x === undefined ? this.position.x : params.x\n\
         , params.y === undefined ? this.position.y : params.y\n\
-        , params.z === undefined ? this.position.z : params.z);\n\
+        , params.z === undefined ? this.position.z : params.z\n\
+        , params.a === undefined ? this.position.a : params.a\n\
+    );\n\
+\n\
+    var dist = Point.distance(v1, this.position);\n\
+\n\
+    var f = dist/(1/this.ctx.feed);\n\
+    f = Math.round(f * 1000000) / 1000000;\n\
+    if(f) params.f = f;\n\
+\n\
 \n\
     if(utils.samePos(this.position, v1)) {\n\
       return false;\n\
     }\n\
+\n\
+    this.ctx.filters.forEach(function(f) {\n\
+      var tmp = f.call(this.ctx, params);\n\
+\n\
+      if(tmp) {\n\
+        for(var k in tmp) {\n\
+          params[k] = tmp[k];\n\
+        }\n\
+      }\n\
+    });\n\
 \n\
     return v1;\n\
   }\n\
@@ -10001,7 +10010,8 @@ module.exports = {\n\
 , samePos: function(a, b) {\n\
     return this.sameFloat(a.x, b.x)\n\
         && this.sameFloat(a.y, b.y)\n\
-        && this.sameFloat(a.z, b.z);\n\
+        && this.sameFloat(a.z, b.z)\n\
+        && this.sameFloat(a.a, b.a);\n\
   }\n\
 , squeeze: function() {\n\
   }\n\
@@ -10061,13 +10071,20 @@ function GCodeDriver(stream) {\n\
 GCodeDriver.prototype = {\n\
   send: function(code, params) {\n\
     var command = code;\n\
-    for(var k in params) {\n\
-      if(params[k] === undefined || params[k] === null)\n\
-        continue;\n\
 \n\
-      command += ' ' + k.toUpperCase() + params[k];\n\
+    if(params) {\n\
+      'xyzabcf'.split('').forEach(function(k) {\n\
+        if(params[k] === undefined || params[k] === null)\n\
+          return;\n\
+\n\
+        command += ' ' + k.toUpperCase() + params[k];\n\
+      });\n\
     }\n\
+\n\
     this.stream.write(command);\n\
+  }\n\
+, init: function() {\n\
+    this.send('G93');\n\
   }\n\
 , speed: function(n) {\n\
     this.send('S'+n);\n\
