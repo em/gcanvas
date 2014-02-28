@@ -1590,6 +1590,27 @@ Path.prototype = {\n\
   }\n\
 \n\
 , simplify: function(windingRule, divisions) {\n\
+\n\
+    // Special case for single ellipse\n\
+    // just change the radius.\n\
+    // if(this.is('ellipse')) {\n\
+    //     var result = new Path();\n\
+    //     var args = this.subPaths[0].actions[1].args;\n\
+\n\
+    //     result.ellipse(\n\
+    //       args[0],\n\
+    //       args[1],\n\
+    //       args[2],\n\
+    //       args[3],\n\
+    //       args[4],\n\
+    //       args[5],\n\
+    //       args[6]\n\
+    //     );\n\
+\n\
+    //     return result;\n\
+    // }\n\
+\n\
+\n\
     var scale = 1000;\n\
     var polys = this.toPolys(scale, divisions); \n\
     var type = ClipperLib.PolyFillType.pftNonZero;\n\
@@ -1606,6 +1627,16 @@ Path.prototype = {\n\
     return result;\n\
   }\n\
 \n\
+, is: function(action) {\n\
+    if(this.subPaths.length == 1\n\
+      && this.subPaths[0].actions.length == 2\n\
+      && this.subPaths[0].actions[1].action === action) {\n\
+        return true;\n\
+    }\n\
+\n\
+    return false;\n\
+  }\n\
+\n\
 , offset: function(delta, divisions) {\n\
     if(delta === 0) {\n\
       return this;\n\
@@ -1613,9 +1644,7 @@ Path.prototype = {\n\
 \n\
     // Special case for single ellipse\n\
     // just change the radius.\n\
-    if(this.subPaths.length == 1\n\
-      && this.subPaths[0].actions.length == 2\n\
-      && this.subPaths[0].actions[1].action === 'ellipse') {\n\
+    if(this.is('ellipse')) {\n\
         var result = new Path();\n\
         var args = this.subPaths[0].actions[1].args;\n\
 \n\
@@ -1748,6 +1777,23 @@ Path.prototype = {\n\
   }\n\
 \n\
 , reverse: function() {\n\
+    if(this.is('ellipse')) {\n\
+      var result = new Path();\n\
+      var args = this.subPaths[0].actions[1].args;\n\
+\n\
+      result.ellipse(\n\
+        args[0],\n\
+        args[1],\n\
+        args[2],\n\
+        args[3],\n\
+        args[5], // end as start\n\
+        args[4], // start as end\n\
+        !args[6] // invert ccw\n\
+      );\n\
+\n\
+      return result;\n\
+    }\n\
+\n\
     var result = new Path();\n\
 \n\
     result.subPaths = this.subPaths.map(function(sp) {\n\

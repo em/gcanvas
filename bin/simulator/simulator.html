@@ -286,6 +286,7 @@ function setup(desc, fn) {
 var simdriver = new GCanvas.Simulator(scene);
 var simctx = new GCanvas(simdriver, 200, 200);
 var simcanvas = simctx.canvas;
+var ctx = simctx;
 
 function procQueue() {
   var fn;

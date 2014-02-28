@@ -105,15 +105,34 @@ Adds a post-processing function before Gcode generation that allows
 you to change the parameters.
 * `fn`: function(params)
         Params is an object containing the Gcode parameters
-        before they get serialized.
-        ex: {x:10,y:0}
+        before they get serialized. i.e. {x:10,y:0}
+
+Example: Cylindrical wrapping by transposing the X axis onto A
+```
+ctx.toolDiameter = 1/4*25.5;
+
+var diameter = 10;
+var circumference = diameter * Math.PI;
+
+ctx.filter(function(p) {
+  p.a = (p.x||0)/circumference*360;
+  p.x = 0;
+});
+
+ctx.fillRect(0,0,circumference/2,10); // 180 degree slot around cylinder
+```
+
 
 ##### `ctx.map(axes)`
 Adds a filter that maps the standard coordinate system to another one.
 * `axes`: A string representing the new coordinate system.
-         ex: 'yzx'.
          You can also use '-' before any axis to make it negative.
-         ex: 'z-xy'.
+
+Example: Make Z- move towards the bed.
+```
+ctx.map('xy-z');
+```
+
 
 ##### `ctx.peckDrill(x, y, depth, peck)`
 Drills to depth using a peck drilling strategy.

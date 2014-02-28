@@ -79,6 +79,7 @@ else {
 
   function processQueue() {
     if(queue.length === 0) return;
+
     var readline = require('readline'),
         rl = readline.createInterface(process.stdin, process.stderr);
     var currentStep;
@@ -110,7 +111,12 @@ else {
   function run(file) {
     var util = require('util'),
         vm = require('vm'),
-        sandbox = {setup: setup, step: setup, ctx: gctx};
+        sandbox = {
+          setup: setup,
+          step: setup,
+          ctx: gctx,
+          console: console
+        };
 
     var code = fs.readFileSync(file);
     var script = vm.createScript(code, file);
