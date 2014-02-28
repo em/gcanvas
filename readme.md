@@ -182,8 +182,7 @@ Example:
 
   step('base hole', function() {
     ctx.toolDiameter = 1/4*25.4;
-    ctx.depth = 12;
-    ctx.fillCircle(0,0,dmin);
+    ctx.fillCircle(0,0,dmin,12);
   });
 
   step('thread mill', function() {
@@ -194,6 +193,20 @@ Example:
     // since the true Dmin is determined by the base hole.
   });
 ```
+
+##### `ctx.text(text, x, y)`
+Adds text to the path.
+For some reason standard Canvas only has fillText and strokeText.
+I don't know why. That makes it impossible to use winding rules.
+
+##### `ctx.circle(x, y, radius)`
+Convenience method for full 2pi arc().
+
+##### `ctx.fillRect(x, y, width, height, depth)`
+Standard canvas fillRect() with additional depth.
+
+##### `ctx.fillCircle(x, y, width, height, depth)`
+Convenience method to fill a circle to depth just like fillRect().
 
 
 ### Command line utility
