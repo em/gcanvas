@@ -544,14 +544,14 @@ GCanvas.prototype = {\n\
 \n\
     if(path.subPaths)\n\
     path.subPaths.forEach(function(subPath) {\n\
-      subPath = subPath.toPath().offset(offset);\n\
+      subPath = subPath.offset(offset);\n\
 \n\
       // Climb milling\n\
       if(align == 'inner') {\n\
         subPath = subPath.reverse();\n\
       }\n\
 \n\
-      this._layer(function(z) {\n\
+      this._layer(subPath, function(z) {\n\
         this.motion.followPath(subPath,z);\n\
       });\n\
     }, this);\n\
@@ -583,7 +583,7 @@ GCanvas.prototype = {\n\
 \n\
     if(path.subPaths)\n\
     path.subPaths.forEach(function(subPath) {\n\
-      this._layer(function(z) {\n\
+      this._layer(subPath, function(z) {\n\
         this.motion.followPath(subPath, z);\n\
       });\n\
     }, this);\n\
@@ -893,7 +893,7 @@ GCanvas.prototype = {\n\
 \n\
     mtn.retract();\n\
   }\n\
-, _layer: function(fn) {\n\
+, _layer: function(subPath, fn) {\n\
     var depthOfCut = this.depthOfCut || this.depth;\n\
     var start = this.top + depthOfCut;\n\
 \n\
@@ -914,7 +914,9 @@ GCanvas.prototype = {\n\
     }\n\
 \n\
     // Finishing pass\n\
-    fn.call(this, this.depth);\n\
+    if(subPath.isClosed()) {\n\
+      fn.call(this, this.depth);\n\
+    }\n\
   }\n\
 , text: function(text, x, y, params) {\n\
     var fontProps = parseFont(this.font);\n\
@@ -1919,6 +1921,11 @@ SubPath.prototype = {\n\
     return utils.samePos(fp,lp);\n\
   }\n\
 \n\
+, offset: function(delta) {\n\
+    var tmp = this.toPath().offset(delta);\n\
+    if(!tmp) return false;\n\
+    return tmp.subPaths[0];\n\
+  }\n\
 \n\
 , toPath: function() {\n\
    var clone = this.clone();\n\
@@ -9630,18 +9637,6 @@ Motion.prototype = {\n\
   }\n\
 , postProcess: function(params) {\n\
 \n\
-\n\
-    if(params.x)\n\
-      params.x = Math.round(params.x * 1000000) / 1000000;\n\
-    if(params.y)\n\
-      params.y = Math.round(params.y * 1000000) / 1000000;\n\
-    if(params.z)\n\
-      params.z = Math.round(params.z * 1000000) / 1000000;\n\
-    if(params.i)\n\
-      params.i = Math.round(params.i * 1000000) / 1000000;\n\
-    if(params.j)\n\
-      params.j = Math.round(params.j * 1000000) / 1000000;\n\
-\n\
     // Set new spindle atc changed\n\
     if(this.ctx.driver.atc\n\
        && this.ctx.atc != this.currentAtc) {\n\
@@ -9697,6 +9692,14 @@ Motion.prototype = {\n\
         }\n\
       }\n\
     });\n\
+\n\
+    // Round down the decimal points to 10 nanometers\n\
+    // Gotta accept that there's no we're that precise.\n\
+    for(var k in params) {\n\
+      if(typeof params[k] === 'number')\n\
+        params[k] = Math.round(params[k] * 100000) / 100000;\n\
+    }\n\
+\n\
 \n\
     return v1;\n\
   }\n\
@@ -9772,18 +9775,24 @@ Motion.prototype = {\n\
 \n\
     each[Path.actions.MOVE_TO] = function(x,y) {\n\
       // Optimize out 0 distances moves\n\
-      if(utils.sameFloat(x, this.position.x) &&\n\
-         utils.sameFloat(y, this.position.y)) {\n\
 \n\
-        return;\n\
+      if(path.isClosed()) {\n\
+        if(utils.sameFloat(x, this.position.x) &&\n\
+           utils.sameFloat(y, this.position.y)) {\n\
+\n\
+          return;\n\
+        }\n\
+\n\
+        motion.retract();\n\
+        motion.rapid({x:x,y:y});\n\
+        motion.plunge();\n\
       }\n\
+      else {\n\
+        motion.retract();\n\
+        motion.rapid({x:x,y:y});\n\
+        motion.plunge();\n\
 \n\
-      motion.retract();\n\
-      motion.rapid({x:x,y:y});\n\
-      motion.plunge();\n\
-\n\
-      if(!path.isClosed()) {\n\
-         motion.linear({z:zStart});\n\
+        motion.linear({z:zEnd});\n\
       }\n\
 \n\
       zStart = motion.position.z;\n\
