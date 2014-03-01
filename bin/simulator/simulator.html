@@ -82,9 +82,10 @@
 
         // Sphere
 
-        sphere = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 10), new THREE.MeshNormalMaterial());
+        sphere = new THREE.Mesh(new THREE.CylinderGeometry(1, 10, 10), new THREE.MeshNormalMaterial());
         sphere.material.transparent = true;
         sphere.material.opacity = 0.5;
+        sphere.rotation.x = Math.PI/2;
         scene.add(sphere);
 
 				// Grid
@@ -248,6 +249,7 @@
           var p = simdriver.all[i];
           if(p) {
             var d = simctx.toolDiameter/2 || 1;
+            // d = Math.max(1,d);
             sphere.scale = new THREE.Vector3(d,d,d);
             sphere.position = p;
           }
