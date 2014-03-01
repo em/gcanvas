@@ -466,7 +466,6 @@ GCanvas.prototype = {\n\
     // },this);\n\
   }\n\
 , circle: function(x, y, rad, ccw) {\n\
-    this.beginPath();\n\
     this.arc(x, y, rad, 0, Math.PI*2, ccw);\n\
   }\n\
 , bezierCurveTo: function( aCP1x, aCP1y,\n\
@@ -1431,7 +1430,8 @@ Path.prototype = {\n\
                                    aend,\n\
                                    xrad);\n\
 \n\
-    this._ensure(points.start.x, points.start.y);\n\
+    // this._ensure(points.start.x, points.start.y);\n\
+    this.moveTo(points.start.x, points.start.y);\n\
     this.current.ellipse.apply(this.current, arguments);\n\
   }\n\
 , quadraticCurveTo: function() {\n\
