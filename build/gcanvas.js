@@ -537,13 +537,13 @@ GCanvas.prototype = {\n\
     }\n\
 \n\
     var path = this.path;\n\
-    if(align != 'center') {\n\
-      path = path.simplify();\n\
-    }\n\
+\n\
 \n\
     if(path.subPaths)\n\
     path.subPaths.forEach(function(subPath) {\n\
-      subPath = subPath.offset(offset);\n\
+      if(align != 'center') {\n\
+        subPath = subPath.simplify().offset(offset);\n\
+      }\n\
 \n\
       // Climb milling\n\
       if(align == 'inner') {\n\
@@ -1923,6 +1923,12 @@ SubPath.prototype = {\n\
 \n\
 , offset: function(delta) {\n\
     var tmp = this.toPath().offset(delta);\n\
+    if(!tmp) return false;\n\
+    return tmp.subPaths[0];\n\
+  }\n\
+\n\
+, simplify: function() {\n\
+    var tmp = this.toPath().simplify();\n\
     if(!tmp) return false;\n\
     return tmp.subPaths[0];\n\
   }\n\
