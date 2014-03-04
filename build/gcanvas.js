@@ -237,6 +237,7 @@ function GCanvas(driver, width, height) {\n\
   this.motion = new Motion(this);\n\
   this.filters = [];\n\
   this.precision = 20;\n\
+  this.ramping = true;\n\
 \n\
   if(this.driver.init)\n\
     this.driver.init();\n\
@@ -913,7 +914,7 @@ GCanvas.prototype = {\n\
     }\n\
 \n\
     // Finishing pass\n\
-    if(subPath.isClosed()) {\n\
+    if(this.ramping) {\n\
       fn.call(this, this.depth);\n\
     }\n\
   }\n\
@@ -9678,7 +9679,13 @@ Motion.prototype = {\n\
         , params.a === undefined ? this.position.a : params.a\n\
     );\n\
 \n\
-    var dist = Point.distance(v1, this.position);\n\
+    // var dist = Point.distance(v1, this.position);\n\
+    var v2 = this.position;\n\
+    var dist = Math.sqrt(\n\
+                     Math.pow(v2.x - v1.x, 2) +\n\
+                     Math.pow(v2.y - v1.y, 2) +\n\
+                     Math.pow(v2.z - v1.z, 2));\n\
+\n\
 \n\
     var f = dist/(1/this.ctx.feed);\n\
     f = Math.round(f * 1000000) / 1000000;\n\
@@ -9753,9 +9760,11 @@ Motion.prototype = {\n\
     var each = {};\n\
     var motion = this;\n\
     var driver = this.ctx.driver;\n\
+    var ctx = this.ctx;\n\
+    var ramping = path.isClosed() && ctx.ramping != false;\n\
 \n\
     function helix() {\n\
-      if(!path.isClosed()) {\n\
+      if(!ramping) {\n\
         return zEnd;\n\
       }\n\
 \n\
@@ -9782,7 +9791,7 @@ Motion.prototype = {\n\
     each[Path.actions.MOVE_TO] = function(x,y) {\n\
       // Optimize out 0 distances moves\n\
 \n\
-      if(path.isClosed()) {\n\
+      if(ramping) {\n\
         if(utils.sameFloat(x, this.position.x) &&\n\
            utils.sameFloat(y, this.position.y)) {\n\
 \n\

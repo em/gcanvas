@@ -84,6 +84,9 @@ More examples: http://emery.denucc.io/gcanvas/examples
 
 * `ctx.atc` Auto tool change. Sends `M06 T{ctx.atc}`. Make sure you update toolDiameter.
 
+* `ctx.ramping` (true|false) Ramping eases into the depth of cut helically. The alternative is to plunge directly down to depth for each cut. It can reduce cutting time to disable this when you use a center-cutting endmill on forgiving material. (default: true)
+
+
 #### Methods
 
 ##### `ctx.fill(windingRule,depth)`
