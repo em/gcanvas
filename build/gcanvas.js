@@ -228,6 +228,7 @@ function GCanvas(driver, width, height) {\n\
   this.depth = 0;\n\
   this.depthOfCut = 0;\n\
   this.top = 0;\n\
+  this.retract = 0;\n\
   this.align = 'center';\n\
   this.mode = 'mill';\n\
   this.driver = driver || new GcodeDriver();\n\
@@ -9575,7 +9576,7 @@ function Motion(ctx) {\n\
 \n\
 Motion.prototype = {\n\
   retract: function() {\n\
-    this.rapid({z:0});\n\
+    this.rapid({z:-this.ctx.retract});\n\
   }\n\
 , plunge: function() {\n\
     this.rapid({z:this.ctx.top});\n\
