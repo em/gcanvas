@@ -229,7 +229,6 @@ function GCanvas(driver, width, height) {\n\
   this.depthOfCut = 0;\n\
   this.top = 0;\n\
   this.align = 'center';\n\
-  // this.feed = ;\n\
   this.mode = 'mill';\n\
   this.driver = driver || new GcodeDriver();\n\
   this.driver.src = this;\n\
@@ -895,7 +894,6 @@ GCanvas.prototype = {\n\
   }\n\
 , _layer: function(subPath, fn) {\n\
     var depthOfCut = this.depthOfCut || this.depth;\n\
-    var start = this.top + depthOfCut;\n\
 \n\
     if(depthOfCut === 0) {\n\
       fn.call(this, 0);\n\
@@ -914,7 +912,7 @@ GCanvas.prototype = {\n\
     }\n\
 \n\
     // Finishing pass\n\
-    if(this.ramping) {\n\
+    if(this.ramping && subPath.isClosed()) {\n\
       fn.call(this, this.depth);\n\
     }\n\
   }\n\
@@ -9609,6 +9607,23 @@ Motion.prototype = {\n\
     var newPosition = this.postProcess(params);\n\
     // Note: Can be cyclic so we don't\n\
     // ignore it if the position is the same\n\
+    //\n\
+    var cx = this.position.x + params.i;\n\
+    var cy = this.position.y + params.j;\n\
+    var arc = utils.pointsToArc({\n\
+      x: cx,\n\
+      y: cy \n\
+    },\n\
+    this.position, {\n\
+      x: params.x,\n\
+      y: params.y\n\
+    });\n\
+\n\
+    var length = arc.radius * (arc.end-arc.start);\n\
+    var f = length/(1/this.ctx.feed);\n\
+    f = Math.round(f * 1000000) / 1000000;\n\
+    if(f) params.f = f;\n\
+\n\
 \n\
     if(!ccw && this.ctx.driver.arcCW) {\n\
       this.ctx.driver.arcCW.call(this.ctx.driver, params);\n\
@@ -9617,16 +9632,6 @@ Motion.prototype = {\n\
       this.ctx.driver.arcCCW.call(this.ctx.driver, params);\n\
     }\n\
     else {\n\
-      var cx = this.position.x + params.i;\n\
-      var cy = this.position.y + params.j;\n\
-      var arc = utils.pointsToArc({\n\
-        x: cx,\n\
-        y: cy \n\
-      },\n\
-      this.position, {\n\
-        x: params.x,\n\
-        y: params.y\n\
-      });\n\
 \n\
       this.interpolate('arc',[\n\
                        cx,\n\
@@ -9687,9 +9692,11 @@ Motion.prototype = {\n\
                      Math.pow(v2.z - v1.z, 2));\n\
 \n\
 \n\
-    var f = dist/(1/this.ctx.feed);\n\
-    f = Math.round(f * 1000000) / 1000000;\n\
-    if(f) params.f = f;\n\
+    if(!params.f) {\n\
+      var f = dist/(1/this.ctx.feed);\n\
+      f = Math.round(f * 1000000) / 1000000;\n\
+      if(f) params.f = f;\n\
+    }\n\
 \n\
 \n\
     if(utils.samePos(this.position, v1)) {\n\
@@ -10097,7 +10104,7 @@ GCodeDriver.prototype = {\n\
     var command = code;\n\
 \n\
     if(params) {\n\
-      'xyzabcf'.split('').forEach(function(k) {\n\
+      'xyzabcijkf'.split('').forEach(function(k) {\n\
         if(params[k] === undefined || params[k] === null)\n\
           return;\n\
 \n\
