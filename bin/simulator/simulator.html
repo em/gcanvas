@@ -82,7 +82,7 @@
 
         // Sphere
 
-        sphere = new THREE.Mesh(new THREE.CylinderGeometry(1, 10, 10), new THREE.MeshNormalMaterial());
+        sphere = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 10), new THREE.MeshNormalMaterial());
         sphere.material.transparent = true;
         sphere.material.opacity = 0.5;
         sphere.rotation.x = Math.PI/2;
@@ -90,7 +90,7 @@
 
 				// Grid
 
-				var size = 20, step = 10;
+				var size = 25.4*24, step = 25.4;
 
 				var geometry = new THREE.Geometry();
 

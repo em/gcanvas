@@ -74,7 +74,7 @@ More examples: http://emery.denucc.io/gcanvas/examples
 
   ```
 
-* `ctx.retract` Set a small distance to retract the tool between rapid moves to overcome imperfect surface tolerances. This is a better alternative to ctx.top when the work surface is flat and the tool can be aligned initially to surface zero. i.e. sheet stock. (default: 0)
+* `ctx.retract` Set a small distance to retract the tool between rapid moves to overcome imperfect surface tolerances. This is a simpler alternative to ctx.top when the work surface is flat and the tool can be aligned initially to surface zero. i.e. sheet stock. (default: 0)
 
 * `ctx.feed` Sets the feedrate by sending a single F command.
 

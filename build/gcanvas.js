@@ -953,10 +953,11 @@ Font.load(helvetiker);\n\
 require.register("gcanvas/lib/math/point.js", Function("exports, require, module",
 "module.exports = Point;\n\
 \n\
-function Point(x,y,z) {\n\
+function Point(x,y,z,a) {\n\
   this.x = x;\n\
   this.y = y;\n\
   this.z = z;\n\
+  this.a = a;\n\
 };\n\
 \n\
 Point.prototype = {\n\
@@ -1747,7 +1748,9 @@ Path.prototype = {\n\
       max -= diameter/2; \n\
 \n\
       for(var i = -max; i < -diameter/2; i += diameter*overlap) {\n\
-        var offsetPath = path.offset(i, divisions).reverse();\n\
+        var offsetPath = path.offset(i, divisions);\n\
+        if(!offsetPath) break;\n\
+        offsetPath = offsetPath.reverse();\n\
         result.addPath(offsetPath);\n\
       }\n\
 \n\
@@ -9580,6 +9583,9 @@ Motion.prototype = {\n\
   }\n\
 , plunge: function() {\n\
     this.rapid({z:this.ctx.top});\n\
+  }\n\
+, zero: function(params) {\n\
+    this.ctx.driver.zero.call(this.ctx.driver, params);\n\
   }\n\
 , rapid: function(params) {\n\
     var newPosition = this.postProcess(params);\n\
