@@ -78,7 +78,8 @@ More examples: http://emery.denucc.io/gcanvas/examples
 
   ![alt](examples/retractandtop.png)
 
-* `ctx.feed` Sets the feedrate by sending a single F command.
+* `ctx.feed` Sets the effective feedrate.
+   To support coordinated axial and linear motion Gcanvas always generates inverse time mode feeds.
 
 * `ctx.speed` Sets the spindle speed by sending a single S command.
 
