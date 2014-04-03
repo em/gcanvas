@@ -21,6 +21,7 @@
     "lib/parsefont.js",
     "lib/utils.js",
     "lib/drivers/gcode.js",
+    "lib/drivers/null.js",
     "lib/drivers/filter.js",
     "lib/drivers/simulator.js",
     "lib/fonts/helvetiker_regular.typeface.js"

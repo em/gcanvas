@@ -206,6 +206,7 @@ require.register("gcanvas/lib/gcanvas.js", Function("exports, require, module",
 var Path = require('./path')\n\
   , Motion = require('./motion')\n\
   , GcodeDriver = require('./drivers/gcode')\n\
+  , NullDriver = require('./drivers/null')\n\
   , Point = require('./math/point')\n\
   , Matrix = require('./math/matrix')\n\
   , Font = require('./font')\n\
@@ -221,6 +222,10 @@ function GCanvas(driver, width, height) {\n\
       return self;\n\
     }\n\
   };\n\
+\n\
+  if(driver === null) {\n\
+    driver = new NullDriver();\n\
+  }\n\
 \n\
   this.font = \"7pt Helvetiker\";\n\
   this.matrix = new Matrix();\n\
@@ -511,8 +516,22 @@ GCanvas.prototype = {\n\
     this.fill();\n\
     this.restore();\n\
   }\n\
+, clone: function(driver) {\n\
+    var copy = new GCanvas(driver);\n\
+    this.save();\n\
+    copy.stack[0] = this.stack[0];\n\
+    copy.restore();\n\
+    return copy;\n\
+  }\n\
 , measureText: function(text) {\n\
-    // Removed until I have cleaner way to do it\n\
+    var copy = this.clone(null);\n\
+    copy.text(text);\n\
+    var b = copy.path.getBounds();\n\
+\n\
+    b.width = b.right - b.left;\n\
+    b.height = b.bottom - b.top;\n\
+\n\
+    return b;\n\
   }\n\
 , stroke: function(align, depth) {\n\
     this.save();\n\
@@ -10164,6 +10183,38 @@ GCodeDriver.prototype = {\n\
   }\n\
 };\n\
 //@ sourceURL=gcanvas/lib/drivers/gcode.js"
+));
+require.register("gcanvas/lib/drivers/null.js", Function("exports, require, module",
+"module.exports = NullDriver;\n\
+\n\
+function NullDriver() { \n\
+}\n\
+\n\
+NullDriver.prototype = {\n\
+  send: function() {\n\
+  }\n\
+, init: function() {\n\
+  }\n\
+, speed: function() {\n\
+  }\n\
+, feed: function() {\n\
+  }\n\
+, coolant: function() {\n\
+  }\n\
+, zero: function() {\n\
+  }\n\
+, atc: function() {\n\
+  }\n\
+, rapid: function() {\n\
+  }\n\
+, linear: function() {\n\
+  }\n\
+, arcCW: function() {\n\
+  }\n\
+, arcCCW: function() {\n\
+  }\n\
+};\n\
+//@ sourceURL=gcanvas/lib/drivers/null.js"
 ));
 require.register("gcanvas/lib/drivers/filter.js", Function("exports, require, module",
 "module.exports = Filter;\n\
