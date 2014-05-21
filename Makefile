@@ -4,7 +4,7 @@ all: build/gcanvas.js
 
 build/gcanvas.js: $(SOURCES)
 	# rebuild
-	@component build --dev -s GCanvas -n gcanvas
+	@component build -s GCanvas -n gcanvas
 
 components: component.json
 	@component install --dev
@@ -13,6 +13,6 @@ test:
 	@mocha -R list
 
 clean:
-	rm -fr build components template.js
+	rm -fr build components
 
 .PHONY: clean test
