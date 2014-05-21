@@ -73,8 +73,37 @@ describe('GCanvas', function() {
       ctx.stroke();
 
       hand.linear({z:1});
-      hand.linear({x:10,y:10});
+      hand.linear({x:10,y:10,z:1});
+      hand.rapid({z:0});
+      expect(robot.result).eql(hand.result);
+    });
 
+    it('plunges tool (inverted z)', function() {
+      ctx.depth = -1;
+      ctx.moveTo(0,0);
+      ctx.lineTo(10,10);
+      ctx.stroke();
+
+      hand.linear({z:-1});
+      hand.linear({x:10,y:10,z:-1});
+      hand.rapid({z:0});
+
+      console.log(robot.result, hand.result);
+      expect(robot.result).eql(hand.result);
+    });
+
+    it('plunges tool (inverted z and +depthOfCut)', function() {
+      ctx.depth = -1;
+      ctx.depthOfCut = 1;
+      ctx.moveTo(0,0);
+      ctx.lineTo(10,10);
+      ctx.stroke();
+
+      hand.linear({z:-1});
+      hand.linear({x:10,y:10,z:-1});
+      hand.rapid({z:0});
+
+      console.log(robot.result, hand.result);
       expect(robot.result).eql(hand.result);
     });
   });
@@ -107,7 +136,8 @@ describe('GCanvas', function() {
 
       hand.rapid({x:20,y:10});
       hand.linear({z:1});
-      hand.arcCW({x:0,y:10,i:-10,j:0});
+      hand.arcCW({x:0,y:10,i:-10,j:0,z:1});
+      hand.rapid({z:0});
 
       expect(robot.result).eql(hand.result);
     });
@@ -182,7 +212,7 @@ describe('GCanvas', function() {
 
       // first layer
       hand.linear({z:1}); // plunge
-      hand.linear({x:10,y:10}); // lineTo
+      hand.linear({x:10,y:10,z:1}); // lineTo
 
       // return to start
       hand.rapid({z:0}); // retract
@@ -190,9 +220,56 @@ describe('GCanvas', function() {
 
       // second layer
       hand.linear({z:2}); // plunge
-      hand.linear({x:10,y:10}); // lineTo
+      hand.linear({x:10,y:10,z:2}); // lineTo
 
+      hand.rapid({z:0});
 
+      expect(robot.result).eql(hand.result);
+    });
+
+    it('increments in depthOfCut to depth (-z, +doc)', function() {
+      ctx.depth = -2;
+      ctx.depthOfCut = 1;
+      ctx.moveTo(0,0);
+      ctx.lineTo(10,10);
+      ctx.stroke();
+
+      // first layer
+      hand.linear({z:-1}); // plunge
+      hand.linear({x:10,y:10,z:-1}); // lineTo
+
+      // return to start
+      hand.rapid({z:0}); // retract
+      hand.rapid({x:0,y:0}); // moveTo
+
+      // second layer
+      hand.linear({z:-2}); // plunge
+      hand.linear({x:10,y:10,z:-2}); // lineTo
+
+      hand.rapid({z:0}); // retract
+      expect(robot.result).eql(hand.result);
+    });
+
+    it('increments in depthOfCut to depth (-z, -doc)', function() {
+      ctx.depth = -2;
+      ctx.depthOfCut = -1;
+      ctx.moveTo(0,0);
+      ctx.lineTo(10,10);
+      ctx.stroke();
+
+      // first layer
+      hand.linear({z:-1}); // plunge
+      hand.linear({x:10,y:10,z:-1}); // lineTo
+
+      // return to start
+      hand.rapid({z:0}); // retract
+      hand.rapid({x:0,y:0}); // moveTo
+
+      // second layer
+      hand.linear({z:-2}); // plunge
+      hand.linear({x:10,y:10,z:-2}); // lineTo
+
+      hand.rapid({z:0}); // retract
       expect(robot.result).eql(hand.result);
     });
   });
