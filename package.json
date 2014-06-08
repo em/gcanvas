@@ -1,6 +1,6 @@
 {
   "name": "gcanvas",
-  "version": "0.0.22",
+  "version": "0.0.23",
   "description": "A Canvas API implementation that generates Gcode",
   "keywords": [
     "canvas",
@@ -8,6 +8,9 @@
     "mill",
     "gcode"
   ],
+  "scripts": {
+    "test": "mocha"
+  },
   "bin": {
     "gcanvas": "./bin/gcanvas"
   },
