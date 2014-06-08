@@ -4,12 +4,12 @@ describe('utils', function() {
 
   it('#arcToPoints', function() {
     var result = utils.arcToPoints(
-      {x: 5, y: 5},
+      5, 5, // x,y
       0,       // start angle
       Math.PI, // 180 degrees
       10      // radius
     );
-    
+
     expect(result.start.x).closeTo(15, 0.000001);
     expect(result.start.y).closeTo(5, 0.000001);
     expect(result.end.x).closeTo(-5, 0.000001);

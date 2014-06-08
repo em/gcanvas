@@ -366,9 +366,7 @@ GCanvas.prototype = {
   }
 , moveTo: function(x,y) {
     this._transformPoint(arguments);
-    // this.path = new Path();
     this.path.moveTo(x,y);
-    // this.subPaths.push( this.path );
   }
 , lineTo: function(x,y) {
     this._transformPoint(arguments);
@@ -9819,6 +9817,10 @@ Motion.prototype = {
       if(!ramping) {
         return zEnd;
       }
+
+      // Avoid divide by 0 in case of
+      // a single moveTo action
+      if(totalLen === 0) return 0;
 
       var fullDelta = zEnd - zStart;
       var ratio = (curLen / totalLen);

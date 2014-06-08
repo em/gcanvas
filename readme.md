@@ -308,3 +308,5 @@ var ctx = new Gcanvas(driver);
 ### License
 
 MIT
+
+[![Build Status](https://drone.io/github.com/em/gcanvas/status.png)](https://drone.io/github.com/em/gcanvas/latest)

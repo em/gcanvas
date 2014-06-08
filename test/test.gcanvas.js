@@ -28,7 +28,7 @@ describe('GCanvas', function() {
       ctx.stroke();
 
       hand.linear({z:1}); // plunge
-      hand.linear({x:10,y:0}); // lineTo
+      hand.linear({x:10,y:0,z:1}); // lineTo
       hand.rapid({z:0}); // retract
       hand.rapid({x:10,y:10}); // moveTo
 
@@ -52,7 +52,7 @@ describe('GCanvas', function() {
       ctx.lineTo(10,10);
       ctx.stroke();
 
-      hand.linear({x:10,y:10});
+      hand.linear({x:10,y:10,z:0});
 
       expect(robot.result).eql(hand.result);
     });
@@ -88,7 +88,6 @@ describe('GCanvas', function() {
       hand.linear({x:10,y:10,z:-1});
       hand.rapid({z:0});
 
-      console.log(robot.result, hand.result);
       expect(robot.result).eql(hand.result);
     });
 
@@ -103,7 +102,6 @@ describe('GCanvas', function() {
       hand.linear({x:10,y:10,z:-1});
       hand.rapid({z:0});
 
-      console.log(robot.result, hand.result);
       expect(robot.result).eql(hand.result);
     });
   });
@@ -114,7 +112,7 @@ describe('GCanvas', function() {
       ctx.stroke();
 
       hand.rapid({x:20,y:10});
-      hand.arcCW({x:0,y:10,i:-10,j:0});
+      hand.arcCW({x:0,y:10,z:0,i:-10,j:0});
 
       expect(robot.result).eql(hand.result);
     });
@@ -124,12 +122,12 @@ describe('GCanvas', function() {
       ctx.stroke();
 
       hand.rapid({x:20,y:10});
-      hand.arcCCW({x:0,y:10,i:-10,j:0});
+      hand.arcCCW({x:0,y:10,z:0,i:-10,j:0});
 
       expect(robot.result).eql(hand.result);
     });
 
-    it('plunges tool', function() {
+    it('plunges and retracts semi-circles', function() {
       ctx.depth = 1;
       ctx.arc(10, 10, 10, 0, Math.PI);
       ctx.stroke();
@@ -142,18 +140,17 @@ describe('GCanvas', function() {
       expect(robot.result).eql(hand.result);
     });
 
-    it('does not retract if not necessary', function() {
+    it('spirals through full circles', function() {
       ctx.depth = 2;
       ctx.depthOfCut=1;
       ctx.arc(10, 10, 10, 0, Math.PI*2);
       ctx.stroke();
 
       hand.rapid({x:20,y:10});
-      hand.linear({z:1});
-      hand.arcCW({x:20,y:10,i:-10,j:0});
-      hand.linear({z:2});
-      hand.arcCW({x:20,y:10,i:-10,j:0});
-
+      hand.arcCW({x:20,y:10,z:1,i:-10,j:0});
+      hand.arcCW({x:20,y:10,z:2,i:-10,j:0});
+      hand.arcCW({x:20,y:10,z:2,i:-10,j:0});
+      hand.rapid({z:0});
 
       expect(robot.result).eql(hand.result);
     });
@@ -161,14 +158,14 @@ describe('GCanvas', function() {
 
 
   describe('context.feed', function() {
-    it('calls driver.speed() before next move', function() {
+    it('inits inverse time mode and calculates F', function() {
       ctx.moveTo(0,0);
       ctx.lineTo(10,10);
       ctx.feed = 100;
       ctx.stroke();
 
-      hand.feed(100);
-      hand.linear({x:10,y:10});
+      hand.send('G93');
+      hand.linear({x:10,y:10,z:0,f:1414});
 
       expect(robot.result).eql(hand.result);
     });
@@ -182,7 +179,7 @@ describe('GCanvas', function() {
       ctx.stroke();
 
       hand.speed(100);
-      hand.linear({x:10,y:10});
+      hand.linear({x:10,y:10,z:0});
 
       expect(robot.result).eql(hand.result);
     });
@@ -196,7 +193,7 @@ describe('GCanvas', function() {
       ctx.stroke();
 
       hand.coolant("flood");
-      hand.linear({x:10,y:10});
+      hand.linear({x:10,y:10,z:0});
 
       expect(robot.result).eql(hand.result);
     });

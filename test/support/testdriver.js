@@ -13,6 +13,7 @@ function TestDriver() {
 , 'speed'
 , 'feed'
 , 'coolant'
+, 'send'
 ].forEach(function(name) {
   TestDriver.prototype[name] = function(params) {
     var id = name;
