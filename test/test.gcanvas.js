@@ -272,5 +272,52 @@ describe('GCanvas', function() {
   });
 
   describe('#fill', function() {
+    it('offsets outward from center', function() {
+      ctx.rect(0,0,10,10);
+      ctx.toolDiameter = 8;
+      ctx.fill();
+
+      hand.rapid({x:6,y:6});
+      hand.linear({x:6, y:4, z:0});
+      hand.linear({x:4, y:4, z:0});
+      hand.linear({x:4, y:6, z:0});
+      hand.linear({x:6, y:6, z:0});
+
+      expect(robot.result).eql(hand.result);
+    });
+
+    it('ignores 0 alpha fillStyle', function() {
+      ctx.rect(0,0,10,10);
+      ctx.toolDiameter = 8;
+      ctx.fillStyle='rgba(0,0,0,0)'
+      ctx.fill();
+
+      expect(robot.result).eql(hand.result);
+    });
+  });
+
+
+  describe('#stroke', function() {
+    it('offsets outward from center', function() {
+      ctx.rect(0,0,10,10);
+      ctx.toolDiameter = 8;
+      ctx.stroke();
+
+      hand.linear({x:10, y:0, z:0});
+      hand.linear({x:10, y:10, z:0});
+      hand.linear({x:0, y:10, z:0});
+      hand.linear({x:0, y:0, z:0});
+
+      expect(robot.result).eql(hand.result);
+    });
+
+    it('ignores 0 alpha strokeStyle', function() {
+      ctx.rect(0,0,10,10);
+      ctx.toolDiameter = 8;
+      ctx.strokeStyle='rgba(0,0,0,0)'
+      ctx.stroke();
+
+      expect(robot.result).eql(hand.result);
+    });
   });
 });
