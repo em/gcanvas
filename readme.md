@@ -1,6 +1,6 @@
 Gcanvas
 ========
-An HTML5 Canvas API implementation that generates Gcode for mill and/or lathe CNC. Runs in node and the browser. 
+An HTML5 Canvas implementation that generates Gcode for 4 axis CNC milling. 
 
 ### Installation
 First make sure you have [nodejs](http://nodejs.org) installed.
@@ -33,15 +33,13 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 ```
 ```
-$ gcanvas example.js --test
+$ gcanvas example.js | gsim
 ```
 ![alt](examples/screeny.png)
 ```
 $ gcanvas example.js | mycnc
 ```
 ![alt](examples/example-irl.jpg)
-
-More examples: http://emery.denucc.io/gcanvas/examples
 
 ### Non-standard extensions to Canvas 
 

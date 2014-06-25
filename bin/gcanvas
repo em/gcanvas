@@ -23,121 +23,106 @@ program
   .option('-e, --entry <name>', 'name of entry function to call. defaults to main(ctx)', 'main')
   .option('--step <number>', 'skip to step n', Number)
   .option('--only <number>', 'run step n and stop', Number)
-  .option('--test', 'run simulation in a browser')
 
 program.parse(process.argv);
 
-if(program.test) {
-  program.args.forEach(function(file) {
-    var path = require('path');
-    var exec = require('child_process').exec;
+var gctx = new GCanvas();
 
-    var url = 'file://localhost'+ __dirname + '/simulator/simulator.html?file://localhost' + path.resolve(file);
-    var cmd = __dirname + '/osxopenhack '+url;
-    console.log(cmd);
-    exec(cmd);
-  });
-}
-else {
+if(program.speed) gctx.speed = program.speed;
+if(program.feed) gctx.feed = program.feed;
+if(program.depth) gctx.depth = program.depth;
+if(program.depthofcut) gctx.depthOfCut = program.depthofcut;
+if(program.top) gctx.top = program.top;
+if(program.width) gctx.canvas.width = program.width;
+if(program.height) gctx.canvas.height = program.height;
+if(program.tooldiameter) gctx.toolDiameter = program.tooldiameter;
 
-  var gctx = new GCanvas();
+var setupNum = 0;
+var setupOffset = program.only || program.step || 0;
+var queue = [];
+var finished = false;
 
-  if(program.speed) gctx.speed = program.speed;
-  if(program.feed) gctx.feed = program.feed;
-  if(program.depth) gctx.depth = program.depth;
-  if(program.depthofcut) gctx.depthOfCut = program.depthofcut;
-  if(program.top) gctx.top = program.top;
-  if(program.width) gctx.canvas.width = program.width;
-  if(program.height) gctx.canvas.height = program.height;
-  if(program.tooldiameter) gctx.toolDiameter = program.tooldiameter;
+function setup(desc, fn) {
+  if(finished) return;
 
-  var setupNum = 0;
-  var setupOffset = program.only || program.step || 0;
-  var queue = [];
-  var finished = false;
+  setupNum++;
 
-  function setup(desc, fn) {
-    if(finished) return;
-
-    setupNum++;
-
-    if(arguments.length === 1) {
-      fn = desc;
-      desc = setupNum;
-    }
-
-    if(setupNum == program.only) {
-      gctx.save();
-      fn(gctx);
-      gctx.restore();
-    }
-
-    if(!program.only && setupNum >= setupOffset) {
-       queue.push({desc: desc, fn: fn});
-    }
+  if(arguments.length === 1) {
+    fn = desc;
+    desc = setupNum;
   }
 
-  function processQueue() {
-    if(queue.length === 0) return;
+  if(setupNum == program.only) {
+    gctx.save();
+    fn(gctx);
+    gctx.restore();
+  }
 
-    var readline = require('readline'),
-        rl = readline.createInterface(process.stdin, process.stderr);
-    var currentStep;
+  if(!program.only && setupNum >= setupOffset) {
+     queue.push({desc: desc, fn: fn});
+  }
+}
 
-    function next() {
-      currentStep = queue.shift();
-      if(!currentStep) {
-        rl.close();
-        return;
-      }
+function processQueue() {
+  if(queue.length === 0) return;
 
-      gctx.motion.rapid({z:0});
-      rl.setPrompt('(setup '+currentStep.desc+')');
-      rl.prompt();
+  var readline = require('readline'),
+      rl = readline.createInterface(process.stdin, process.stderr);
+  var currentStep;
+
+  function next() {
+    currentStep = queue.shift();
+    if(!currentStep) {
+      rl.close();
+      return;
     }
 
-    rl.on('line', function() {
-      gctx.save();
-      currentStep.fn(gctx);
-      gctx.restore();
-      next();
-    }).on('close', function() {
-      process.exit(0);
-    });
+    gctx.motion.rapid({z:0});
+    rl.setPrompt('(setup '+currentStep.desc+')');
+    rl.prompt();
+  }
 
+  rl.on('line', function() {
+    gctx.save();
+    currentStep.fn(gctx);
+    gctx.restore();
     next();
-  }
-
-  function run(file) {
-    var util = require('util'),
-        vm = require('vm'),
-        sandbox = {
-          setup: setup,
-          step: setup,
-          ctx: gctx,
-          console: console
-        };
-
-    var code = fs.readFileSync(file);
-    var script = vm.createScript(code, file);
-    script.runInNewContext(sandbox);
-
-    if(sandbox[program.entry]) {
-      sandbox[program.entry](gctx);
-    }
-
-    processQueue();
-  };
-
-  if(program.args.length === 0) {
-    program.outputHelp();
-  }
-
-  program.args.forEach(function(file) {
-    run(file);
+  }).on('close', function() {
+    process.exit(0);
   });
 
-  gctx.driver.send('M30');
-  // cleanup
-  // gctx.motion.rapid({x:0,y:0,z:0});
+  next();
 }
+
+function run(file) {
+  var util = require('util'),
+      vm = require('vm'),
+      sandbox = {
+        setup: setup,
+        step: setup,
+        ctx: gctx,
+        console: console
+      };
+
+  var code = fs.readFileSync(file);
+  var script = vm.createScript(code, file);
+  script.runInNewContext(sandbox);
+
+  if(sandbox[program.entry]) {
+    sandbox[program.entry](gctx);
+  }
+
+  processQueue();
+};
+
+if(program.args.length === 0) {
+  program.outputHelp();
+}
+
+program.args.forEach(function(file) {
+  run(file);
+});
+
+gctx.driver.send('M30');
+// cleanup
+// gctx.motion.rapid({x:0,y:0,z:0});
