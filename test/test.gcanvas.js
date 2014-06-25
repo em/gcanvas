@@ -27,8 +27,8 @@ describe('GCanvas', function() {
       ctx.moveTo(10,10);
       ctx.stroke();
 
-      hand.linear({z:1}); // plunge
-      hand.linear({x:10,y:0,z:1}); // lineTo
+      hand.linear({z:-1}); // plunge
+      hand.linear({x:10,y:0,z:-1}); // lineTo
       hand.rapid({z:0}); // retract
       hand.rapid({x:10,y:10}); // moveTo
 
@@ -72,8 +72,8 @@ describe('GCanvas', function() {
       ctx.lineTo(10,10);
       ctx.stroke();
 
-      hand.linear({z:1});
-      hand.linear({x:10,y:10,z:1});
+      hand.linear({z:-1});
+      hand.linear({x:10,y:10,z:-1});
       hand.rapid({z:0});
       expect(robot.result).eql(hand.result);
     });
@@ -84,8 +84,8 @@ describe('GCanvas', function() {
       ctx.lineTo(10,10);
       ctx.stroke();
 
-      hand.linear({z:-1});
-      hand.linear({x:10,y:10,z:-1});
+      hand.linear({z:1});
+      hand.linear({x:10,y:10,z:1});
       hand.rapid({z:0});
 
       expect(robot.result).eql(hand.result);
@@ -98,8 +98,8 @@ describe('GCanvas', function() {
       ctx.lineTo(10,10);
       ctx.stroke();
 
-      hand.linear({z:-1});
-      hand.linear({x:10,y:10,z:-1});
+      hand.linear({z:1});
+      hand.linear({x:10,y:10,z:1});
       hand.rapid({z:0});
 
       expect(robot.result).eql(hand.result);
@@ -133,8 +133,8 @@ describe('GCanvas', function() {
       ctx.stroke();
 
       hand.rapid({x:20,y:10});
-      hand.linear({z:1});
-      hand.arcCW({x:0,y:10,i:-10,j:0,z:1});
+      hand.linear({z:-1});
+      hand.arcCW({x:0,y:10,i:-10,j:0,z:-1});
       hand.rapid({z:0});
 
       expect(robot.result).eql(hand.result);
@@ -147,9 +147,9 @@ describe('GCanvas', function() {
       ctx.stroke();
 
       hand.rapid({x:20,y:10});
-      hand.arcCW({x:20,y:10,z:1,i:-10,j:0});
-      hand.arcCW({x:20,y:10,z:2,i:-10,j:0});
-      hand.arcCW({x:20,y:10,z:2,i:-10,j:0});
+      hand.arcCW({x:20,y:10,z:-1,i:-10,j:0});
+      hand.arcCW({x:20,y:10,z:-2,i:-10,j:0});
+      hand.arcCW({x:20,y:10,z:-2,i:-10,j:0});
       hand.rapid({z:0});
 
       expect(robot.result).eql(hand.result);
@@ -208,16 +208,16 @@ describe('GCanvas', function() {
       ctx.stroke();
 
       // first layer
-      hand.linear({z:1}); // plunge
-      hand.linear({x:10,y:10,z:1}); // lineTo
+      hand.linear({z:-1}); // plunge
+      hand.linear({x:10,y:10,z:-1}); // lineTo
 
       // return to start
       hand.rapid({z:0}); // retract
       hand.rapid({x:0,y:0}); // moveTo
 
       // second layer
-      hand.linear({z:2}); // plunge
-      hand.linear({x:10,y:10,z:2}); // lineTo
+      hand.linear({z:-2}); // plunge
+      hand.linear({x:10,y:10,z:-2}); // lineTo
 
       hand.rapid({z:0});
 
@@ -232,16 +232,16 @@ describe('GCanvas', function() {
       ctx.stroke();
 
       // first layer
-      hand.linear({z:-1}); // plunge
-      hand.linear({x:10,y:10,z:-1}); // lineTo
+      hand.linear({z:1}); // plunge
+      hand.linear({x:10,y:10,z:1}); // lineTo
 
       // return to start
       hand.rapid({z:0}); // retract
       hand.rapid({x:0,y:0}); // moveTo
 
       // second layer
-      hand.linear({z:-2}); // plunge
-      hand.linear({x:10,y:10,z:-2}); // lineTo
+      hand.linear({z:2}); // plunge
+      hand.linear({x:10,y:10,z:2}); // lineTo
 
       hand.rapid({z:0}); // retract
       expect(robot.result).eql(hand.result);
@@ -255,16 +255,16 @@ describe('GCanvas', function() {
       ctx.stroke();
 
       // first layer
-      hand.linear({z:-1}); // plunge
-      hand.linear({x:10,y:10,z:-1}); // lineTo
+      hand.linear({z:1}); // plunge
+      hand.linear({x:10,y:10,z:1}); // lineTo
 
       // return to start
       hand.rapid({z:0}); // retract
       hand.rapid({x:0,y:0}); // moveTo
 
       // second layer
-      hand.linear({z:-2}); // plunge
-      hand.linear({x:10,y:10,z:-2}); // lineTo
+      hand.linear({z:2}); // plunge
+      hand.linear({x:10,y:10,z:2}); // lineTo
 
       hand.rapid({z:0}); // retract
       expect(robot.result).eql(hand.result);

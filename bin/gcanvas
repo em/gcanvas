@@ -14,9 +14,10 @@ program
   .usage('[options] <file ...>')
   .option('-s, --speed <number>', 'spindle speed', Number)
   .option('-f, --feed <number>', 'feed rate', Number)
-  .option('-d, --depth <number>', 'z of final cut depth', Number)
-  .option('-c, --depthofcut <number>', 'z offset of layered cuts', Number)
-  .option('-t, --top <number>', 'z of top of work surface', Number)
+  .option('-d, --depth <number>', 'total depth to cut (relative to work surface)', Number)
+  .option('-c, --depthofcut <number>', 'incremental depth of cut per layer', Number)
+  .option('-t, --top <number>', 'distance to work surface zero', Number)
+  .option('-r, --retract <number>', 'distance to retract for rapid moves', Number)
   .option('-D, --tooldiameter <number>', 'diameter of tool', Number)
   .option('-w, --width <number>', 'canvas width', Number)
   .option('-h, --height <number>', 'canvas height', Number)
@@ -33,6 +34,7 @@ if(program.feed) gctx.feed = program.feed;
 if(program.depth) gctx.depth = program.depth;
 if(program.depthofcut) gctx.depthOfCut = program.depthofcut;
 if(program.top) gctx.top = program.top;
+if(program.retract) gctx.retract = program.retract;
 if(program.width) gctx.canvas.width = program.width;
 if(program.height) gctx.canvas.height = program.height;
 if(program.tooldiameter) gctx.toolDiameter = program.tooldiameter;
