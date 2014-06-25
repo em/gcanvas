@@ -37,6 +37,7 @@ $ gcanvas example.js | gsim
 ```
 ![alt](examples/screeny.png)
 ```
+
 $ gcanvas example.js | mycnc
 ```
 ![alt](examples/example-irl.jpg)
@@ -93,15 +94,15 @@ $ gcanvas example.js | mycnc
 
 #### Methods
 
-##### `ctx.fill(windingRule,depth)`
-##### `ctx.fill(depth)`
+##### `ctx.fill([windingRule, depth])`
+##### `ctx.fill([depth])`
 Standard canvas fill(), but extended to allow a number for depth.
 
 * `windingRule`: 'nonzero' or 'evenodd'. (default: 'nonzero') 
 * `depth`: Full depth to mill the current path to. (default: ctx.depth)
 
-##### `ctx.stroke(align, depth)`
-##### `ctx.stroke(depth)`
+##### `ctx.stroke([align, depth])`
+##### `ctx.stroke([depth])`
 Standard canvas stroke(), but can also take alignment and/or depth.
 
 * `align`: 'inner', 'outer', or 'center'. (default: ctx.align or 'center')
@@ -110,9 +111,7 @@ Standard canvas stroke(), but can also take alignment and/or depth.
 ##### `ctx.filter(fn)`
 Adds a post-processing function before Gcode generation that allows
 you to change the parameters.
-* `fn`: function(params)
-        Params is an object containing the Gcode parameters
-        before they get serialized. i.e. {x:10,y:0}
+* `fn`: function(params) i.e. {x: 10, y:20}
 
 Example: Cylindrical wrapping by transposing the X axis onto A
 ```
@@ -141,7 +140,7 @@ ctx.map('xy-z');
 ```
 
 
-##### `ctx.peckDrill(x, y, depth, peck)`
+##### `ctx.peckDrill(x, y, depth[, peck])`
 Drills to depth using a peck drilling strategy.
 * `depth`: Full depth to drill to.
 * `peck`: Length of each peck. (default: ctx.toolDiameter)
@@ -235,9 +234,8 @@ Standard canvas fillRect() with additional depth.
 Convenience method to fill a circle to depth just like fillRect().
 
 
-### Command line utility
-GCanvas comes with a command line utility that you can use to write
-machining tasks as simple standalone .js files. Just define a main(context) function in the script, and gcanvas will pass it a
+### gcanvas(1)
+Gcanvas comes with a command line utility that you can use to write standalone Javascript CNC jobs. Just define a `main(context)` function in the script, and gcanvas will pass it a
 pre-built context that outputs to stdout.
 
 ```
@@ -247,12 +245,12 @@ function main(ctx) {
 }
 ```
 ```
-$ gcanvas helloworld.js | serialportterm -baud 9600 /dev/tty.usbmodem1337
+$ gcanvas helloworld.js | mycnc
 ```
 
 #### Setups and tool changes
 
-The CLI exposes a global function `step(name, fn)` which prompts for user
+gcanvas(1) exposes a global function `step(name, fn)` which prompts for user
 intervention and raises the Z axis to 0.
 
 If the part requires multiple work setups and tool changes, break them into setup blocks:
