@@ -37,7 +37,6 @@ $ gcanvas example.js | gsim
 ```
 ![alt](examples/screeny.png)
 ```
-
 $ gcanvas example.js | mycnc
 ```
 ![alt](examples/example-irl.jpg)
