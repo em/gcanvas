@@ -19,8 +19,8 @@ program
   .option('-t, --top <number>', 'distance to work surface zero', Number)
   .option('-r, --retract <number>', 'distance to retract for rapid moves', Number)
   .option('-D, --tooldiameter <number>', 'diameter of tool', Number)
-  .option('-w, --width <number>', 'canvas width', Number)
-  .option('-h, --height <number>', 'canvas height', Number)
+  .option('-b, --bounds <width>x<height>', 'canvas width/height', String)
+  .option('-m, --mirror <axes>', 'flip orientation of given axes')
   .option('-e, --entry <name>', 'name of entry function to call. defaults to main(ctx)', 'main')
   .option('--step <number>', 'skip to step n', Number)
   .option('--only <number>', 'run step n and stop', Number)
@@ -28,6 +28,12 @@ program
 program.parse(process.argv);
 
 var gctx = new GCanvas();
+
+if(program.bounds) {
+  var parts = program.bounds.split('x');
+  gctx.canvas.width = Number(parts[0]);
+  gctx.canvas.height = Number(parts[1]);
+}
 
 if(program.speed) gctx.speed = program.speed;
 if(program.feed) gctx.feed = program.feed;
@@ -115,16 +121,18 @@ function run(file) {
   }
 
   processQueue();
-};
+}
 
 if(program.args.length === 0) {
   program.outputHelp();
 }
+else {
+  program.args.forEach(function(file) {
+    run(file);
+  });
 
-program.args.forEach(function(file) {
-  run(file);
-});
+  gctx.driver.send('M30');
+}
 
-gctx.driver.send('M30');
 // cleanup
 // gctx.motion.rapid({x:0,y:0,z:0});
