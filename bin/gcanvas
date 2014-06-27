@@ -20,7 +20,6 @@ program
   .option('-r, --retract <number>', 'distance to retract for rapid moves', Number)
   .option('-D, --tooldiameter <number>', 'diameter of tool', Number)
   .option('-b, --bounds <width>x<height>', 'canvas width/height', String)
-  .option('-m, --mirror <axes>', 'flip orientation of given axes')
   .option('-e, --entry <name>', 'name of entry function to call. defaults to main(ctx)', 'main')
   .option('--step <number>', 'skip to step n', Number)
   .option('--only <number>', 'run step n and stop', Number)
