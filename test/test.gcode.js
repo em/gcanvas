@@ -40,6 +40,11 @@ describe('GcodeDriver', function() {
     expect(result).eql(['F100']);
   });
 
+  it('#meta', function() {
+    driver.meta({hello:'world'});
+    expect(result).eql(['(hello=world)']);
+  });
+
   describe('#coolant', function() {
     it('uses M07 if "mist"', function() {
       driver.coolant("mist");
