@@ -111,7 +111,13 @@ function run(file) {
         console: console
       };
 
-  var code = fs.readFileSync(file);
+  var code = ''+fs.readFileSync(file);
+
+  // Remove #! declaration if there is one
+  if(code[0] == '#') {
+    code = code.split('\n').slice(1).join('\n');
+  }
+
   var script = vm.createScript(code, file);
   script.runInNewContext(sandbox);
 
