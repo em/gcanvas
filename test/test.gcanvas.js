@@ -1,6 +1,7 @@
 describe('GCanvas', function() {
   var expect = require('chai').expect
   var GCanvas = require('../')
+  var SubPath = require('../lib/subpath')
   var TestDriver = require('./support/testdriver')
 
   var ctx, robot, hand;
@@ -285,6 +286,63 @@ describe('GCanvas', function() {
 
       expect(robot.result).eql(hand.result);
     });
+
+    it('helixes down w/ ramping=true', function() {
+      ctx.rect(0,0,10,10);
+      ctx.toolDiameter = 8;
+      ctx.depth = 10;
+      ctx.ramping = true;
+      ctx.fill();
+
+      // helix
+      hand.rapid({x:6,y:6});
+      hand.linear({x:6, y:4, z:-3});
+      hand.linear({x:4, y:4, z:-5});
+      hand.linear({x:4, y:6, z:-8});
+      hand.linear({x:6, y:6, z:-10});
+
+      // finishing pass
+      hand.linear({x:6, y:4, z:-10});
+      hand.linear({x:4, y:4, z:-10});
+      hand.linear({x:4, y:6, z:-10});
+      hand.linear({x:6, y:6, z:-10});
+
+      // retract
+      hand.rapid({z:0});
+
+      expect(robot.result).eql(hand.result);
+    });
+
+    it('steps down w/ ramping=false', function() {
+      ctx.rect(0,0,10,10);
+      ctx.toolDiameter = 8;
+      ctx.depthOfCut = 5;
+      ctx.depth = 10;
+      ctx.ramping = false;
+      ctx.fill();
+
+      // pass 1
+      hand.rapid({x:6, y:6});
+      hand.linear({z:-5});
+      hand.linear({x:6, y:4, z:-5});
+      hand.linear({x:4, y:4, z:-5});
+      hand.linear({x:4, y:6, z:-5});
+      hand.linear({x:6, y:6, z:-5});
+
+      // pass 2
+      hand.rapid({z:0});
+      hand.linear({z:-10});
+      hand.linear({x:6, y:4, z:-10});
+      hand.linear({x:4, y:4, z:-10});
+      hand.linear({x:4, y:6, z:-10});
+      hand.linear({x:6, y:6, z:-10});
+
+      // retract
+      hand.rapid({z:0});
+
+      expect(robot.result).eql(hand.result);
+    });
+
 
     it('ignores 0 alpha fillStyle', function() {
       ctx.rect(0,0,10,10);
