@@ -13,14 +13,14 @@ program
   .version(require('../package.json').version)
   .usage('[options] <file ...>')
   .option('-s, --speed <number>', 'spindle speed', Number)
-  .option('-f, --feed <number>', 'feed rate', Number)
+  .option('-f, --feed <number>', 'effective feed rate', Number)
   .option('-d, --depth <number>', 'total depth to cut (relative to work surface)', Number)
   .option('-c, --depthofcut <number>', 'incremental depth of cut per layer', Number)
   .option('-t, --top <number>', 'distance to work surface zero', Number)
   .option('-r, --retract <number>', 'distance to retract for rapid moves', Number)
   .option('-D, --tooldiameter <number>', 'diameter of tool', Number)
-  .option('-b, --bounds <width>x<height>', 'canvas width/height', String)
-  .option('-e, --entry <name>', 'name of entry function to call. defaults to main(ctx)', 'main')
+  .option('-b, --bounds <width>x<height>x<depth>', 'standard canvas width/height + depth', String)
+  .option('-e, --entry <name>', 'name of entry function to call  (default: main)', 'main')
   .option('--step <number>', 'skip to step n', Number)
   .option('--only <number>', 'run step n and stop', Number)
 
@@ -32,6 +32,7 @@ if(program.bounds) {
   var parts = program.bounds.split('x');
   gctx.canvas.width = Number(parts[0]);
   gctx.canvas.height = Number(parts[1]);
+  gctx.canvas.depth = Number(parts[2]);
 }
 
 if(program.speed) gctx.speed = program.speed;
