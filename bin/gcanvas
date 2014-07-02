@@ -21,6 +21,8 @@ program
   .option('-D, --tooldiameter <number>', 'diameter of tool', Number)
   .option('-b, --bounds <width>x<height>x<depth>', 'standard canvas width/height + depth', String)
   .option('-e, --entry <name>', 'name of entry function to call  (default: main)', 'main')
+  .option('--mm', 'set unit mode to metric')
+  .option('--inch', 'set unit mode to imperial')
   .option('--step <number>', 'skip to step n', Number)
   .option('--only <number>', 'run step n and stop', Number)
 
@@ -35,6 +37,8 @@ if(program.bounds) {
   gctx.canvas.depth = Number(parts[2]);
 }
 
+if(program.mm) gctx.unit = 'mm';
+if(program.inch) gctx.unit = 'inch';
 if(program.speed) gctx.speed = program.speed;
 if(program.feed) gctx.feed = program.feed;
 if(program.depth) gctx.depth = program.depth;
