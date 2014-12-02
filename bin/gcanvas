@@ -12,19 +12,19 @@ var fs = require('fs')
 program
   .version(require('../package.json').version)
   .usage('[options] <file ...>')
-  .option('-s, --speed <number>', 'spindle speed', Number)
-  .option('-f, --feed <number>', 'effective feed rate', Number)
-  .option('-d, --depth <number>', 'total depth to cut (relative to work surface)', Number)
-  .option('-c, --depthofcut <number>', 'incremental depth of cut per layer', Number)
-  .option('-t, --top <number>', 'distance to work surface zero', Number)
-  .option('-r, --retract <number>', 'distance to retract for rapid moves', Number)
-  .option('-D, --tooldiameter <number>', 'diameter of tool', Number)
+  .option('-s, --speed <number>', 'spindle speed', eval)
+  .option('-f, --feed <number>', 'effective feed rate', eval)
+  .option('-d, --depth <number>', 'total depth to cut (relative to work surface)', eval)
+  .option('-c, --depthofcut <number>', 'incremental depth of cut per layer', eval)
+  .option('-t, --top <number>', 'distance to work surface zero', eval)
+  .option('-r, --retract <number>', 'distance to retract for rapid moves', eval)
+  .option('-D, --tooldiameter <number>', 'diameter of tool', eval)
   .option('-b, --bounds <width>x<height>x<depth>', 'standard canvas width/height + depth', String)
   .option('-e, --entry <name>', 'name of entry function to call  (default: main)', 'main')
   .option('--mm', 'set unit mode to metric')
   .option('--inch', 'set unit mode to imperial')
-  .option('--step <number>', 'skip to step n', Number)
-  .option('--only <number>', 'run step n and stop', Number)
+  .option('--step <number>', 'skip to step n', eval)
+  .option('--only <number>', 'run step n and stop', eval)
 
 program.parse(process.argv);
 
@@ -32,9 +32,9 @@ var gctx = new GCanvas();
 
 if(program.bounds) {
   var parts = program.bounds.split('x');
-  gctx.canvas.width = Number(parts[0]);
-  gctx.canvas.height = Number(parts[1]);
-  gctx.canvas.depth = Number(parts[2]);
+  gctx.canvas.width = eval(parts[0]);
+  gctx.canvas.height = eval(parts[1]);
+  gctx.canvas.depth = eval(parts[2]);
 }
 
 if(program.mm) gctx.unit = 'mm';
