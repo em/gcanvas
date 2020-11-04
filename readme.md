@@ -1,3 +1,6 @@
+NOTICE: I have pretty much abandoned this project. I just don't have the means or personal investment to maintain it, because I relocated to another country some time ago and haven't had a CNC machine since. I stick to traditional handtool woodworking these days when I do do find the time to make things.
+========
+
 Gcanvas
 ========
 An HTML5 Canvas implementation that generates Gcode for 4 axis CNC milling. 
