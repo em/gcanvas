@@ -1,4 +1,4 @@
-NOTICE: I have pretty much abandoned this project. I just don't have the means or personal investment to maintain it, because I relocated to another country some time ago and haven't had a CNC machine since. I stick to traditional handtool woodworking these days when I do do find the time to make things.
+NOTICE: I have pretty much abandoned this project. I just don't have the means or incentive to maintain it, because I relocated to another country some time ago and haven't had a CNC machine since. I stick to traditional handtool woodworking these days when I do find the time to make things.
 ========
 
 Gcanvas
